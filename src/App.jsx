@@ -5,6 +5,7 @@ import {
     categories,
     CATEGORY_TAXONOMY,
 } from './data/products';
+import { api } from './utils/api';
 import AnnouncementBar from './components/AnnouncementBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -34,43 +35,13 @@ export default function App() {
     const [isStockManagerOpen, setIsStockManagerOpen] = useState(false);
     const [activeLegalDoc, setActiveLegalDoc] = useState(null);
 
-    // Catalog Database State (v3 schema with subcategories)
-    const [products, setProducts] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sj_products_v3');
-            return saved ? JSON.parse(saved) : initialProducts;
-        } catch {
-            return initialProducts;
-        }
-    });
+    // Products state (defaults to initial, updates immediately when D1 responds)
+    const [products, setProducts] = useState(initialProducts);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem('sj_products_v3', JSON.stringify(products));
-        } catch (err) {
-            console.error('Storage quota exceeded when saving products:', err);
-        }
-    }, [products]);
+    // Reviews state
+    const [reviews, setReviews] = useState(initialReviews);
 
-    // Customer Reviews State (v3 schema with verification & adminResponse)
-    const [reviews, setReviews] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sj_reviews_v3');
-            return saved ? JSON.parse(saved) : initialReviews;
-        } catch {
-            return initialReviews;
-        }
-    });
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('sj_reviews_v3', JSON.stringify(reviews));
-        } catch (err) {
-            console.error('Storage quota exceeded when saving reviews:', err);
-        }
-    }, [reviews]);
-
-    // Shopping Basket State
+    // Shopping Basket state (kept in local storage for buyer privacy)
     const [cart, setCart] = useState(() => {
         try {
             const saved = localStorage.getItem('sj_cart_v3');
@@ -84,7 +55,7 @@ export default function App() {
         localStorage.setItem('sj_cart_v3', JSON.stringify(cart));
     }, [cart]);
 
-    // Authenticated User State
+    // Authenticated user state
     const [currentUser, setCurrentUser] = useState(() => {
         try {
             const saved = localStorage.getItem('sj_user_v3');
@@ -93,6 +64,32 @@ export default function App() {
             return null;
         }
     });
+
+    // Fetch live global data from Cloudflare D1 on page load
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadCloudflareData() {
+            const [remoteProducts, remoteReviews] = await Promise.all([
+                api.getProducts(),
+                api.getReviews(),
+            ]);
+
+            if (isMounted) {
+                if (remoteProducts && Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+                    setProducts(remoteProducts);
+                }
+                if (remoteReviews && Array.isArray(remoteReviews) && remoteReviews.length > 0) {
+                    setReviews(remoteReviews);
+                }
+            }
+        }
+
+        loadCloudflareData();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleLogin = (userObj) => {
         setCurrentUser(userObj);
@@ -168,7 +165,8 @@ export default function App() {
         setCart((prev) => prev.filter((_, idx) => idx !== index));
     };
 
-    const handleCompleteOrder = (orderSnapshot) => {
+    // Complete Order: Deduct locally and submit atomic transaction to D1
+    const handleCompleteOrder = async (orderSnapshot) => {
         setProducts((prevProducts) =>
             prevProducts.map((prod) => {
                 const boughtQty = orderSnapshot.items
@@ -181,61 +179,76 @@ export default function App() {
             })
         );
         setCart([]);
+        await api.submitOrder(orderSnapshot);
     };
 
-    // Admin Product CRUD Handlers (guarded by role check)
+    // Admin D1 Mutations
     const requireAdmin = () => currentUser?.role === 'admin';
 
-    const handleUpdateStock = (productId, newStock) => {
+    const handleUpdateStock = async (productId, newStock) => {
         if (!requireAdmin()) return;
         setProducts((prev) =>
             prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
         );
+        await api.updateStock(productId, newStock);
     };
 
-    const handleAddNewProduct = (newProduct) => {
+    const handleAddNewProduct = async (newProduct) => {
         if (!requireAdmin()) return;
         setProducts((prev) => [newProduct, ...prev]);
+        await api.addProduct(newProduct);
     };
 
-    const handleUpdateProduct = (updatedProduct) => {
+    const handleUpdateProduct = async (updatedProduct) => {
         if (!requireAdmin()) return;
         setProducts((prev) =>
             prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
         );
+        await api.updateProduct(updatedProduct);
     };
 
-    const handleDeleteProduct = (productId) => {
+    const handleDeleteProduct = async (productId) => {
         if (!requireAdmin()) return;
         setProducts((prev) => prev.filter((p) => p.id !== productId));
+        await api.deleteProduct(productId);
     };
 
     const handleResetCatalog = () => {
         if (!requireAdmin()) return;
-        localStorage.removeItem('sj_products_v3');
         setProducts(initialProducts);
     };
 
     // Admin Review Moderation Handlers
-    const handleToggleVerifyReview = (reviewId) => {
+    const handleAddReview = async (newRev) => {
+        setReviews((prev) => [newRev, ...prev]);
+        await api.submitReview(newRev);
+    };
+
+    const handleToggleVerifyReview = async (reviewId) => {
         if (!requireAdmin()) return;
+        const current = reviews.find((r) => r.id === reviewId);
         setReviews((prev) =>
             prev.map((r) => (r.id === reviewId ? { ...r, verified: !r.verified } : r))
         );
+        if (current) {
+            await api.toggleVerifyReview(reviewId, current.verified);
+        }
     };
 
-    const handleRespondToReview = (reviewId, responseText) => {
+    const handleRespondToReview = async (reviewId, responseText) => {
         if (!requireAdmin()) return;
         setReviews((prev) =>
             prev.map((r) =>
                 r.id === reviewId ? { ...r, adminResponse: responseText } : r
             )
         );
+        await api.respondToReview(reviewId, responseText);
     };
 
-    const handleDeleteReview = (reviewId) => {
+    const handleDeleteReview = async (reviewId) => {
         if (!requireAdmin()) return;
         setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+        await api.deleteReview(reviewId);
     };
 
     const availableSubcategories = CATEGORY_TAXONOMY[activeCategory] || [];
@@ -271,7 +284,6 @@ export default function App() {
                             }}
                         />
 
-                        {/* Main Product Catalog Section */}
                         <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-8 border-b border-stone-200">
                                 <div>
@@ -300,7 +312,6 @@ export default function App() {
                                 </div>
                             </div>
 
-                            {/* Department Filter Pills */}
                             <div className="flex flex-wrap items-center gap-2 mt-6">
                                 {categories.map((cat) => (
                                     <button
@@ -317,7 +328,6 @@ export default function App() {
                                 ))}
                             </div>
 
-                            {/* Subcategory Filter Bar (Appears when a Department with Subcategories is selected) */}
                             {availableSubcategories.length > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-stone-200/60">
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mr-1">
@@ -349,7 +359,6 @@ export default function App() {
                                 </div>
                             )}
 
-                            {/* Product Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-10">
                                 {filteredProducts.map((product) => (
                                     <ProductCard
@@ -364,10 +373,9 @@ export default function App() {
                             </div>
                         </section>
 
-                        {/* Customer Reviews with Moderation Support */}
                         <ReviewsSection
                             reviews={reviews}
-                            onAddReview={(newRev) => setReviews((prev) => [newRev, ...prev])}
+                            onAddReview={handleAddReview}
                             products={products}
                             currentUser={currentUser}
                             onOpenAdmin={() => {
