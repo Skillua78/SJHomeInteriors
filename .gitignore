@@ -1,1 +1,5 @@
 node_modules/\ndist/\n.DS_Store
+
+.env
+.env.local
+.env.*.local
