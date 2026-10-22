@@ -1,3 +1,42 @@
+/**
+ * ============================================================================
+ * DEVELOPER GUIDE: HOW TO ADD NEW PRODUCTS OR EDIT STOCK
+ * ============================================================================
+ * You can edit products right here in code, OR use the interactive "Manage Stock"
+ * button on the website navbar and click "Copy products.js Code" to paste here!
+ *
+ * TEMPLATE FOR NEW ITEM:
+ * {
+ *   id: 'unique-slug-id',
+ *   name: 'Product Title',
+ *   price: 499.00,
+ *   category: 'Sofas', // Options: 'U-Shape', 'Sofa Bed', 'Corner', '3+2 Set', 'Bedroom', 'Living Room', 'Dining Room', 'Outdoor'
+ *   secondaryCategory: 'Sofas',
+ *   badge: 'New Arrival',
+ *   stock: 5,          // Set to 0 to mark as Sold Out / Pre-Order
+ *   isPopular: true,   // Shows in "Popular Products" filter
+ *   isTrending: true,  // Shows in "Trending Now" filter
+ *   delivery: '2–10 days',
+ *   colors: ['Grey', 'Beige'],
+ *   image: 'https://your-image-link.jpg',
+ *   dimensions: ['Length: 200 cm', 'Depth: 90 cm', 'Height: 85 cm'],
+ *   features: ['Feature 1', 'Feature 2']
+ * }
+ * ============================================================================
+ */
+
+export const SHOP_INFO = {
+    name: 'SJ Home Interiors',
+    phoneDisplay: '07830 141250',
+    phoneHref: 'tel:07830141250',
+    whatsappHref: 'https://wa.me/447830141250',
+    email: 'info@sjhomeinteriors.co.uk',
+    address: 'High Street, Maltby, Rotherham, S66 8LA',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=High+Street+Maltby+Rotherham+S66+8LA',
+    mapsEmbedUrl: 'https://www.google.com/maps?q=High+Street+Maltby+Rotherham+S66+8LA&output=embed',
+    hours: 'Mon – Sat: 9:30 AM – 6:00 PM | Sun: 10:30 AM – 4:30 PM',
+};
+
 export const colorMap = {
     'Beige': '#D8CBB8',
     'Cream': '#F3EFE6',
@@ -9,21 +48,31 @@ export const colorMap = {
     'Emerald & Gold': '#1B4332',
     'Grey': '#8D9196',
     'Taupe': '#A89F91',
+    'Natural Oak': '#C59B6D',
+    'Walnut': '#5C4033',
+    'White Marble': '#ECEAE4',
+    'Anthracite': '#2F353B',
 };
 
 export const categories = [
-    { id: 'All', label: 'All Models' },
+    { id: 'All', label: 'All Collections' },
+    { id: 'Popular', label: '★ Popular Products' },
+    { id: 'Trending', label: '🔥 Trending Now' },
     { id: 'U-Shape', label: 'U-Shape Sofas' },
     { id: 'Sofa Bed', label: 'Sofa Beds' },
     { id: 'Corner', label: 'Corner & Recliners' },
     { id: '3+2 Set', label: '3+2 Sofa Sets' },
+    { id: 'Bedroom', label: 'Bedroom & Beds' },
+    { id: 'Living Room', label: 'Living Room' },
+    { id: 'Dining Room', label: 'Dining Room' },
+    { id: 'Outdoor', label: 'Garden & Outdoor' },
 ];
 
 export const departmentCards = [
     {
-        title: 'Sofas',
-        subtitle: 'U-Shape, Corner & Sets',
-        categoryFilter: 'All',
+        title: 'Sofas & Corners',
+        subtitle: 'U-Shape, Recliners & Sets',
+        categoryFilter: 'U-Shape',
         image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
     },
     {
@@ -34,31 +83,32 @@ export const departmentCards = [
     },
     {
         title: 'Bedroom',
-        subtitle: 'Double & Super Kingsize',
-        categoryFilter: 'All',
+        subtitle: 'Ottoman Beds & Mattresses',
+        categoryFilter: 'Bedroom',
         image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80',
     },
     {
         title: 'Living Room',
-        subtitle: 'Coffee Tables & TV Units',
-        categoryFilter: 'All',
+        subtitle: 'Coffee Tables, TV Units & Panels',
+        categoryFilter: 'Living Room',
         image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=600&q=80',
     },
     {
         title: 'Dining Room',
         subtitle: 'Dining Sets & Sideboards',
-        categoryFilter: 'All',
+        categoryFilter: 'Dining Room',
         image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=600&q=80',
     },
     {
-        title: 'Outdoor',
-        subtitle: 'Garden Lounge Sets',
-        categoryFilter: 'All',
+        title: 'Garden Furniture',
+        subtitle: 'Outdoor Lounge & Firepit Sets',
+        categoryFilter: 'Outdoor',
         image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80',
     },
 ];
 
-export const products = [
+export const initialProducts = [
+    // ==================== SOFAS ====================
     {
         id: 'luna-u-shape',
         name: 'Luna U Shape Sofa Bed',
@@ -66,7 +116,9 @@ export const products = [
         category: 'U-Shape',
         secondaryCategory: 'Sofa Bed',
         badge: 'Bestseller',
-        inStock: true,
+        stock: 6,
+        isPopular: true,
+        isTrending: true,
         delivery: '2–10 days',
         colors: ['Beige', 'Black', 'Green', 'Grey'],
         image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85',
@@ -89,7 +141,9 @@ export const products = [
         category: 'Sofa Bed',
         secondaryCategory: 'Corner',
         badge: 'Popular Choice',
-        inStock: true,
+        stock: 8,
+        isPopular: true,
+        isTrending: false,
         delivery: '2–14 days',
         colors: ['Grey', 'Beige', 'Charcoal'],
         image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1000&q=85',
@@ -101,7 +155,7 @@ export const products = [
         features: [
             'Universal orientation (can be assembled left or right handed)',
             'Integrated pull-out sofa bed + lift-up storage compartment',
-            'Plush fullback scatter-alternative support cushions',
+            'Plush fullback support cushions',
         ],
     },
     {
@@ -109,16 +163,17 @@ export const products = [
         name: 'Paris Fullback Sofa 3+2 Seater',
         price: 1299.00,
         category: '3+2 Set',
-        secondaryCategory: 'All',
+        secondaryCategory: 'Sofas',
         badge: 'Complete Suite',
-        inStock: true,
+        stock: 4,
+        isPopular: true,
+        isTrending: false,
         delivery: '2–14 days',
         colors: ['Cream', 'Grey', 'Taupe'],
         image: 'https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=1000&q=85',
         dimensions: [
             '3-Seater + 2-Seater Length: 224 cm x 177 cm',
-            'Depth: 87 cm',
-            'Height: 79 cm',
+            'Depth: 87 cm | Height: 79 cm',
         ],
         features: [
             'Soft-touch premium upholstery',
@@ -133,7 +188,9 @@ export const products = [
         category: 'U-Shape',
         secondaryCategory: 'Sofa Bed',
         badge: 'Extra Large Sleeper',
-        inStock: true,
+        stock: 3,
+        isPopular: false,
+        isTrending: true,
         delivery: '2–14 days',
         colors: ['Grey', 'Beige', 'Black'],
         image: 'https://images.unsplash.com/photo-1567016432779-094069958ea5?auto=format&fit=crop&w=1000&q=85',
@@ -155,7 +212,9 @@ export const products = [
         category: 'Corner',
         secondaryCategory: 'Recliner',
         badge: 'Smart Tech Sofa',
-        inStock: true,
+        stock: 5,
+        isPopular: true,
+        isTrending: true,
         delivery: '2–14 days',
         colors: ['Grey', 'Charcoal'],
         image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=85',
@@ -177,7 +236,9 @@ export const products = [
         category: 'Sofa Bed',
         secondaryCategory: 'Corner',
         badge: 'Great Value',
-        inStock: true,
+        stock: 7,
+        isPopular: false,
+        isTrending: false,
         delivery: '2–14 days',
         colors: ['Beige', 'Grey', 'Green'],
         image: 'https://images.unsplash.com/photo-1512212621149-107ffe572d2f?auto=format&fit=crop&w=1000&q=85',
@@ -197,21 +258,251 @@ export const products = [
         name: 'Jupiter Fullback Sofa Large Corner',
         price: 1499.00,
         category: 'Corner',
-        secondaryCategory: 'All',
-        badge: 'Sold Out / Pre-Order',
-        inStock: false,
-        delivery: 'Pre-Order Enquiry',
+        secondaryCategory: 'Sofas',
+        badge: 'Pre-Order',
+        stock: 0,
+        isPopular: true,
+        isTrending: false,
+        delivery: 'Pre-Order (2–3 Weeks)',
         colors: ['Cream & Gold', 'Charcoal & Gold', 'Emerald & Gold'],
         image: 'https://images.unsplash.com/photo-1631679706909-1844bbd07221?auto=format&fit=crop&w=1000&q=85',
         dimensions: [
             'Length: 300 cm x 310 cm',
-            'Depth: 100 cm',
-            'Height: 90 cm',
+            'Depth: 100 cm | Height: 90 cm',
         ],
         features: [
             'Distinctive luxury armrests with brushed Gold Trim sides',
             'Extra-deep 100 cm foam-filled seat cushions',
             'Removable cushion covers for easy care',
         ],
+    },
+
+    // ==================== BEDROOM ====================
+    {
+        id: 'windsor-wingback-ottoman-bed',
+        name: 'Kensington Wingback Gas-Lift Ottoman Bed Frame',
+        price: 649.00,
+        category: 'Bedroom',
+        secondaryCategory: 'Beds',
+        badge: 'Showroom Favourite',
+        stock: 9,
+        isPopular: true,
+        isTrending: true,
+        delivery: '2–7 days',
+        colors: ['Cream', 'Grey', 'Charcoal', 'Taupe'],
+        image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Double (4ft6): W 148 cm x L 205 cm',
+            'King (5ft): W 163 cm x L 215 cm',
+            'Super King (6ft): W 193 cm x L 215 cm | Headboard Height: 137 cm',
+        ],
+        features: [
+            'Heavy-duty hydraulic gas-lift underbed storage base',
+            'Hand-tufted deep fluted wingback headboard',
+            'Solid hardwood slatted frame',
+        ],
+    },
+    {
+        id: 'royal-ortho-mattress',
+        name: 'Windsor 2000 Pocket Sprung Pillow-Top Mattress',
+        price: 379.00,
+        category: 'Bedroom',
+        secondaryCategory: 'Mattresses',
+        badge: 'Orthopaedic Support',
+        stock: 14,
+        isPopular: false,
+        isTrending: true,
+        delivery: '2–5 days',
+        colors: ['White Marble'],
+        image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Available in Single, Double, King & Super King',
+            'Mattress Depth: 30 cm Luxury Box Pillow-Top',
+        ],
+        features: [
+            '2000 individual encapsulated pocket springs',
+            'Hypoallergenic breathable Tencel quilted sleep surface',
+            'Medium-firm orthopaedic spinal alignment support',
+        ],
+    },
+
+    // ==================== LIVING ROOM ====================
+    {
+        id: 'aria-fluted-coffee-table',
+        name: 'Aria Fluted Oak & Sintered Stone Coffee Table',
+        price: 289.00,
+        category: 'Living Room',
+        secondaryCategory: 'Coffee Tables',
+        badge: 'Trending Design',
+        stock: 11,
+        isPopular: false,
+        isTrending: true,
+        delivery: '2–7 days',
+        colors: ['Natural Oak', 'Walnut', 'Black'],
+        image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Diameter: 90 cm | Height: 42 cm',
+            'Top Thickness: 18 mm Heat & Scratch Resistant Stone',
+        ],
+        features: [
+            'Architectural tambour fluted wood drum base',
+            'Stain-proof matte sintered marble tabletop',
+            'Hidden internal storage shelf',
+        ],
+    },
+    {
+        id: 'modena-slatted-tv-unit',
+        name: 'Modena 200cm Slatted Walnut Media TV Unit',
+        price: 429.00,
+        category: 'Living Room',
+        secondaryCategory: 'TV Units',
+        badge: 'New Arrival',
+        stock: 5,
+        isPopular: true,
+        isTrending: false,
+        delivery: '2–7 days',
+        colors: ['Walnut', 'Natural Oak', 'Black'],
+        image: 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Width: 200 cm x Depth: 40 cm x Height: 52 cm',
+            'Fits TVs up to 85 inches',
+        ],
+        features: [
+            'Soft-close slatted sliding doors with rear cable management',
+            'Brushed bronze tapered legs',
+            'Delivered fully assembled',
+        ],
+    },
+    {
+        id: 'acoustic-slat-wall-panels',
+        name: 'Luxury Acoustic Wood Slat Wall Panels (Box of 4)',
+        price: 159.00,
+        category: 'Living Room',
+        secondaryCategory: 'Wall Panels',
+        badge: 'DIY Bestseller',
+        stock: 22,
+        isPopular: true,
+        isTrending: true,
+        delivery: '2–5 days',
+        colors: ['Natural Oak', 'Walnut', 'Charcoal'],
+        image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Each Panel: 240 cm Height x 60 cm Width x 2.1 cm Depth',
+            'Total Coverage per Box: 5.76 sqm',
+        ],
+        features: [
+            'Class-A sound absorbing recycled acoustic felt backing',
+            'Real wood veneer slats for feature media & bedroom walls',
+            'Easy installation with grab adhesive or black drywall screws',
+        ],
+    },
+
+    // ==================== DINING ROOM ====================
+    {
+        id: 'bellagio-dining-set',
+        name: 'Bellagio 6-Seater Marble Dining Table & Velvet Chairs Set',
+        price: 899.00,
+        category: 'Dining Room',
+        secondaryCategory: 'Dining Sets',
+        badge: '6 Chairs Included',
+        stock: 4,
+        isPopular: true,
+        isTrending: true,
+        delivery: '3–10 days',
+        colors: ['White Marble', 'Grey', 'Cream & Gold'],
+        image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Table: Length 180 cm x Width 90 cm x Height 76 cm',
+            'Chairs (x6): W 54 cm x D 60 cm x H 86 cm',
+        ],
+        features: [
+            'Includes 180cm table + 6 diamond-stitched knocker-back velvet chairs',
+            'Scratch & heat resistant polished sintered stone top',
+            'Sculptural architectural pedestal base',
+        ],
+    },
+    {
+        id: 'henley-oak-sideboard',
+        name: 'Henley Fluted Oak 4-Door Dining Sideboard',
+        price: 479.00,
+        category: 'Dining Room',
+        secondaryCategory: 'Sideboards',
+        badge: 'Handcrafted Finish',
+        stock: 6,
+        isPopular: false,
+        isTrending: false,
+        delivery: '3–10 days',
+        colors: ['Natural Oak', 'Walnut'],
+        image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Width: 160 cm x Depth: 45 cm x Height: 80 cm',
+        ],
+        features: [
+            'Four push-to-open doors with adjustable internal shelving',
+            'Brushed brass base frame and hardware',
+            'Ideal for dining tableware or hallway storage',
+        ],
+    },
+
+    // ==================== OUTDOOR / GARDEN ====================
+    {
+        id: 'sorrento-garden-firepit-set',
+        name: 'Sorrento Corner Outdoor Lounge & Gas Firepit Dining Set',
+        price: 1149.00,
+        category: 'Outdoor',
+        secondaryCategory: 'Garden Furniture',
+        badge: 'All-Weather Luxury',
+        stock: 3,
+        isPopular: true,
+        isTrending: true,
+        delivery: '3–10 days',
+        colors: ['Anthracite', 'Grey', 'Beige'],
+        image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85',
+        dimensions: [
+            'Corner Sofa: 245 cm x 245 cm | Depth: 82 cm',
+            'Firepit Table: 140 cm x 85 cm | Includes 2 Footstools',
+        ],
+        features: [
+            'Integrated 40,000 BTU stainless steel gas firepit table with glass wind guard',
+            'Rust-proof powder-coated aluminium frame & UV-resistant weave',
+            '12 cm deep showerproof quick-dry cushions included',
+        ],
+    },
+];
+
+export const initialReviews = [
+    {
+        id: 'rev-1',
+        author: 'Sarah Jenkins',
+        location: 'Maltby, Rotherham',
+        rating: 5,
+        date: '14 Oct 2026',
+        productName: 'Luna U Shape Sofa Bed',
+        comment: 'Popped into the High Street shop in Maltby and the service was brilliant. Our Luna U-Shape sofa arrived in 4 days and the two lads assembled it in the living room and took all the packaging away. Quality is unreal for the price!',
+        images: [
+            'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+        ],
+    },
+    {
+        id: 'rev-2',
+        author: 'David & Chloe M.',
+        location: 'Sheffield',
+        rating: 5,
+        date: '02 Oct 2026',
+        productName: 'Bellagio 6-Seater Marble Dining Table & Velvet Chairs Set',
+        comment: 'Transformed our kitchen-diner. The marble top is super heavy and solid, and the chairs are really comfortable. Highly recommend SJ Home Interiors.',
+        images: [
+            'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=600&q=80',
+        ],
+    },
+    {
+        id: 'rev-3',
+        author: 'Amir Khan',
+        location: 'Doncaster',
+        rating: 5,
+        date: '25 Sep 2026',
+        productName: 'Kensington Wingback Gas-Lift Ottoman Bed Frame',
+        comment: 'Sturdy gas lift mechanism and loads of storage underneath. Much better build quality than the big chain stores.',
+        images: [],
     },
 ];
