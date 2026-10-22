@@ -1,19 +1,14 @@
 /**
  * /api/products
- * GET: Public global product catalog fetch
- * POST: Admin-authenticated product creation
- * PUT: Admin-authenticated product/stock updates
- * DELETE: Admin-authenticated product deletion
+ * Supports optional stock (null = hidden, 0 = out of stock, >0 = count),
+ * previousPrice (strikethrough price), description, and multi-image galleries.
  */
 
 function verifyAdmin(request, env) {
     const authHeader = request.headers.get('Authorization') || '';
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
     const validSecret = env.ADMIN_API_KEY;
-    if (!validSecret || token !== validSecret) {
-        return false;
-    }
-    return true;
+    return Boolean(validSecret && token === validSecret);
 }
 
 function jsonResponse(data, status = 200) {
@@ -21,25 +16,50 @@ function jsonResponse(data, status = 200) {
         status,
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': status === 200 ? 'public, s-maxage=30, max-age=10' : 'no-store',
+            'Cache-Control': status === 200 ? 'no-cache' : 'no-store',
         },
     });
 }
 
+function parseStockValue(rawStock) {
+    if (rawStock === null || rawStock === undefined || rawStock === '') {
+        return null;
+    }
+    const parsed = parseInt(rawStock, 10);
+    if (Number.isNaN(parsed)) return null;
+    return Math.max(0, parsed);
+}
+
+function parsePreviousPrice(rawPrev) {
+    if (rawPrev === null || rawPrev === undefined || rawPrev === '') {
+        return null;
+    }
+    const parsed = parseFloat(rawPrev);
+    if (Number.isNaN(parsed) || parsed <= 0) return null;
+    return parsed;
+}
+
 function mapProductFromRow(row) {
+    const parsedImages = JSON.parse(row.images_json || '[]');
+    const primaryImage = row.image || parsedImages[0] || '';
+    const gallery = parsedImages.length > 0 ? parsedImages : primaryImage ? [primaryImage] : [];
+
     return {
         id: row.id,
         name: row.name,
-        price: row.price,
+        price: Number(row.price),
+        previousPrice: row.previous_price !== null && row.previous_price !== undefined ? Number(row.previous_price) : null,
+        description: row.description || '',
         category: row.category,
-        subcategory: row.subcategory,
-        badge: row.badge,
-        stock: row.stock,
+        subcategory: row.subcategory || '',
+        badge: row.badge || '',
+        stock: row.stock === null || row.stock === undefined ? null : Number(row.stock),
         isPopular: Boolean(row.is_popular),
         isTrending: Boolean(row.is_trending),
-        delivery: row.delivery,
+        delivery: row.delivery || '',
         colors: JSON.parse(row.colors_json || '[]'),
-        image: row.image,
+        image: primaryImage,
+        images: gallery,
         dimensions: JSON.parse(row.dimensions_json || '[]'),
         features: JSON.parse(row.features_json || '[]'),
     };
@@ -50,9 +70,7 @@ export async function onRequestGet({ env }) {
         const { results } = await env.DB.prepare(
             'SELECT * FROM products ORDER BY created_at DESC'
         ).all();
-
-        const formatted = (results || []).map(mapProductFromRow);
-        return jsonResponse(formatted);
+        return jsonResponse((results || []).map(mapProductFromRow));
     } catch (err) {
         return jsonResponse({ error: 'Database read failed', details: err.message }, 500);
     }
@@ -65,31 +83,42 @@ export async function onRequestPost({ request, env }) {
 
     try {
         const p = await request.json();
-        if (!p.id || !p.name || typeof p.price !== 'number' || p.price < 0) {
-            return jsonResponse({ error: 'Invalid payload attributes.' }, 400);
+        const numericPrice = parseFloat(p.price);
+        if (!p.id || !p.name || Number.isNaN(numericPrice) || numericPrice < 0) {
+            return jsonResponse({ error: 'Valid product ID, name, and price are required.' }, 400);
         }
+
+        const stockVal = parseStockValue(p.stock);
+        const prevPriceVal = parsePreviousPrice(p.previousPrice);
+        const imagesArray = Array.isArray(p.images) && p.images.length > 0
+            ? p.images.slice(0, 10)
+            : p.image ? [p.image] : [];
+        const primaryImage = imagesArray[0] || p.image || '';
 
         await env.DB.prepare(
             `INSERT INTO products (
-        id, name, price, category, subcategory, badge, stock,
-        is_popular, is_trending, delivery, colors_json, image,
+        id, name, price, previous_price, description, category, subcategory, badge,
+        stock, is_popular, is_trending, delivery, colors_json, image, images_json,
         dimensions_json, features_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
         ).bind(
-            p.id,
-            p.name.slice(0, 120),
-            p.price,
-            p.category || 'Sofas',
-            p.subcategory || '',
-            p.badge || '',
-            Math.max(0, parseInt(p.stock, 10) || 0),
+            String(p.id).slice(0, 100),
+            String(p.name).slice(0, 120),
+            numericPrice,
+            prevPriceVal,
+            String(p.description || '').slice(0, 2000),
+            String(p.category || 'Sofas').slice(0, 60),
+            String(p.subcategory || '').slice(0, 60),
+            String(p.badge || '').slice(0, 40),
+            stockVal,
             p.isPopular ? 1 : 0,
             p.isTrending ? 1 : 0,
-            p.delivery || '2–10 days',
-            JSON.stringify(p.colors || []),
-            p.image,
-            JSON.stringify(p.dimensions || []),
-            JSON.stringify(p.features || [])
+            String(p.delivery || '').slice(0, 60),
+            JSON.stringify(Array.isArray(p.colors) ? p.colors : []),
+            primaryImage,
+            JSON.stringify(imagesArray),
+            JSON.stringify(Array.isArray(p.dimensions) ? p.dimensions : []),
+            JSON.stringify(Array.isArray(p.features) ? p.features : [])
         ).run();
 
         return jsonResponse({ success: true, id: p.id }, 201);
@@ -112,7 +141,7 @@ export async function onRequestPut({ request, env }) {
         }
 
         if (stockOnly) {
-            const sanitizedStock = Math.max(0, parseInt(stock, 10) || 0);
+            const sanitizedStock = parseStockValue(stock);
             await env.DB.prepare(
                 'UPDATE products SET stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
             ).bind(sanitizedStock, id).run();
@@ -120,26 +149,38 @@ export async function onRequestPut({ request, env }) {
             return jsonResponse({ success: true, id, stock: sanitizedStock });
         }
 
+        const numericPrice = parseFloat(body.price);
+        const stockVal = parseStockValue(body.stock);
+        const prevPriceVal = parsePreviousPrice(body.previousPrice);
+        const imagesArray = Array.isArray(body.images) && body.images.length > 0
+            ? body.images.slice(0, 10)
+            : body.image ? [body.image] : [];
+        const primaryImage = imagesArray[0] || body.image || '';
+
         await env.DB.prepare(
             `UPDATE products SET
-        name = ?, price = ?, category = ?, subcategory = ?, badge = ?, stock = ?,
-        is_popular = ?, is_trending = ?, delivery = ?, colors_json = ?, image = ?,
+        name = ?, price = ?, previous_price = ?, description = ?, category = ?,
+        subcategory = ?, badge = ?, stock = ?, is_popular = ?, is_trending = ?,
+        delivery = ?, colors_json = ?, image = ?, images_json = ?,
         dimensions_json = ?, features_json = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?`
         ).bind(
-            body.name.slice(0, 120),
-            body.price,
-            body.category,
-            body.subcategory,
-            body.badge,
-            Math.max(0, parseInt(body.stock, 10) || 0),
+            String(body.name || '').slice(0, 120),
+            numericPrice,
+            prevPriceVal,
+            String(body.description || '').slice(0, 2000),
+            String(body.category || '').slice(0, 60),
+            String(body.subcategory || '').slice(0, 60),
+            String(body.badge || '').slice(0, 40),
+            stockVal,
             body.isPopular ? 1 : 0,
             body.isTrending ? 1 : 0,
-            body.delivery,
-            JSON.stringify(body.colors || []),
-            body.image,
-            JSON.stringify(body.dimensions || []),
-            JSON.stringify(body.features || []),
+            String(body.delivery || '').slice(0, 60),
+            JSON.stringify(Array.isArray(body.colors) ? body.colors : []),
+            primaryImage,
+            JSON.stringify(imagesArray),
+            JSON.stringify(Array.isArray(body.dimensions) ? body.dimensions : []),
+            JSON.stringify(Array.isArray(body.features) ? body.features : []),
             id
         ).run();
 

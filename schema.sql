@@ -1,20 +1,19 @@
--- ============================================================================
--- SJ HOME INTERIORS - CLOUDFLARE D1 DATABASE SCHEMA
--- ============================================================================
-
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   price REAL NOT NULL CHECK(price >= 0),
+  previous_price REAL DEFAULT NULL CHECK(previous_price IS NULL OR previous_price >= 0),
+  description TEXT DEFAULT '',
   category TEXT NOT NULL,
   subcategory TEXT NOT NULL DEFAULT '',
   badge TEXT DEFAULT '',
-  stock INTEGER NOT NULL DEFAULT 0 CHECK(stock >= 0),
+  stock INTEGER DEFAULT NULL CHECK(stock IS NULL OR stock >= 0),
   is_popular INTEGER NOT NULL DEFAULT 0 CHECK(is_popular IN (0, 1)),
   is_trending INTEGER NOT NULL DEFAULT 0 CHECK(is_trending IN (0, 1)),
-  delivery TEXT NOT NULL DEFAULT '2–10 days',
+  delivery TEXT NOT NULL DEFAULT '',
   colors_json TEXT NOT NULL DEFAULT '[]',
   image TEXT NOT NULL,
+  images_json TEXT NOT NULL DEFAULT '[]',
   dimensions_json TEXT NOT NULL DEFAULT '[]',
   features_json TEXT NOT NULL DEFAULT '[]',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -55,3 +54,10 @@ CREATE TABLE IF NOT EXISTS orders (
   status TEXT NOT NULL DEFAULT 'PENDING_DISPATCH',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT DEFAULT '',
+  password_hash TEXT,
