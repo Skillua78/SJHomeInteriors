@@ -1,42 +1,47 @@
 import { useState } from 'react';
 import { Maximize2, Flame, Sparkles, Package } from 'lucide-react';
 import { colorMap } from '../data/products';
+import { validateSafeImageUrl } from '../utils/security';
 
 export default function ProductCard({ product, onOpenModal, onAddToCart }) {
-    const [selectedColor, setSelectedColor] = useState(product.colors[0]);
+    const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Default');
     const isAvailable = product.stock > 0;
-    // const monthlyPrice = (product.price / 12).toFixed(2); // Finance commented out
+    const safeImg =
+        validateSafeImageUrl(product.image) ||
+        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
 
     return (
-        <div className="group bg-white rounded-3xl overflow-hidden border border-stone-200/80 hover:shadow-xl transition duration-300 flex flex-col justify-between">
+        <article
+            aria-label={product.name}
+            className="group bg-white rounded-3xl overflow-hidden border border-stone-200/80 hover:shadow-xl transition duration-300 flex flex-col justify-between"
+        >
             <div>
                 {/* Image Header */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
                     <img
-                        src={product.image}
-                        alt={product.name}
+                        src={safeImg}
+                        alt={`${product.name} in ${selectedColor}`}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
 
                     {/* Top Left Badges */}
                     <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5">
                         <span
-                            className={`px-3 py-1 rounded-full text-[11px] font-semibold ${isAvailable
-                                    ? 'bg-[#1C1B18] text-white'
-                                    : 'bg-red-800 text-white'
+                            className={`px-3 py-1 rounded-full text-[11px] font-semibold ${isAvailable ? 'bg-[#1C1B18] text-white' : 'bg-red-800 text-white'
                                 }`}
                         >
                             {isAvailable ? product.badge : 'Out of Stock / Pre-Order'}
                         </span>
 
                         {product.isTrending && (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1 shadow-xs">
-                                <Flame className="w-3 h-3" /> Trending
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shadow-xs">
+                                <Flame className="w-3 h-3" aria-hidden="true" /> Trending
                             </span>
                         )}
                         {product.isPopular && !product.isTrending && (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#9A7B56] text-white flex items-center gap-1 shadow-xs">
-                                <Sparkles className="w-3 h-3" /> Popular
+                                <Sparkles className="w-3 h-3" aria-hidden="true" /> Popular
                             </span>
                         )}
                     </div>
@@ -50,7 +55,7 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                                     : 'bg-stone-800/90 text-stone-300'
                             }`}
                     >
-                        <Package className="w-3 h-3" />
+                        <Package className="w-3 h-3" aria-hidden="true" />
                         {product.stock > 0 ? `${product.stock} in stock` : '0 in stock'}
                     </span>
 
@@ -63,18 +68,20 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-[#9A7B56]">
-                            {product.category}
+                            {product.category} {product.subcategory ? `• ${product.subcategory}` : ''}
                         </span>
 
                         {/* Interactive Colour Swatches */}
-                        <div className="flex items-center space-x-1.5">
+                        <div className="flex items-center space-x-1.5" role="group" aria-label="Available finishes">
                             {product.colors.map((color) => (
                                 <button
                                     key={color}
                                     type="button"
                                     onClick={() => setSelectedColor(color)}
+                                    aria-label={`Select ${color} finish`}
+                                    aria-pressed={selectedColor === color}
                                     title={`Select ${color}`}
-                                    className={`w-4 h-4 rounded-full border transition cursor-pointer ${selectedColor === color
+                                    className={`w-4 h-4 rounded-full border transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] ${selectedColor === color
                                             ? 'ring-2 ring-offset-1 ring-[#9A7B56] border-stone-600'
                                             : 'border-stone-300 opacity-80 hover:opacity-100'
                                         }`}
@@ -91,28 +98,28 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                     <p className="text-[11px] text-stone-500 mt-1">
                         Selected Finish: <strong className="text-stone-700">{selectedColor}</strong>
                     </p>
-                    <p className="text-xs text-stone-500 mt-1 line-clamp-1">
-                        {product.dimensions[0]}
-                    </p>
+                    {product.dimensions?.[0] && (
+                        <p className="text-xs text-stone-500 mt-1 line-clamp-1">
+                            {product.dimensions[0]}
+                        </p>
+                    )}
 
-                    {/* Price */}
+                    {/* Price & Specs Link (Two-Person Room Assembly text removed) */}
                     <div className="mt-4 pt-4 border-t border-stone-100 flex items-baseline justify-between">
                         <div>
                             <span className="text-2xl font-bold text-[#1C1B18]">
-                                £{product.price.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                                £{Number(product.price).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                             </span>
                             {/* FINANCE OPTION COMMENTED OUT FOR NOW
               <span className="block text-[11px] text-stone-500">
-                or £{monthlyPrice}/mo at 0% APR
+                or £{(product.price / 12).toFixed(2)}/mo at 0% APR
               </span>
               */}
-                            <span className="block text-[11px] text-emerald-700 font-medium">
-                                Includes Two-Person Room Assembly
-                            </span>
                         </div>
                         <button
+                            type="button"
                             onClick={() => onOpenModal(product, selectedColor)}
-                            className="text-xs font-semibold text-[#9A7B56] hover:underline flex items-center gap-1 cursor-pointer"
+                            className="text-xs font-semibold text-[#9A7B56] hover:underline flex items-center gap-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] rounded"
                         >
                             Dimensions & Specs &rarr;
                         </button>
@@ -123,8 +130,9 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
             {/* Action Footer */}
             <div className="px-6 pb-6 pt-2 flex gap-2">
                 <button
+                    type="button"
                     onClick={() => onAddToCart(product, selectedColor)}
-                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer ${isAvailable
+                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] ${isAvailable
                             ? 'bg-[#1C1B18] hover:bg-[#9A7B56] text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                         }`}
@@ -132,13 +140,15 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                     {isAvailable ? 'Add to Basket' : 'Pre-Order in Basket'}
                 </button>
                 <button
+                    type="button"
                     onClick={() => onOpenModal(product, selectedColor)}
-                    className="p-3 rounded-full border border-stone-200 hover:border-[#9A7B56] text-stone-700 transition cursor-pointer"
+                    aria-label={`View specifications for ${product.name}`}
+                    className="p-3 rounded-full border border-stone-200 hover:border-[#9A7B56] text-stone-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56]"
                     title="Quick View Specifications"
                 >
-                    <Maximize2 className="w-4 h-4" />
+                    <Maximize2 className="w-4 h-4" aria-hidden="true" />
                 </button>
             </div>
-        </div>
+        </article>
     );
 }
