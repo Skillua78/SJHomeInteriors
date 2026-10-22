@@ -11,6 +11,34 @@ function getAdminHeaders() {
 }
 
 export const api = {
+    // AUTHENTICATION
+    async register(name, email, phone, password) {
+        const res = await fetch('/api/auth?action=register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, password }),
+        });
+        return res.json();
+    },
+
+    async login(email, password) {
+        const res = await fetch('/api/auth?action=login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        return res.json();
+    },
+
+    async googleAuth(credential) {
+        const res = await fetch('/api/auth?action=google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential }),
+        });
+        return res.json();
+    },
+
     // PRODUCTS
     async getProducts() {
         try {
