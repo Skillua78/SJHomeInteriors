@@ -4,7 +4,7 @@ import {
     Plus,
     Minus,
     Copy,
-    RotateCcw,
+    Undo2,
     Upload,
     Check,
     Trash2,
@@ -13,9 +13,29 @@ import {
     Package,
     CheckCircle2,
     ShieldAlert,
+    EyeOff,
 } from 'lucide-react';
 import { CATEGORY_TAXONOMY } from '../data/products';
 import { sanitizeText, validateImageFile, validateSafeImageUrl } from '../utils/security';
+
+const EMPTY_FORM = {
+    name: '',
+    price: '',
+    previousPrice: '',
+    description: '',
+    category: '',
+    subcategory: '',
+    stock: '',
+    badge: '',
+    delivery: '',
+    colors: '',
+    imageInput: '',
+    images: [],
+    dimensions: '',
+    features: '',
+    isPopular: false,
+    isTrending: false,
+};
 
 export default function StockManagerModal({
     isOpen,
@@ -26,59 +46,87 @@ export default function StockManagerModal({
     onAddNewProduct,
     onUpdateProduct,
     onDeleteProduct,
-    onResetCatalog,
+    canUndo,
+    lastActionLabel,
+    onUndoLastAction,
     reviews,
     onToggleVerifyReview,
     onRespondToReview,
     onDeleteReview,
 }) {
-    const [activeTab, setActiveTab] = useState('inventory'); // 'inventory' | 'reviews'
+    const [activeTab, setActiveTab] = useState('inventory');
     const [copied, setCopied] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [replyDrafts, setReplyDrafts] = useState({});
     const [formError, setFormError] = useState('');
+    const [prodForm, setProdForm] = useState(EMPTY_FORM);
 
     const categoryKeys = Object.keys(CATEGORY_TAXONOMY);
 
-    const [prodForm, setProdForm] = useState({
-        name: '',
-        price: '',
-        category: 'Sofas',
-        subcategory: CATEGORY_TAXONOMY['Sofas'][0],
-        stock: 5,
-        badge: 'New Arrival',
-        delivery: '2–10 days',
-        colors: 'Grey, Beige, Charcoal',
-        image: '',
-        dimensions: 'Length: 220 cm, Depth: 92 cm, Height: 85 cm',
-        features: 'Solid hardwood frame, High-density foam cushions',
-        isPopular: false,
-        isTrending: false,
-    });
-
-    // Strict RBAC guard: never render if not open or user is not an authenticated admin
     if (!isOpen || currentUser?.role !== 'admin') return null;
 
     const handleCategoryChange = (newCat) => {
-        const firstSub = CATEGORY_TAXONOMY[newCat]?.[0] || '';
-        setProdForm((prev) => ({ ...prev, category: newCat, subcategory: firstSub }));
+        setProdForm((prev) => ({
+            ...prev,
+            category: newCat,
+            subcategory: '',
+        }));
     };
 
-    const handleImageFile = (e) => {
+    // Add an HTTPS image URL to the product's gallery list
+    const handleAddImageUrl = () => {
         setFormError('');
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const check = validateImageFile(file);
-        if (!check.valid) {
-            setFormError(check.error);
+        const safeUrl = validateSafeImageUrl(prodForm.imageInput);
+        if (!safeUrl) {
+            setFormError('Please enter a valid https:// image URL.');
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const safeUrl = validateSafeImageUrl(ev.target.result);
-            if (safeUrl) setProdForm((prev) => ({ ...prev, image: safeUrl }));
-        };
-        reader.readAsDataURL(file);
+        if (prodForm.images.length >= 10) {
+            setFormError('Maximum 10 photos per product.');
+            return;
+        }
+        setProdForm((prev) => ({
+            ...prev,
+            images: [...prev.images, safeUrl],
+            imageInput: '',
+        }));
+    };
+
+    // Upload one or more local image files into the product's gallery list
+    const handleImageFiles = (e) => {
+        setFormError('');
+        const files = Array.from(e.target.files || []);
+        if (prodForm.images.length + files.length > 10) {
+            setFormError('You can attach up to 10 photos per product.');
+            return;
+        }
+
+        files.forEach((file) => {
+            const check = validateImageFile(file);
+            if (!check.valid) {
+                setFormError(check.error);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const safeUrl = validateSafeImageUrl(ev.target.result);
+                if (safeUrl) {
+                    setProdForm((prev) => ({
+                        ...prev,
+                        images: [...prev.images, safeUrl],
+                    }));
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = '';
+    };
+
+    const handleRemoveGalleryImage = (idxToRemove) => {
+        setProdForm((prev) => ({
+            ...prev,
+            images: prev.images.filter((_, idx) => idx !== idxToRemove),
+        }));
     };
 
     const handleSaveProduct = (e) => {
@@ -89,13 +137,40 @@ export default function StockManagerModal({
         const parsedPrice = parseFloat(prodForm.price);
 
         if (!cleanName || Number.isNaN(parsedPrice) || parsedPrice < 0) {
-            setFormError('Please provide a valid product name and non-negative price.');
+            setFormError('Please enter a valid product title and current price.');
+            return;
+        }
+        if (!prodForm.category) {
+            setFormError('Please select a department category.');
             return;
         }
 
-        const safeImg =
-            validateSafeImageUrl(prodForm.image) ||
-            'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
+        // Include any URL left typed in the input box if the admin didn't click "+ Add URL"
+        let finalGallery = [...prodForm.images];
+        if (prodForm.imageInput.trim()) {
+            const pendingUrl = validateSafeImageUrl(prodForm.imageInput.trim());
+            if (pendingUrl) finalGallery.push(pendingUrl);
+        }
+
+        if (finalGallery.length === 0) {
+            finalGallery.push(
+                'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85'
+            );
+        }
+
+        // Parse optional previousPrice
+        const rawPrev = prodForm.previousPrice.toString().trim();
+        const parsedPrevPrice =
+            rawPrev !== '' && !Number.isNaN(parseFloat(rawPrev)) && parseFloat(rawPrev) > 0
+                ? parseFloat(rawPrev)
+                : null;
+
+        // Parse optional stock (blank = null = hidden on card)
+        const rawStock = prodForm.stock.toString().trim();
+        const parsedStock =
+            rawStock === '' || Number.isNaN(parseInt(rawStock, 10))
+                ? null
+                : Math.max(0, parseInt(rawStock, 10));
 
         const payload = {
             id:
@@ -103,18 +178,21 @@ export default function StockManagerModal({
                 `${cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-4)}`,
             name: cleanName,
             price: parsedPrice,
+            previousPrice: parsedPrevPrice,
+            description: sanitizeText(prodForm.description, 2000),
             category: prodForm.category,
-            subcategory: prodForm.subcategory,
-            badge: sanitizeText(prodForm.badge || 'In Showroom', 40),
-            stock: Math.max(0, parseInt(prodForm.stock, 10) || 0),
+            subcategory: prodForm.subcategory || '',
+            badge: sanitizeText(prodForm.badge, 40),
+            stock: parsedStock,
             isPopular: Boolean(prodForm.isPopular),
             isTrending: Boolean(prodForm.isTrending),
-            delivery: sanitizeText(prodForm.delivery || '2–10 days', 40),
+            delivery: sanitizeText(prodForm.delivery, 40),
             colors: prodForm.colors
                 .split(',')
                 .map((c) => sanitizeText(c, 30))
                 .filter(Boolean),
-            image: safeImg,
+            image: finalGallery[0],
+            images: finalGallery,
             dimensions: prodForm.dimensions
                 .split(',')
                 .map((d) => sanitizeText(d, 100))
@@ -132,35 +210,34 @@ export default function StockManagerModal({
             onAddNewProduct(payload);
         }
 
-        setProdForm({
-            name: '',
-            price: '',
-            category: 'Sofas',
-            subcategory: CATEGORY_TAXONOMY['Sofas'][0],
-            stock: 5,
-            badge: 'New Arrival',
-            delivery: '2–10 days',
-            colors: 'Grey, Beige, Charcoal',
-            image: '',
-            dimensions: 'Length: 220 cm, Depth: 92 cm, Height: 85 cm',
-            features: 'Solid hardwood frame, High-density foam cushions',
-            isPopular: false,
-            isTrending: false,
-        });
+        setProdForm(EMPTY_FORM);
     };
 
     const startEditProduct = (p) => {
         setEditingId(p.id);
+        const existingGallery =
+            Array.isArray(p.images) && p.images.length > 0
+                ? p.images
+                : p.image
+                    ? [p.image]
+                    : [];
+
         setProdForm({
-            name: p.name,
-            price: String(p.price),
-            category: p.category || 'Sofas',
-            subcategory: p.subcategory || CATEGORY_TAXONOMY[p.category]?.[0] || '',
-            stock: p.stock,
+            name: p.name || '',
+            price: p.price !== undefined && p.price !== null ? String(p.price) : '',
+            previousPrice:
+                p.previousPrice !== undefined && p.previousPrice !== null
+                    ? String(p.previousPrice)
+                    : '',
+            description: p.description || '',
+            category: p.category || '',
+            subcategory: p.subcategory || '',
+            stock: p.stock !== null && p.stock !== undefined ? String(p.stock) : '',
             badge: p.badge || '',
-            delivery: p.delivery || '2–10 days',
+            delivery: p.delivery || '',
             colors: (p.colors || []).join(', '),
-            image: p.image || '',
+            imageInput: '',
+            images: existingGallery,
             dimensions: (p.dimensions || []).join(', '),
             features: (p.features || []).join(', '),
             isPopular: Boolean(p.isPopular),
@@ -180,41 +257,60 @@ export default function StockManagerModal({
             role="dialog"
             aria-modal="true"
             aria-label="SJ Home Interiors Admin Dashboard"
-            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
         >
-            <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-stone-200">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-stone-200">
                 {/* Top Header */}
-                <div className="p-6 border-b border-stone-200 flex flex-wrap items-center justify-between gap-4 bg-[#1C1B18] text-white">
+                <div className="p-4 sm:p-6 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 bg-[#1C1B18] text-white">
                     <div>
                         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Restricted Admin Dashboard ({currentUser.email})
+                            <ShieldAlert className="w-3.5 h-3.5" /> Admin Dashboard ({currentUser.email})
                         </span>
-                        <h2 className="font-serif text-2xl font-bold mt-0.5">
-                            Catalog Database & Customer Review Moderation
+                        <h2 className="font-serif text-xl sm:text-2xl font-bold mt-0.5">
+                            Catalog Database & Review Moderation
                         </h2>
                     </div>
 
-                    {/* Tab Switcher */}
-                    <div className="flex items-center gap-2">
+                    {/* Action & Tab Bar */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
                             onClick={() => setActiveTab('inventory')}
-                            className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${activeTab === 'inventory'
+                            className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${activeTab === 'inventory'
                                     ? 'bg-[#9A7B56] text-white'
                                     : 'bg-white/10 text-stone-300 hover:bg-white/20'
                                 }`}
                         >
-                            <Package className="w-3.5 h-3.5" /> Products & Stock ({products.length})
+                            <Package className="w-3.5 h-3.5" /> Products ({products.length})
                         </button>
                         <button
                             type="button"
                             onClick={() => setActiveTab('reviews')}
-                            className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${activeTab === 'reviews'
+                            className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${activeTab === 'reviews'
                                     ? 'bg-[#9A7B56] text-white'
                                     : 'bg-white/10 text-stone-300 hover:bg-white/20'
                                 }`}
                         >
-                            <MessageSquare className="w-3.5 h-3.5" /> Moderate Reviews ({reviews.length})
+                            <MessageSquare className="w-3.5 h-3.5" /> Reviews ({reviews.length})
+                        </button>
+
+                        {/* Non-Destructive UNDO Button */}
+                        <button
+                            type="button"
+                            onClick={onUndoLastAction}
+                            disabled={!canUndo}
+                            title={
+                                canUndo
+                                    ? `Undo: ${lastActionLabel}`
+                                    : 'No recent action to undo'
+                            }
+                            className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${canUndo
+                                    ? 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer'
+                                    : 'bg-white/5 text-stone-500 cursor-not-allowed'
+                                }`}
+                        >
+                            <Undo2 className="w-3.5 h-3.5" />
+                            <span>Undo{canUndo && lastActionLabel ? `: ${lastActionLabel}` : ''}</span>
                         </button>
 
                         <button
@@ -223,16 +319,9 @@ export default function StockManagerModal({
                             className="px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                         >
                             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                            {copied ? 'Copied JSON!' : 'Export JSON'}
+                            <span className="hidden sm:inline">{copied ? 'Copied!' : 'Export JSON'}</span>
                         </button>
-                        <button
-                            type="button"
-                            onClick={onResetCatalog}
-                            className="px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs flex items-center gap-1 cursor-pointer"
-                            title="Reset catalog to default products.js"
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" /> Reset
-                        </button>
+
                         <button
                             type="button"
                             onClick={onClose}
@@ -246,11 +335,11 @@ export default function StockManagerModal({
 
                 {/* TAB 1: INVENTORY & PRODUCT CRUD */}
                 {activeTab === 'inventory' && (
-                    <div className="p-6 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Add / Edit Form */}
+                    <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+                        {/* Left: Add / Edit Form (All Empty Ghost Placeholders) */}
                         <form
                             onSubmit={handleSaveProduct}
-                            className="lg:col-span-5 space-y-3 bg-[#FAF8F5] p-5 rounded-2xl border border-stone-200"
+                            className="lg:col-span-5 space-y-3.5 bg-[#FAF8F5] p-4 sm:p-5 rounded-2xl border border-stone-200"
                         >
                             <div className="flex items-center justify-between">
                                 <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
@@ -259,7 +348,10 @@ export default function StockManagerModal({
                                 {editingId && (
                                     <button
                                         type="button"
-                                        onClick={() => setEditingId(null)}
+                                        onClick={() => {
+                                            setEditingId(null);
+                                            setProdForm(EMPTY_FORM);
+                                        }}
                                         className="text-xs text-red-700 hover:underline cursor-pointer"
                                     >
                                         Cancel Edit
@@ -268,9 +360,12 @@ export default function StockManagerModal({
                             </div>
 
                             {formError && (
-                                <p className="text-xs text-red-700 bg-red-50 p-2.5 rounded-xl border border-red-200">
+                                <div
+                                    role="alert"
+                                    className="text-xs text-red-700 bg-red-50 p-3 rounded-xl border border-red-200"
+                                >
                                     {formError}
-                                </p>
+                                </div>
                             )}
 
                             <div>
@@ -283,20 +378,22 @@ export default function StockManagerModal({
                                     value={prodForm.name}
                                     onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
                                     placeholder="e.g. Chatsworth Oak Dining Table"
-                                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
                                         Department Category *
                                     </label>
                                     <select
+                                        required
                                         value={prodForm.category}
                                         onChange={(e) => handleCategoryChange(e.target.value)}
-                                        className="w-full px-2.5 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        className="w-full px-2.5 py-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-700"
                                     >
+                                        <option value="">Select category...</option>
                                         {categoryKeys.map((cat) => (
                                             <option key={cat} value={cat}>
                                                 {cat}
@@ -306,13 +403,17 @@ export default function StockManagerModal({
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Subcategory *
+                                        Subcategory (Optional)
                                     </label>
                                     <select
                                         value={prodForm.subcategory}
-                                        onChange={(e) => setProdForm({ ...prodForm, subcategory: e.target.value })}
-                                        className="w-full px-2.5 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, subcategory: e.target.value })
+                                        }
+                                        disabled={!prodForm.category}
+                                        className="w-full px-2.5 py-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-700 disabled:bg-stone-100"
                                     >
+                                        <option value="">Select subcategory...</option>
                                         {(CATEGORY_TAXONOMY[prodForm.category] || []).map((sub) => (
                                             <option key={sub} value={sub}>
                                                 {sub}
@@ -322,10 +423,11 @@ export default function StockManagerModal({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2.5">
+                            {/* Current Price, Previous Strikethrough Price & Optional Stock */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Price (£) *
+                                        Current Price (£) *
                                     </label>
                                     <input
                                         required
@@ -334,82 +436,158 @@ export default function StockManagerModal({
                                         min="0"
                                         value={prodForm.price}
                                         onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
-                                        placeholder="499.00"
-                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        placeholder="e.g. 899.00"
+                                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Stock Count *
+                                        Previous Price (£)
                                     </label>
                                     <input
-                                        required
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={prodForm.previousPrice}
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, previousPrice: e.target.value })
+                                        }
+                                        placeholder="e.g. 1199.00 (Optional)"
+                                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Stock (Optional)
+                                    </label>
+                                    <input
                                         type="number"
                                         min="0"
                                         value={prodForm.stock}
                                         onChange={(e) => setProdForm({ ...prodForm, stock: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Badge
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={prodForm.badge}
-                                        onChange={(e) => setProdForm({ ...prodForm, badge: e.target.value })}
-                                        placeholder="New Arrival"
-                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        placeholder="Blank = hide, 0 = sold out"
+                                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                     />
                                 </div>
                             </div>
 
+                            {/* Product Description Textarea */}
                             <div>
                                 <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                    HTTPS Image URL or Upload File (Max 2MB)
+                                    Product Description (Optional)
                                 </label>
-                                <div className="flex gap-2">
+                                <textarea
+                                    rows={3}
+                                    value={prodForm.description}
+                                    onChange={(e) =>
+                                        setProdForm({ ...prodForm, description: e.target.value })
+                                    }
+                                    placeholder="Describe the craftsmanship, upholstery feel, comfort, and room styling..."
+                                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
+                                />
+                            </div>
+
+                            {/* Multi-Picture Gallery Section */}
+                            <div className="p-3.5 rounded-xl bg-white border border-stone-200 space-y-2.5">
+                                <label className="block text-[11px] font-semibold text-stone-700">
+                                    Product Pictures (First photo is main cover &bull; Scrollable gallery)
+                                </label>
+                                <div className="flex flex-wrap gap-2">
                                     <input
                                         type="text"
-                                        value={prodForm.image}
-                                        onChange={(e) => setProdForm({ ...prodForm, image: e.target.value })}
-                                        placeholder="https://images.unsplash.com/..."
-                                        className="flex-1 px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        value={prodForm.imageInput}
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, imageInput: e.target.value })
+                                        }
+                                        placeholder="Paste https:// image link..."
+                                        className="flex-1 min-w-[160px] px-3 py-2 rounded-xl bg-[#FAF8F5] border border-stone-200 text-xs placeholder:text-stone-400"
                                     />
-                                    <label className="px-3 py-2 rounded-xl bg-white border border-stone-200 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer flex items-center gap-1">
-                                        <Upload className="w-3.5 h-3.5 text-[#9A7B56]" /> File
+                                    <button
+                                        type="button"
+                                        onClick={handleAddImageUrl}
+                                        className="px-3 py-2 rounded-xl bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer hover:bg-[#9A7B56]"
+                                    >
+                                        + Add URL
+                                    </button>
+                                    <label className="px-3 py-2 rounded-xl bg-[#FAF8F5] border border-stone-200 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer flex items-center gap-1">
+                                        <Upload className="w-3.5 h-3.5 text-[#9A7B56]" /> Upload Photos
                                         <input
                                             type="file"
                                             accept="image/jpeg,image/png,image/webp"
-                                            onChange={handleImageFile}
+                                            multiple
+                                            onChange={handleImageFiles}
                                             className="hidden"
                                         />
                                     </label>
                                 </div>
+
+                                {/* Thumbnail Previews of Added Pictures */}
+                                {prodForm.images.length > 0 && (
+                                    <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1">
+                                        {prodForm.images.map((imgSrc, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shrink-0 group"
+                                            >
+                                                <img
+                                                    src={imgSrc}
+                                                    alt={`Product preview ${idx + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <span className="absolute bottom-0.5 left-1 px-1 rounded bg-black/70 text-[9px] text-white font-bold">
+                                                    {idx === 0 ? 'Main' : `#${idx + 1}`}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveGalleryImage(idx)}
+                                                    aria-label={`Remove image ${idx + 1}`}
+                                                    className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-0.5 cursor-pointer"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Finishes (comma separated)
+                                        Finishes / Colours
                                     </label>
                                     <input
                                         type="text"
                                         value={prodForm.colors}
                                         onChange={(e) => setProdForm({ ...prodForm, colors: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        placeholder="e.g. Grey, Beige, Black"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                                        Delivery Estimate
+                                        Delivery Time
                                     </label>
                                     <input
                                         type="text"
                                         value={prodForm.delivery}
-                                        onChange={(e) => setProdForm({ ...prodForm, delivery: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, delivery: e.target.value })
+                                        }
+                                        placeholder="e.g. 2–10 days"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Corner Badge
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={prodForm.badge}
+                                        onChange={(e) => setProdForm({ ...prodForm, badge: e.target.value })}
+                                        placeholder="e.g. Bestseller"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                     />
                                 </div>
                             </div>
@@ -421,8 +599,26 @@ export default function StockManagerModal({
                                 <input
                                     type="text"
                                     value={prodForm.dimensions}
-                                    onChange={(e) => setProdForm({ ...prodForm, dimensions: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    onChange={(e) =>
+                                        setProdForm({ ...prodForm, dimensions: e.target.value })
+                                    }
+                                    placeholder="e.g. Length: 240 cm, Depth: 95 cm, Height: 85 cm"
+                                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                    Key Features (comma separated)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={prodForm.features}
+                                    onChange={(e) =>
+                                        setProdForm({ ...prodForm, features: e.target.value })
+                                    }
+                                    placeholder="e.g. Solid hardwood frame, High-density foam cushions"
+                                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                 />
                             </div>
 
@@ -431,7 +627,9 @@ export default function StockManagerModal({
                                     <input
                                         type="checkbox"
                                         checked={prodForm.isPopular}
-                                        onChange={(e) => setProdForm({ ...prodForm, isPopular: e.target.checked })}
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, isPopular: e.target.checked })
+                                        }
                                     />
                                     Popular Product
                                 </label>
@@ -439,7 +637,9 @@ export default function StockManagerModal({
                                     <input
                                         type="checkbox"
                                         checked={prodForm.isTrending}
-                                        onChange={(e) => setProdForm({ ...prodForm, isTrending: e.target.checked })}
+                                        onChange={(e) =>
+                                            setProdForm({ ...prodForm, isTrending: e.target.checked })
+                                        }
                                     />
                                     Trending Now
                                 </label>
@@ -447,7 +647,7 @@ export default function StockManagerModal({
 
                             <button
                                 type="submit"
-                                className="w-full py-3 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold transition cursor-pointer"
+                                className="w-full py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold transition cursor-pointer"
                             >
                                 {editingId ? 'Save Product Changes' : '+ Add Product to Database'}
                             </button>
@@ -458,80 +658,130 @@ export default function StockManagerModal({
                             <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
                                 Database Inventory ({products.length} Items)
                             </h3>
-                            <div className="space-y-2.5 max-h-[62vh] overflow-y-auto pr-1 custom-scrollbar">
-                                {products.map((p) => (
-                                    <div
-                                        key={p.id}
-                                        className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-stone-200"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <img
-                                                src={validateSafeImageUrl(p.image)}
-                                                alt={p.name}
-                                                className="w-12 h-12 rounded-xl object-cover"
-                                            />
-                                            <div>
-                                                <span className="text-[10px] font-bold uppercase text-[#9A7B56]">
-                                                    {p.category} {p.subcategory ? `• ${p.subcategory}` : ''} &bull; £{p.price}
-                                                </span>
-                                                <h4 className="text-xs font-bold text-[#1C1B18]">{p.name}</h4>
+                            <div className="space-y-2.5 max-h-[65vh] overflow-y-auto pr-1 custom-scrollbar">
+                                {products.map((p) => {
+                                    const isStockHidden =
+                                        p.stock === null || p.stock === undefined || p.stock === '';
+
+                                    return (
+                                        <div
+                                            key={p.id}
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-stone-200"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={validateSafeImageUrl(p.image)}
+                                                    alt={p.name}
+                                                    className="w-12 h-12 rounded-xl object-cover shrink-0"
+                                                />
+                                                <div>
+                                                    <span className="text-[10px] font-bold uppercase text-[#9A7B56]">
+                                                        {p.category} {p.subcategory ? `• ${p.subcategory}` : ''} &bull;{' '}
+                                                        {p.previousPrice ? (
+                                                            <span className="line-through text-stone-400 mr-1">
+                                                                £{p.previousPrice}
+                                                            </span>
+                                                        ) : null}
+                                                        £{p.price}
+                                                    </span>
+                                                    <h4 className="text-xs font-bold text-[#1C1B18]">{p.name}</h4>
+                                                    <span className="text-[10px] text-stone-400">
+                                                        {(p.images?.length || 1)} photo(s) &bull;{' '}
+                                                        {isStockHidden ? 'Stock Hidden' : `${p.stock} in stock`}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                                {/* Toggle Hide Stock vs Tracked Stock */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onUpdateStock(p.id, isStockHidden ? 5 : null)
+                                                    }
+                                                    title={
+                                                        isStockHidden
+                                                            ? 'Click to enable stock counter'
+                                                            : 'Click to clear & hide stock badge'
+                                                    }
+                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border flex items-center gap-1 cursor-pointer ${isStockHidden
+                                                            ? 'bg-stone-100 text-stone-600 border-stone-300'
+                                                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                        }`}
+                                                >
+                                                    <EyeOff className="w-3 h-3" />
+                                                    {isStockHidden ? 'Hidden' : 'Hide'}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Decrease stock for ${p.name}`}
+                                                    onClick={() =>
+                                                        onUpdateStock(
+                                                            p.id,
+                                                            Math.max(0, (Number(p.stock) || 0) - 1)
+                                                        )
+                                                    }
+                                                    className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                                >
+                                                    <Minus className="w-3 h-3" />
+                                                </button>
+
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="—"
+                                                    aria-label={`Stock quantity for ${p.name}`}
+                                                    value={isStockHidden ? '' : p.stock}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        onUpdateStock(
+                                                            p.id,
+                                                            val === '' ? null : Math.max(0, parseInt(val, 10) || 0)
+                                                        );
+                                                    }}
+                                                    className="w-14 text-center py-1 rounded-lg border border-stone-200 text-xs font-bold placeholder:text-stone-400"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Increase stock for ${p.name}`}
+                                                    onClick={() =>
+                                                        onUpdateStock(p.id, (Number(p.stock) || 0) + 1)
+                                                    }
+                                                    className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEditProduct(p)}
+                                                    className="p-1.5 text-stone-500 hover:text-[#9A7B56] cursor-pointer ml-1"
+                                                    title="Edit item"
+                                                >
+                                                    <Edit3 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDeleteProduct(p.id)}
+                                                    className="p-1.5 text-stone-400 hover:text-red-600 cursor-pointer"
+                                                    title="Delete item"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center gap-1.5">
-                                            <button
-                                                type="button"
-                                                aria-label={`Decrease stock for ${p.name}`}
-                                                onClick={() => onUpdateStock(p.id, Math.max(0, p.stock - 1))}
-                                                className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
-                                            >
-                                                <Minus className="w-3 h-3" />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                aria-label={`Stock quantity for ${p.name}`}
-                                                value={p.stock}
-                                                onChange={(e) =>
-                                                    onUpdateStock(p.id, Math.max(0, parseInt(e.target.value, 10) || 0))
-                                                }
-                                                className="w-14 text-center py-1 rounded-lg border border-stone-200 text-xs font-bold"
-                                            />
-                                            <button
-                                                type="button"
-                                                aria-label={`Increase stock for ${p.name}`}
-                                                onClick={() => onUpdateStock(p.id, p.stock + 1)}
-                                                className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => startEditProduct(p)}
-                                                className="p-1.5 text-stone-500 hover:text-[#9A7B56] cursor-pointer ml-1"
-                                                title="Edit item"
-                                            >
-                                                <Edit3 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => onDeleteProduct(p.id)}
-                                                className="p-1.5 text-stone-400 hover:text-red-600 cursor-pointer"
-                                                title="Delete item"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* TAB 2: CUSTOMER REVIEW MODERATION & RESPONSES */}
+                {/* TAB 2: CUSTOMER REVIEW MODERATION */}
                 {activeTab === 'reviews' && (
-                    <div className="p-6 overflow-y-auto custom-scrollbar space-y-4 max-h-[75vh]">
+                    <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4 max-h-[75vh]">
                         <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
                             Customer Reviews Moderation ({reviews.length})
                         </h3>
@@ -547,7 +797,7 @@ export default function StockManagerModal({
                                 return (
                                     <div
                                         key={rev.id}
-                                        className="p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3"
+                                        className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3"
                                     >
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <div>
@@ -582,7 +832,7 @@ export default function StockManagerModal({
                                                     onClick={() => onDeleteReview(rev.id)}
                                                     className="px-3 py-1.5 rounded-full bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold flex items-center gap-1 cursor-pointer"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5" /> Delete Review
+                                                    <Trash2 className="w-3.5 h-3.5" /> Delete
                                                 </button>
                                             </div>
                                         </div>
@@ -591,7 +841,6 @@ export default function StockManagerModal({
                                             "{rev.comment}"
                                         </p>
 
-                                        {/* Official Admin Reply Box */}
                                         <div className="flex flex-col sm:flex-row gap-2 pt-1">
                                             <input
                                                 type="text"
@@ -600,8 +849,8 @@ export default function StockManagerModal({
                                                 onChange={(e) =>
                                                     setReplyDrafts({ ...replyDrafts, [rev.id]: e.target.value })
                                                 }
-                                                placeholder="Write an official SJ Home Interiors response to this customer..."
-                                                className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                                placeholder="Write an official SJ Home Interiors response..."
+                                                className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs placeholder:text-stone-400"
                                             />
                                             <button
                                                 type="button"

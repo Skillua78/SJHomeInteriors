@@ -35,13 +35,12 @@ export default function App() {
     const [isStockManagerOpen, setIsStockManagerOpen] = useState(false);
     const [activeLegalDoc, setActiveLegalDoc] = useState(null);
 
-    // Products state (defaults to initial, updates immediately when D1 responds)
     const [products, setProducts] = useState(initialProducts);
-
-    // Reviews state
     const [reviews, setReviews] = useState(initialReviews);
 
-    // Shopping Basket state (kept in local storage for buyer privacy)
+    // Undo History Stack for safe Admin Product operations
+    const [undoStack, setUndoStack] = useState([]);
+
     const [cart, setCart] = useState(() => {
         try {
             const saved = localStorage.getItem('sj_cart_v3');
@@ -55,7 +54,6 @@ export default function App() {
         localStorage.setItem('sj_cart_v3', JSON.stringify(cart));
     }, [cart]);
 
-    // Authenticated user state
     const [currentUser, setCurrentUser] = useState(() => {
         try {
             const saved = localStorage.getItem('sj_user_v3');
@@ -65,7 +63,6 @@ export default function App() {
         }
     });
 
-    // Fetch live global data from Cloudflare D1 on page load
     useEffect(() => {
         let isMounted = true;
 
@@ -107,7 +104,6 @@ export default function App() {
         setActiveSubcategory('All');
     };
 
-    // Filtered Products
     const filteredProducts = useMemo(() => {
         const q = searchQuery.toLowerCase();
         let list = products.filter((p) => {
@@ -122,6 +118,7 @@ export default function App() {
 
             const matchesSearch =
                 p.name.toLowerCase().includes(q) ||
+                (p.description || '').toLowerCase().includes(q) ||
                 (p.category || '').toLowerCase().includes(q) ||
                 (p.subcategory || '').toLowerCase().includes(q) ||
                 (p.features || []).join(' ').toLowerCase().includes(q);
@@ -136,7 +133,7 @@ export default function App() {
 
     // Cart Handlers
     const handleAddToCart = (product, selectedColor) => {
-        const color = selectedColor || product.colors[0];
+        const color = selectedColor || product.colors?.[0] || 'Standard';
         setCart((prev) => {
             const existingIndex = prev.findIndex(
                 (item) => item.id === product.id && item.selectedColor === color
@@ -165,10 +162,10 @@ export default function App() {
         setCart((prev) => prev.filter((_, idx) => idx !== index));
     };
 
-    // Complete Order: Deduct locally and submit atomic transaction to D1
     const handleCompleteOrder = async (orderSnapshot) => {
         setProducts((prevProducts) =>
             prevProducts.map((prod) => {
+                if (prod.stock === null || prod.stock === undefined) return prod;
                 const boughtQty = orderSnapshot.items
                     .filter((i) => i.id === prod.id)
                     .reduce((s, i) => s + i.qty, 0);
@@ -182,11 +179,23 @@ export default function App() {
         await api.submitOrder(orderSnapshot);
     };
 
-    // Admin D1 Mutations
+    // Admin Mutations with Undo History Recording
     const requireAdmin = () => currentUser?.role === 'admin';
+
+    const pushUndoEntry = (entry) => {
+        setUndoStack((prev) => [entry, ...prev.slice(0, 19)]);
+    };
 
     const handleUpdateStock = async (productId, newStock) => {
         if (!requireAdmin()) return;
+        const target = products.find((p) => p.id === productId);
+        if (target) {
+            pushUndoEntry({
+                type: 'stock',
+                label: `Stock change on ${target.name}`,
+                previousProduct: { ...target },
+            });
+        }
         setProducts((prev) =>
             prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
         );
@@ -195,12 +204,25 @@ export default function App() {
 
     const handleAddNewProduct = async (newProduct) => {
         if (!requireAdmin()) return;
+        pushUndoEntry({
+            type: 'add',
+            label: `Added ${newProduct.name}`,
+            addedId: newProduct.id,
+        });
         setProducts((prev) => [newProduct, ...prev]);
         await api.addProduct(newProduct);
     };
 
     const handleUpdateProduct = async (updatedProduct) => {
         if (!requireAdmin()) return;
+        const existing = products.find((p) => p.id === updatedProduct.id);
+        if (existing) {
+            pushUndoEntry({
+                type: 'update',
+                label: `Edited ${existing.name}`,
+                previousProduct: { ...existing },
+            });
+        }
         setProducts((prev) =>
             prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
         );
@@ -209,16 +231,45 @@ export default function App() {
 
     const handleDeleteProduct = async (productId) => {
         if (!requireAdmin()) return;
+        const deletedItem = products.find((p) => p.id === productId);
+        if (deletedItem) {
+            pushUndoEntry({
+                type: 'delete',
+                label: `Deleted ${deletedItem.name}`,
+                deletedProduct: { ...deletedItem },
+            });
+        }
         setProducts((prev) => prev.filter((p) => p.id !== productId));
         await api.deleteProduct(productId);
     };
 
-    const handleResetCatalog = () => {
-        if (!requireAdmin()) return;
-        setProducts(initialProducts);
+    // Execute Undo and sync reversal to Cloudflare D1
+    const handleUndoLastAction = async () => {
+        if (!requireAdmin() || undoStack.length === 0) return;
+        const [lastAction, ...remainingStack] = undoStack;
+        setUndoStack(remainingStack);
+
+        if (lastAction.type === 'stock' && lastAction.previousProduct) {
+            const prev = lastAction.previousProduct;
+            setProducts((list) =>
+                list.map((p) => (p.id === prev.id ? { ...p, stock: prev.stock } : p))
+            );
+            await api.updateStock(prev.id, prev.stock);
+        } else if (lastAction.type === 'update' && lastAction.previousProduct) {
+            const prev = lastAction.previousProduct;
+            setProducts((list) => list.map((p) => (p.id === prev.id ? prev : p)));
+            await api.updateProduct(prev);
+        } else if (lastAction.type === 'delete' && lastAction.deletedProduct) {
+            const restored = lastAction.deletedProduct;
+            setProducts((list) => [restored, ...list]);
+            await api.addProduct(restored);
+        } else if (lastAction.type === 'add' && lastAction.addedId) {
+            setProducts((list) => list.filter((p) => p.id !== lastAction.addedId));
+            await api.deleteProduct(lastAction.addedId);
+        }
     };
 
-    // Admin Review Moderation Handlers
+    // Review Moderation Handlers
     const handleAddReview = async (newRev) => {
         setReviews((prev) => [newRev, ...prev]);
         await api.submitReview(newRev);
@@ -284,8 +335,8 @@ export default function App() {
                             }}
                         />
 
-                        <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-8 border-b border-stone-200">
+                        <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-stone-200">
                                 <div>
                                     <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
                                         Showroom & Online Collection
@@ -303,7 +354,7 @@ export default function App() {
                                         id="sort-select"
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="px-4 py-2.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-[#9A7B56]"
+                                        className="w-full sm:w-auto px-4 py-2.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-[#9A7B56]"
                                     >
                                         <option value="featured">Sort: Featured</option>
                                         <option value="low">Price: Low to High</option>
@@ -312,13 +363,14 @@ export default function App() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 mt-6">
+                            {/* Horizontally Scrollable Category Filter Pills on Mobile, Wrap on Desktop */}
+                            <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible no-scrollbar">
                                 {categories.map((cat) => (
                                     <button
                                         key={cat.id}
                                         type="button"
                                         onClick={() => handleSelectCategory(cat.id)}
-                                        className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer ${activeCategory === cat.id
+                                        className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer shrink-0 ${activeCategory === cat.id
                                                 ? 'bg-[#1C1B18] text-white shadow-xs'
                                                 : 'bg-white border border-stone-200 text-stone-700 hover:border-[#9A7B56]'
                                             }`}
@@ -329,14 +381,14 @@ export default function App() {
                             </div>
 
                             {availableSubcategories.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-stone-200/60">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mr-1">
-                                        {activeCategory} Subcategories:
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-200/60 overflow-x-auto pb-1 sm:flex-wrap">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mr-1 shrink-0">
+                                        {activeCategory}:
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => setActiveSubcategory('All')}
-                                        className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer ${activeSubcategory === 'All'
+                                        className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === 'All'
                                                 ? 'bg-[#9A7B56] text-white'
                                                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                                             }`}
@@ -348,7 +400,7 @@ export default function App() {
                                             key={sub}
                                             type="button"
                                             onClick={() => setActiveSubcategory(sub)}
-                                            className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer ${activeSubcategory === sub
+                                            className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === sub
                                                     ? 'bg-[#9A7B56] text-white'
                                                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                                                 }`}
@@ -359,7 +411,7 @@ export default function App() {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-8 sm:mt-10">
                                 {filteredProducts.map((product) => (
                                     <ProductCard
                                         key={product.id}
@@ -453,7 +505,9 @@ export default function App() {
                 onAddNewProduct={handleAddNewProduct}
                 onUpdateProduct={handleUpdateProduct}
                 onDeleteProduct={handleDeleteProduct}
-                onResetCatalog={handleResetCatalog}
+                canUndo={undoStack.length > 0}
+                lastActionLabel={undoStack[0]?.label || ''}
+                onUndoLastAction={handleUndoLastAction}
                 reviews={reviews}
                 onToggleVerifyReview={handleToggleVerifyReview}
                 onRespondToReview={handleRespondToReview}
