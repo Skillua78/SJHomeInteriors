@@ -1,4 +1,5 @@
-import { CalendarClock, Users, CreditCard, ShieldCheck } from 'lucide-react';
+import { CalendarClock, Users, MapPin, ShieldCheck } from 'lucide-react';
+import { SHOP_INFO } from '../data/products';
 
 const perks = [
     {
@@ -11,15 +12,22 @@ const perks = [
         title: 'Two-Person White Glove',
         desc: 'Full assembly in any room of your choice included.',
     },
+    /* FINANCE OPTION COMMENTED OUT FOR NOW
     {
-        icon: CreditCard,
-        title: 'Flexible Finance Plans',
-        desc: 'Spread the cost with easy 0% APR monthly payments.',
+      icon: CreditCard,
+      title: 'Flexible Finance Plans',
+      desc: 'Spread the cost with easy 0% APR monthly payments.',
+    },
+    */
+    {
+        icon: MapPin,
+        title: 'High Street, Maltby Store',
+        desc: `View fabrics & suites in person (${SHOP_INFO.phoneDisplay}).`,
     },
     {
         icon: ShieldCheck,
         title: 'Deep Foam-Filled Quality',
-        desc: 'Built with high-density cushions & solid frames.',
+        desc: 'Built with high-density cushions & solid hardwood frames.',
     },
 ];
 
