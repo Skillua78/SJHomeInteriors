@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Ruler, Check } from 'lucide-react';
+import { X, Ruler, Check, Package } from 'lucide-react';
 import { colorMap } from '../data/products';
 
 export default function SpecModal({ modalData, onClose, onAddToCart }) {
@@ -14,7 +14,7 @@ export default function SpecModal({ modalData, onClose, onAddToCart }) {
     if (!modalData?.product) return null;
 
     const { product } = modalData;
-    const monthly = (product.price / 12).toFixed(2);
+    // const monthly = (product.price / 12).toFixed(2); // Finance commented out
 
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -47,21 +47,34 @@ export default function SpecModal({ modalData, onClose, onAddToCart }) {
                                 </button>
                             </div>
 
-                            <div className="mt-2 flex items-baseline gap-3">
+                            <div className="mt-2 flex items-center gap-3">
                                 <span className="text-2xl font-bold text-[#9A7B56]">
                                     £{product.price.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                                 </span>
-                                <span className="text-xs text-stone-500">
-                                    0% Finance: £{monthly} / month
+                                <span
+                                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${product.stock > 0
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                        }`}
+                                >
+                                    <Package className="w-3.5 h-3.5" />
+                                    {product.stock > 0
+                                        ? `${product.stock} Available in Stock`
+                                        : 'Pre-Order Available'}
                                 </span>
+                                {/* FINANCE COMMENTED OUT FOR NOW
+                <span className="text-xs text-stone-500">
+                  0% Finance: £{monthly} / month
+                </span>
+                */}
                             </div>
 
                             {/* Colour Selector */}
                             <div className="mt-4">
                                 <span className="text-xs font-semibold text-stone-700 block mb-2">
-                                    Upholstery Colour: <span className="text-[#9A7B56]">{chosenColor}</span>
+                                    Select Finish: <span className="text-[#9A7B56]">{chosenColor}</span>
                                 </span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     {product.colors.map((color) => (
                                         <button
                                             key={color}
@@ -118,7 +131,7 @@ export default function SpecModal({ modalData, onClose, onAddToCart }) {
                                 }}
                                 className="w-full py-3.5 px-6 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white font-semibold text-xs uppercase tracking-wider transition cursor-pointer"
                             >
-                                Add ({chosenColor}) to Showroom Enquiry
+                                Add ({chosenColor}) to Basket
                             </button>
                         </div>
                     </div>

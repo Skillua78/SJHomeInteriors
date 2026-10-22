@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Maximize2 } from 'lucide-react';
+import { Maximize2, Flame, Sparkles, Package } from 'lucide-react';
 import { colorMap } from '../data/products';
 
 export default function ProductCard({ product, onOpenModal, onAddToCart }) {
     const [selectedColor, setSelectedColor] = useState(product.colors[0]);
-    const monthlyPrice = (product.price / 12).toFixed(2);
+    const isAvailable = product.stock > 0;
+    // const monthlyPrice = (product.price / 12).toFixed(2); // Finance commented out
 
     return (
         <div className="group bg-white rounded-3xl overflow-hidden border border-stone-200/80 hover:shadow-xl transition duration-300 flex flex-col justify-between">
@@ -16,14 +17,43 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
+
+                    {/* Top Left Badges */}
+                    <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5">
+                        <span
+                            className={`px-3 py-1 rounded-full text-[11px] font-semibold ${isAvailable
+                                    ? 'bg-[#1C1B18] text-white'
+                                    : 'bg-red-800 text-white'
+                                }`}
+                        >
+                            {isAvailable ? product.badge : 'Out of Stock / Pre-Order'}
+                        </span>
+
+                        {product.isTrending && (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1 shadow-xs">
+                                <Flame className="w-3 h-3" /> Trending
+                            </span>
+                        )}
+                        {product.isPopular && !product.isTrending && (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#9A7B56] text-white flex items-center gap-1 shadow-xs">
+                                <Sparkles className="w-3 h-3" /> Popular
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Stock Indicator Pill */}
                     <span
-                        className={`absolute top-3.5 left-3.5 px-3 py-1 rounded-full text-[11px] font-semibold ${product.inStock
-                                ? 'bg-[#1C1B18] text-white'
-                                : 'bg-red-800 text-white'
+                        className={`absolute top-3.5 right-3.5 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs ${product.stock > 3
+                                ? 'bg-emerald-900/90 text-emerald-100'
+                                : product.stock > 0
+                                    ? 'bg-amber-700/95 text-white'
+                                    : 'bg-stone-800/90 text-stone-300'
                             }`}
                     >
-                        {product.badge}
+                        <Package className="w-3 h-3" />
+                        {product.stock > 0 ? `${product.stock} in stock` : '0 in stock'}
                     </span>
+
                     <span className="absolute bottom-3.5 right-3.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/90 backdrop-blur-xs text-[#1C1B18] shadow-xs">
                         Delivery: {product.delivery}
                     </span>
@@ -65,14 +95,19 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                         {product.dimensions[0]}
                     </p>
 
-                    {/* Price & Finance */}
+                    {/* Price */}
                     <div className="mt-4 pt-4 border-t border-stone-100 flex items-baseline justify-between">
                         <div>
                             <span className="text-2xl font-bold text-[#1C1B18]">
                                 £{product.price.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                             </span>
-                            <span className="block text-[11px] text-stone-500">
-                                or £{monthlyPrice}/mo at 0% APR
+                            {/* FINANCE OPTION COMMENTED OUT FOR NOW
+              <span className="block text-[11px] text-stone-500">
+                or £{monthlyPrice}/mo at 0% APR
+              </span>
+              */}
+                            <span className="block text-[11px] text-emerald-700 font-medium">
+                                Includes Two-Person Room Assembly
                             </span>
                         </div>
                         <button
@@ -89,12 +124,12 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
             <div className="px-6 pb-6 pt-2 flex gap-2">
                 <button
                     onClick={() => onAddToCart(product, selectedColor)}
-                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer ${product.inStock
+                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer ${isAvailable
                             ? 'bg-[#1C1B18] hover:bg-[#9A7B56] text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                         }`}
                 >
-                    {product.inStock ? 'Add to Selection' : 'Enquire Pre-Order'}
+                    {isAvailable ? 'Add to Basket' : 'Pre-Order in Basket'}
                 </button>
                 <button
                     onClick={() => onOpenModal(product, selectedColor)}
