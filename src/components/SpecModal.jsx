@@ -8,8 +8,14 @@ import {
     ChevronRight,
     Edit3,
     Truck,
+    ZoomIn,
+    ZoomOut,
+    RotateCcw,
+    Sparkles,
+    Eye,
 } from 'lucide-react';
 import { resolveColorHex } from './ProductCard';
+import { FABRIC_INFOGRAPHICS } from '../data/products';
 import { validateSafeImageUrl } from '../utils/security';
 
 export default function SpecModal({
@@ -27,6 +33,14 @@ export default function SpecModal({
     const [chosenLift, setChosenLift] = useState('');
     const [activeImgIdx, setActiveImgIdx] = useState(0);
 
+    // Magnifying Glass Zoom & Pan State
+    const [zoomLevel, setZoomLevel] = useState(1); // 1 = Full View, 1.75 = Medium Zoom, 2.5 = Deep Zoom
+    const [panOrigin, setPanOrigin] = useState({ x: 50, y: 50 });
+
+    // Toggle to view the Fabric Infographic Chart
+    const [showFabricChart, setShowFabricChart] = useState(true);
+    const [customChartImgError, setCustomChartImgError] = useState({});
+
     useEffect(() => {
         if (modalData?.product) {
             const p = modalData.product;
@@ -37,6 +51,8 @@ export default function SpecModal({
             setChosenMattress(v.mattresses?.[0] || '');
             setChosenLift(v.liftOptions?.[0] || '');
             setActiveImgIdx(0);
+            setZoomLevel(1);
+            setPanOrigin({ x: 50, y: 50 });
         }
     }, [modalData]);
 
@@ -60,7 +76,6 @@ export default function SpecModal({
     const liftOptions = Array.isArray(v.liftOptions) ? v.liftOptions : [];
     const deltas = v.priceDeltas || {};
 
-    // Calculate price adjustments
     const getDelta = (group, key) => {
         if (!key || !deltas[group]) return 0;
         const val = parseFloat(deltas[group][key]);
@@ -146,19 +161,48 @@ export default function SpecModal({
         return parts.join(' • ') || 'Standard';
     };
 
+    // Magnifying Glass Handlers
+    const handleZoomIn = () => {
+        setZoomLevel((prev) => (prev === 1 ? 1.75 : prev === 1.75 ? 2.5 : 1));
+    };
+
+    const handleZoomOut = () => {
+        setZoomLevel((prev) => (prev === 2.5 ? 1.75 : 1));
+    };
+
+    const handleResetZoom = () => {
+        setZoomLevel(1);
+        setPanOrigin({ x: 50, y: 50 });
+    };
+
+    const handleImageMouseMove = (e) => {
+        if (zoomLevel <= 1) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+        setPanOrigin({ x, y });
+    };
+
+    // Active Fabric Infographic Lookup
+    const activeFabricChart = chosenFabric ? FABRIC_INFOGRAPHICS[chosenFabric] : null;
+    const customAdminFabricImg =
+        chosenFabric && siteSettings?.customFabricImages?.[chosenFabric]
+            ? validateSafeImageUrl(siteSettings.customFabricImages[chosenFabric])
+            : null;
+
     return (
         <div
             role="dialog"
             aria-modal="true"
             aria-label={`${product.name} specifications`}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-stone-200 custom-scrollbar"
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-stone-200 custom-scrollbar"
             >
-                {/* Sticky Top-Right Controls */}
+                {/* Sticky Top-Right Bar */}
                 <div className="sticky top-3 right-3 z-30 flex justify-end gap-2 px-4 pt-3 pointer-events-none">
                     {isAdmin && onEditProduct && (
                         <button
@@ -183,28 +227,85 @@ export default function SpecModal({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 -mt-12">
-                    {/* Left Column: Multi-Image Gallery */}
-                    <div className="md:col-span-6 bg-stone-100 flex flex-col justify-between relative">
-                        <div className="relative aspect-[4/3] md:aspect-auto md:h-full min-h-[280px] overflow-hidden">
+                    {/* Left Column: Full-View Image Viewer + Magnifying Glass Zoom */}
+                    <div className="md:col-span-6 bg-[#F4F1EA] flex flex-col justify-between relative border-b md:border-b-0 md:border-r border-stone-200">
+                        <div
+                            onMouseMove={handleImageMouseMove}
+                            onClick={handleZoomIn}
+                            title={
+                                zoomLevel === 1
+                                    ? 'Click magnifying glass or image to zoom in'
+                                    : 'Move cursor to inspect details, click to change zoom'
+                            }
+                            className={`relative min-h-[300px] sm:min-h-[420px] md:h-full flex items-center justify-center overflow-hidden p-4 select-none ${zoomLevel > 1 ? 'cursor-zoom-out' : 'cursor-zoom-in'
+                                }`}
+                        >
+                            {/* FULL VIEW UNDISTORTED IMAGE (object-contain) */}
                             <img
                                 src={gallery[activeImgIdx % gallery.length]}
                                 alt={`${product.name} - photo ${activeImgIdx + 1}`}
-                                className="w-full h-full object-cover"
+                                style={{
+                                    transform: `scale(${zoomLevel})`,
+                                    transformOrigin: `${panOrigin.x}% ${panOrigin.y}%`,
+                                }}
+                                className="max-w-full max-h-[380px] sm:max-h-[480px] w-auto h-auto object-contain transition-transform duration-200 rounded-xl shadow-xs"
                             />
 
-                            {product.badge && (
+                            {product.badge && zoomLevel === 1 && (
                                 <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold bg-[#1C1B18] text-white shadow-xs">
                                     {product.badge}
                                 </span>
                             )}
 
+                            {/* Magnifying Glass Zoom Controls */}
+                            <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute bottom-3.5 right-3.5 z-20 flex items-center gap-1.5 bg-[#1C1B18]/85 backdrop-blur-xs text-white px-2.5 py-1.5 rounded-full shadow-lg"
+                            >
+                                <button
+                                    type="button"
+                                    onClick={handleZoomOut}
+                                    disabled={zoomLevel <= 1}
+                                    aria-label="Zoom out"
+                                    title="Zoom Out"
+                                    className="p-1 hover:text-[#D4B895] disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                    <ZoomOut className="w-4 h-4" />
+                                </button>
+                                <span className="text-[11px] font-bold px-1 min-w-[36px] text-center">
+                                    {Math.round(zoomLevel * 100)}%
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleZoomIn}
+                                    aria-label="Zoom in"
+                                    title="Magnify / Zoom In"
+                                    className="p-1 hover:text-[#D4B895] cursor-pointer"
+                                >
+                                    <ZoomIn className="w-4 h-4" />
+                                </button>
+                                {zoomLevel > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={handleResetZoom}
+                                        aria-label="Reset zoom to full view"
+                                        title="Reset to Full View (100%)"
+                                        className="p-1 hover:text-[#D4B895] border-l border-white/20 pl-1.5 cursor-pointer"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
                             {gallery.length > 1 && (
                                 <>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            setActiveImgIdx((prev) => (prev - 1 + gallery.length) % gallery.length)
-                                        }
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleResetZoom();
+                                            setActiveImgIdx((prev) => (prev - 1 + gallery.length) % gallery.length);
+                                        }}
                                         aria-label="Previous image"
                                         className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
                                     >
@@ -212,9 +313,11 @@ export default function SpecModal({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            setActiveImgIdx((prev) => (prev + 1) % gallery.length)
-                                        }
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleResetZoom();
+                                            setActiveImgIdx((prev) => (prev + 1) % gallery.length);
+                                        }}
                                         aria-label="Next image"
                                         className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
                                     >
@@ -224,27 +327,31 @@ export default function SpecModal({
                             )}
                         </div>
 
+                        {/* Scrollable Thumbnail Strip */}
                         {gallery.length > 1 && (
-                            <div className="p-3 bg-white/95 border-t border-stone-200 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                            <div className="p-3 bg-white border-t border-stone-200 flex items-center gap-2 overflow-x-auto custom-scrollbar">
                                 {gallery.map((imgUrl, idx) => (
                                     <button
                                         key={idx}
                                         type="button"
-                                        onClick={() => setActiveImgIdx(idx)}
+                                        onClick={() => {
+                                            handleResetZoom();
+                                            setActiveImgIdx(idx);
+                                        }}
                                         aria-label={`Select photo ${idx + 1}`}
-                                        className={`w-16 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition cursor-pointer ${idx === activeImgIdx
+                                        className={`w-16 h-14 rounded-xl overflow-hidden border-2 bg-stone-100 shrink-0 transition cursor-pointer ${idx === activeImgIdx
                                                 ? 'border-[#9A7B56] scale-105'
                                                 : 'border-transparent opacity-70 hover:opacity-100'
                                             }`}
                                     >
-                                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                                        <img src={imgUrl} alt="" className="w-full h-full object-contain" />
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* Right Column: Specifications, Variations & Live Price */}
+                    {/* Right Column: Specifications, Fabric Infographics & Options */}
                     <div className="md:col-span-6 p-5 sm:p-8 pt-12 md:pt-14 flex flex-col justify-between">
                         <div className="space-y-4">
                             <div>
@@ -256,7 +363,7 @@ export default function SpecModal({
                                 </h3>
                             </div>
 
-                            {/* Dynamic Live Price & Optional Stock Badge */}
+                            {/* Dynamic Live Price & Value Badge */}
                             <div className="flex flex-wrap items-baseline gap-3">
                                 {finalPreviousPrice && (
                                     <span className="text-base font-medium text-stone-400 line-through">
@@ -269,7 +376,9 @@ export default function SpecModal({
                                 {totalDelta !== 0 && (
                                     <span className="text-[11px] font-semibold text-stone-500">
                                         (Base £{Number(product.price).toFixed(0)}{' '}
-                                        {totalDelta > 0 ? `+ £${totalDelta.toFixed(0)} options` : `- £${Math.abs(totalDelta).toFixed(0)}`})
+                                        {totalDelta > 0
+                                            ? `+ £${totalDelta.toFixed(0)} options`
+                                            : `- £${Math.abs(totalDelta).toFixed(0)}`})
                                     </span>
                                 )}
 
@@ -305,7 +414,8 @@ export default function SpecModal({
                             {product.colors?.length > 0 && (
                                 <div>
                                     <span className="text-xs font-semibold text-stone-700 block mb-1.5">
-                                        Colour / Finish: <strong className="text-[#9A7B56]">{chosenColor}</strong>
+                                        Selected Colour / Finish:{' '}
+                                        <strong className="text-[#9A7B56]">{chosenColor}</strong>
                                     </span>
                                     <div className="flex flex-wrap items-center gap-2">
                                         {product.colors.map((color) => (
@@ -331,20 +441,36 @@ export default function SpecModal({
                                 </div>
                             )}
 
-                            {/* 2. Fabric Selector */}
+                            {/* 2. Fabric Selector + Interactive Fabric Colour Swatch Infographic */}
                             {fabrics.length > 0 && (
-                                <div>
-                                    <span className="text-xs font-semibold text-stone-700 block mb-1.5">
-                                        Fabric Option: <strong className="text-[#9A7B56]">{chosenFabric}</strong>
-                                    </span>
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-stone-700">
+                                            Fabric Type: <strong className="text-[#9A7B56]">{chosenFabric}</strong>
+                                        </span>
+                                        {activeFabricChart && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowFabricChart(!showFabricChart)}
+                                                className="text-[11px] font-bold text-[#9A7B56] hover:underline flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                {showFabricChart ? 'Hide Fabric Swatch Chart' : 'View Fabric Swatch Chart'}
+                                            </button>
+                                        )}
+                                    </div>
+
                                     <div className="flex flex-wrap gap-1.5">
                                         {fabrics.map((fab) => (
                                             <button
                                                 key={fab}
                                                 type="button"
-                                                onClick={() => setChosenFabric(fab)}
+                                                onClick={() => {
+                                                    setChosenFabric(fab);
+                                                    setShowFabricChart(true);
+                                                }}
                                                 className={`px-3 py-1.5 rounded-xl text-xs border cursor-pointer transition ${chosenFabric === fab
-                                                        ? 'border-[#1C1B18] bg-[#1C1B18] text-white font-semibold'
+                                                        ? 'border-[#1C1B18] bg-[#1C1B18] text-white font-semibold shadow-xs'
                                                         : 'border-stone-200 bg-white text-stone-700 hover:border-[#9A7B56]'
                                                     }`}
                                             >
@@ -353,10 +479,115 @@ export default function SpecModal({
                                             </button>
                                         ))}
                                     </div>
+
+                                    {/* INTERACTIVE FABRIC INFOGRAPHIC CARD (Displays when a Fabric is clicked) */}
+                                    {showFabricChart && (activeFabricChart || customAdminFabricImg) && (
+                                        <div className="rounded-2xl overflow-hidden border-2 border-stone-200 bg-white shadow-md">
+                                            {/* If Admin uploaded a custom infographic image or placed it in /public/fabrics/ */}
+                                            {(customAdminFabricImg ||
+                                                (activeFabricChart?.image && !customChartImgError[chosenFabric])) && (
+                                                    <div className="bg-stone-50 border-b border-stone-200">
+                                                        <img
+                                                            src={customAdminFabricImg || activeFabricChart.image}
+                                                            alt={`${chosenFabric} Fabric Colours Infographic`}
+                                                            onError={() =>
+                                                                setCustomChartImgError((prev) => ({
+                                                                    ...prev,
+                                                                    [chosenFabric]: true,
+                                                                }))
+                                                            }
+                                                            className="w-full max-h-72 object-contain mx-auto"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                            {/* Built-In Interactive Textured Swatch Grid (Matches Wool, Spice Velvet & Naples Charts) */}
+                                            {activeFabricChart && (
+                                                <div>
+                                                    <div className="grid grid-cols-3">
+                                                        {activeFabricChart.swatches.map((sw) => {
+                                                            const fullShadeName = `${chosenFabric} - ${sw.name}`;
+                                                            const isShadeSelected =
+                                                                chosenColor === sw.name || chosenColor === fullShadeName;
+                                                            const colSpanClass =
+                                                                sw.span === 3
+                                                                    ? 'col-span-3'
+                                                                    : sw.span === 1.5
+                                                                        ? 'col-span-3 sm:col-span-1'
+                                                                        : 'col-span-1';
+
+                                                            return (
+                                                                <button
+                                                                    key={sw.name}
+                                                                    type="button"
+                                                                    onClick={() => setChosenColor(fullShadeName)}
+                                                                    title={`Select ${fullShadeName}`}
+                                                                    style={{
+                                                                        backgroundColor: sw.hex,
+                                                                        backgroundImage: activeFabricChart.textureStyle,
+                                                                        backgroundSize: activeFabricChart.textureSize,
+                                                                    }}
+                                                                    className={`${colSpanClass} h-14 sm:h-16 relative flex items-center justify-center border border-black/10 group cursor-pointer transition hover:brightness-110`}
+                                                                >
+                                                                    <span
+                                                                        className={`text-xs sm:text-sm font-extrabold tracking-tight drop-shadow-xs px-2 py-0.5 rounded ${sw.textDark
+                                                                                ? 'text-[#1C1B18] bg-white/60'
+                                                                                : 'text-white bg-black/25'
+                                                                            } ${isShadeSelected
+                                                                                ? 'ring-2 ring-white scale-105'
+                                                                                : ''
+                                                                            }`}
+                                                                    >
+                                                                        {sw.name}
+                                                                        {isShadeSelected ? ' ✓' : ''}
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Infographic Footer matching the uploaded swatch chart layout */}
+                                                    <div className="p-3.5 text-center bg-white border-t border-stone-200">
+                                                        <h5 className="font-sans text-base sm:text-lg font-extrabold text-[#1C1B18] leading-tight">
+                                                            {activeFabricChart.title}
+                                                        </h5>
+                                                        <p className="text-[11px] text-stone-500 mt-0.5">
+                                                            {activeFabricChart.subtitle} &bull;{' '}
+                                                            <strong className="text-[#9A7B56]">
+                                                                Tap any shade above to select it
+                                                            </strong>
+                                                        </p>
+
+                                                        {fabrics.length > 1 && (
+                                                            <div className="mt-2.5 pt-2 border-t border-stone-100">
+                                                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1C1B18] block mb-1">
+                                                                    Other Fabrics Options
+                                                                </span>
+                                                                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-stone-600">
+                                                                    {fabrics
+                                                                        .filter((f) => f !== chosenFabric)
+                                                                        .map((otherFab) => (
+                                                                            <button
+                                                                                key={otherFab}
+                                                                                type="button"
+                                                                                onClick={() => setChosenFabric(otherFab)}
+                                                                                className="hover:text-[#9A7B56] hover:underline font-medium cursor-pointer"
+                                                                            >
+                                                                                {otherFab}
+                                                                            </button>
+                                                                        ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* 3. Size Selector (Updates Dimensions & Price Dynamically) */}
+                            {/* 3. Size Selector */}
                             {sizes.length > 0 && (
                                 <div>
                                     <span className="text-xs font-semibold text-stone-700 block mb-1.5">

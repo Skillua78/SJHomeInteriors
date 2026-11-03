@@ -28,12 +28,13 @@ export default function Hero({ onNavigate, siteSettings }) {
         return () => clearInterval(timer);
     }, [slides.length]);
 
-    const badgeText = siteSettings?.heroBadge || 'Maltby Showroom & Online Collection';
-    const titleText = siteSettings?.heroTitle || 'Luxury Sofas, Beds & Timeless Living';
+    const badgeText =
+        siteSettings?.heroBadge || 'Maltby Showroom • Quality Furniture, Affordable Prices';
+    const titleText =
+        siteSettings?.heroTitle || 'Quality Sofas, Beds & Dining at Prices You’ll Love';
     const subtitleText =
         siteSettings?.heroSubtitle ||
-        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online with two-person delivery.';
-
+        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.';
     return (
         <section className="relative overflow-hidden bg-[#1C1B18] text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
@@ -116,8 +117,8 @@ export default function Hero({ onNavigate, siteSettings }) {
                                                 onClick={() => setCurrentSlide(idx)}
                                                 aria-label={`Go to slide ${idx + 1}`}
                                                 className={`h-2 rounded-full transition-all cursor-pointer ${idx === currentSlide % slides.length
-                                                        ? 'w-6 bg-[#D4B895]'
-                                                        : 'w-2 bg-white/50 hover:bg-white/80'
+                                                    ? 'w-6 bg-[#D4B895]'
+                                                    : 'w-2 bg-white/50 hover:bg-white/80'
                                                     }`}
                                             />
                                         ))}

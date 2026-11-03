@@ -30,11 +30,11 @@ const DEFAULT_SETTINGS = {
     openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
     facebookUrl: '',
     whatsappNumber: '',
-    announcementText: 'Visit Our Maltby Showroom • Fast Local Delivery Across South Yorkshire',
-    heroBadge: 'Maltby Showroom & Online Collection',
-    heroTitle: 'Luxury Sofas, Beds & Timeless Living',
+    announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
+    heroBadge: 'Maltby Showroom • Quality Furniture, Affordable Prices',
+    heroTitle: 'Quality Sofas, Beds & Dining at Prices You’ll Love',
     heroSubtitle:
-        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online.',
+        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
     heroImages: [
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
@@ -451,8 +451,8 @@ export default function App() {
                                         type="button"
                                         onClick={() => handleSelectCategory(cat.id)}
                                         className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer shrink-0 ${activeCategory === cat.id
-                                                ? 'bg-[#1C1B18] text-white shadow-xs'
-                                                : 'bg-white border border-stone-200 text-stone-700 hover:border-[#9A7B56]'
+                                            ? 'bg-[#1C1B18] text-white shadow-xs'
+                                            : 'bg-white border border-stone-200 text-stone-700 hover:border-[#9A7B56]'
                                             }`}
                                     >
                                         {cat.label}
@@ -469,8 +469,8 @@ export default function App() {
                                         type="button"
                                         onClick={() => setActiveSubcategory('All')}
                                         className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === 'All'
-                                                ? 'bg-[#9A7B56] text-white'
-                                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                            ? 'bg-[#9A7B56] text-white'
+                                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                                             }`}
                                     >
                                         All {activeCategory}
@@ -481,8 +481,8 @@ export default function App() {
                                             type="button"
                                             onClick={() => setActiveSubcategory(sub)}
                                             className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === sub
-                                                    ? 'bg-[#9A7B56] text-white'
-                                                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                                ? 'bg-[#9A7B56] text-white'
+                                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                                                 }`}
                                         >
                                             {sub}

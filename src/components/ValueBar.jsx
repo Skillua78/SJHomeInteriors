@@ -1,4 +1,4 @@
-import { Truck, ShieldCheck, Store, Sparkles } from 'lucide-react';
+import { Truck, ShieldCheck, Store, PoundSterling } from 'lucide-react';
 
 export default function ValueBar({ siteSettings }) {
     const showAssembly = siteSettings?.showAssemblyHighlight !== false;
@@ -6,6 +6,21 @@ export default function ValueBar({ siteSettings }) {
     const assemblySubtitle = siteSettings?.assemblySubtitle || 'Included Free';
 
     const items = [
+        {
+            icon: PoundSterling,
+            title: 'Affordable Direct Prices',
+            sub: 'No High-Street Markups',
+        },
+        {
+            icon: ShieldCheck,
+            title: 'Built-to-Last Quality',
+            sub: 'Solid Frames & Durable Fabrics',
+        },
+        {
+            icon: Store,
+            title: 'Maltby High Street Showroom',
+            sub: 'Try Before You Buy',
+        },
         ...(showAssembly && assemblyTitle.trim()
             ? [
                 {
@@ -15,21 +30,6 @@ export default function ValueBar({ siteSettings }) {
                 },
             ]
             : []),
-        {
-            icon: Store,
-            title: 'Maltby High Street Showroom',
-            sub: 'View & Test In Person',
-        },
-        {
-            icon: ShieldCheck,
-            title: 'Quality Craftsmanship',
-            sub: 'Built for British Homes',
-        },
-        {
-            icon: Sparkles,
-            title: 'Bespoke Fabrics & Sizes',
-            sub: 'Tailored to Your Space',
-        },
     ];
 
     return (

@@ -10,11 +10,11 @@ export const DEFAULT_SITE_SETTINGS = {
     openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
     facebookUrl: '',
     whatsappNumber: '',
-    announcementText: 'Visit Our Maltby Showroom • Fast Local Delivery Across South Yorkshire',
-    heroBadge: 'Maltby Showroom & Online Collection',
-    heroTitle: 'Luxury Sofas, Beds & Timeless Living',
+    announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
+    heroBadge: 'Maltby Showroom • Quality Furniture, Affordable Prices',
+    heroTitle: 'Quality Sofas, Beds & Dining at Prices You’ll Love',
     heroSubtitle:
-        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online.',
+        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
     heroImages: [
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',

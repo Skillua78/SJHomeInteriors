@@ -1,6 +1,6 @@
 export const SHOP_INFO = {
     name: 'SJ Home Interiors',
-    tagline: 'Maltby Showroom & Online Collection',
+    tagline: 'Quality Furniture at Affordable Showroom Prices',
     address: 'High Street, Maltby, Rotherham, S66 8JE',
     street: 'High Street',
     town: 'Maltby',
@@ -14,14 +14,18 @@ export const SHOP_INFO = {
 };
 
 export const colorMap = {
-    Beige: '#D8CFC2',
-    Cream: '#F3EFE6',
-    Ivory: '#FFFFF0',
-    White: '#F9F9F9',
+    // Core & Standard Colours
+    Beige: '#B59B7C',
+    Cream: '#E5DFD3',
+    Ivory: '#EAE6D7',
+    White: '#F2F2F0',
     'White Marble': '#F2F0EB',
     Grey: '#8C8C8C',
     'Light Grey': '#C4C4C4',
+    Silver: '#9EA2A5',
     'Silver Grey': '#B2B5B8',
+    'Slate Grey': '#3D4043',
+    Steel: '#73767A',
     Charcoal: '#3E4042',
     Anthracite: '#292C2F',
     Black: '#1C1B18',
@@ -29,14 +33,16 @@ export const colorMap = {
     'Navy Blue': '#1B2A4A',
     'Royal Blue': '#1E3F8B',
     'Sky Blue': '#7BAFD4',
-    Teal: '#1F5F61',
+    Teal: '#1B5E68',
     Green: '#3B5249',
     'Sage Green': '#8A9A86',
     'Emerald Green': '#184A3B',
+    Emrald: '#3B5E52',
     'Forest Green': '#233D2C',
     Olive: '#556B2F',
     Taupe: '#8B7D70',
-    Mink: '#A8998C',
+    Mink: '#7A6855',
+    Cappucino: '#9C8265',
     Champagne: '#E6D7C3',
     Brown: '#5C4033',
     Tan: '#B87333',
@@ -44,16 +50,167 @@ export const colorMap = {
     Walnut: '#4B3621',
     'Natural Oak': '#C8A165',
     'Rustic Oak': '#9E7344',
-    Gold: '#C5A059',
+    Gold: '#9C784C',
     'Brushed Brass': '#B59449',
-    Chrome: '#D4D7D9',
+    Chrome: '#8E9194',
     'Blush Pink': '#E3BCBC',
+    Pink: '#B5747B',
     Mustard: '#D49B27',
+    Tumeric: '#8C6226',
     Terracotta: '#B85D43',
     Plum: '#583149',
+    // Wool Swatch Specifics
+    Bronze: '#8C8272',
+    Chestnut: '#4F3524',
+    Jade: '#647C87',
+    Latte: '#5E4633',
+    Lilac: '#4A2C40',
+    Marine: '#3E4E68',
+    Mocha: '#4B3A2C',
+    Pewter: '#595C60',
+    Raven: '#332C27',
+    Sapphire: '#232B59',
+    Shadow: '#222426',
+    Wheat: '#6C5035',
+    // Spice Velvet Swatch Specifics
+    Armour: '#87888A',
+    Claret: '#7E4548',
+    Petrol: '#556869',
+    Storm: '#383B3E',
+    Denim: '#223A60',
 };
 
-// Default variation presets (Admin can add or delete any of these in the dashboard)
+/**
+ * Built-in Fabric Colour Infographics matching the uploaded swatch charts
+ * (Wool, Spice Velvet, Naples, plus Plush Velvet, Teddy, Linoso, and Marble).
+ * Admin can also attach custom image URLs/uploads in Site Settings -> customFabricImages.
+ */
+export const FABRIC_INFOGRAPHICS = {
+    Wool: {
+        title: 'Wool Fabric Colours',
+        subtitle: 'Warm, textured woven wool upholstery — hard-wearing & cosy',
+        textureStyle: 'radial-gradient(rgba(255,255,255,0.12) 1px, transparent 0)',
+        textureSize: '4px 4px',
+        image: '/fabrics/wool-colours.jpg',
+        swatches: [
+            { name: 'Bronze', hex: '#8C8272', span: 1 },
+            { name: 'Chestnut', hex: '#4F3524', span: 1 },
+            { name: 'Chrome', hex: '#8E9194', span: 1 },
+            { name: 'Gold', hex: '#9C784C', span: 1 },
+            { name: 'Jade', hex: '#647C87', span: 1 },
+            { name: 'Latte', hex: '#5E4633', span: 1 },
+            { name: 'Lilac', hex: '#4A2C40', span: 1 },
+            { name: 'Marine', hex: '#3E4E68', span: 1 },
+            { name: 'Mocha', hex: '#4B3A2C', span: 1 },
+            { name: 'Pewter', hex: '#595C60', span: 1 },
+            { name: 'Raven', hex: '#332C27', span: 1 },
+            { name: 'Sapphire', hex: '#232B59', span: 1 },
+            { name: 'Shadow', hex: '#222426', span: 1.5 },
+            { name: 'Steel', hex: '#6D7075', span: 1.5 },
+            { name: 'Teal', hex: '#1B5E68', span: 1.5 },
+            { name: 'Wheat', hex: '#6C5035', span: 1.5 },
+        ],
+    },
+    'Spice Velvet': {
+        title: 'Spice Velvet Fabric Colours',
+        subtitle: 'Rich, mottled velvet with a soft sheen and easy-clean finish',
+        textureStyle: 'linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(0,0,0,0.12) 100%)',
+        textureSize: '100% 100%',
+        image: '/fabrics/spice-velvet-colours.jpg',
+        swatches: [
+            { name: 'Armour', hex: '#87888A', span: 1 },
+            { name: 'Beige', hex: '#9B8064', span: 1 },
+            { name: 'Claret', hex: '#7E4548', span: 1 },
+            { name: 'Emrald', hex: '#3B5E52', span: 1 },
+            { name: 'Ivory', hex: '#DFDBC9', textDark: true, span: 1 },
+            { name: 'Petrol', hex: '#556869', span: 1 },
+            { name: 'Storm', hex: '#383B3E', span: 1 },
+            { name: 'Tumeric', hex: '#8C6226', span: 1 },
+            { name: 'Denim', hex: '#223A60', span: 1 },
+            { name: 'Pink', hex: '#B5747B', span: 3 },
+        ],
+    },
+    Naples: {
+        title: 'Naples Fabric Colours',
+        subtitle: 'Fine ribbed cord-velvet texture — soft to the touch & family friendly',
+        textureStyle: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.09) 0px, rgba(255,255,255,0.09) 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)',
+        textureSize: '100% 6px',
+        image: '/fabrics/naples-colours.jpg',
+        swatches: [
+            { name: 'Beige', hex: '#AC9375', span: 1 },
+            { name: 'Black', hex: '#1E1F21', span: 1 },
+            { name: 'Cappucino', hex: '#91785B', span: 1 },
+            { name: 'Cream', hex: '#DDD6C6', textDark: true, span: 1 },
+            { name: 'Mink', hex: '#776654', span: 1 },
+            { name: 'Silver', hex: '#96989B', span: 1 },
+            { name: 'Slate Grey', hex: '#35383B', span: 1 },
+            { name: 'Steel', hex: '#737678', span: 1 },
+            { name: 'White', hex: '#EAEAE8', textDark: true, span: 1 },
+        ],
+    },
+    'Plush Velvet': {
+        title: 'Plush Velvet Fabric Colours',
+        subtitle: 'Smooth, dense pile velvet with a classic smooth finish',
+        textureStyle: 'linear-gradient(120deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.08) 100%)',
+        textureSize: '100% 100%',
+        swatches: [
+            { name: 'Cream', hex: '#E8E2D5', textDark: true, span: 1 },
+            { name: 'Beige', hex: '#C8B9A6', span: 1 },
+            { name: 'Mink', hex: '#9E8E7E', span: 1 },
+            { name: 'Silver', hex: '#B4B7BA', span: 1 },
+            { name: 'Steel', hex: '#6C7075', span: 1 },
+            { name: 'Charcoal', hex: '#3B3E42', span: 1 },
+            { name: 'Black', hex: '#1A1A1A', span: 1 },
+            { name: 'Navy Blue', hex: '#1B2A4A', span: 1 },
+            { name: 'Emerald Green', hex: '#184A3B', span: 1 },
+            { name: 'Blush Pink', hex: '#DAB6B6', textDark: true, span: 1.5 },
+            { name: 'Mustard', hex: '#C99326', span: 1.5 },
+        ],
+    },
+    Teddy: {
+        title: 'Teddy Bouclé Fabric Colours',
+        subtitle: 'Cosy, looped fleecy bouclé texture for extra warmth and comfort',
+        textureStyle: 'radial-gradient(rgba(0,0,0,0.14) 1.5px, transparent 0)',
+        textureSize: '6px 6px',
+        swatches: [
+            { name: 'Ivory', hex: '#EFECE4', textDark: true, span: 1 },
+            { name: 'Cream', hex: '#E2DACB', textDark: true, span: 1 },
+            { name: 'Beige', hex: '#C2B099', span: 1 },
+            { name: 'Taupe', hex: '#8B7D70', span: 1 },
+            { name: 'Grey', hex: '#8A8D91', span: 1 },
+            { name: 'Charcoal', hex: '#3E4042', span: 1 },
+        ],
+    },
+    Linoso: {
+        title: 'Linoso Linen-Weave Colours',
+        subtitle: 'Breathable, natural-look basketweave linen upholstery',
+        textureStyle: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 2px, transparent 2px, transparent 4px)',
+        textureSize: '8px 8px',
+        swatches: [
+            { name: 'Cream', hex: '#E5DFD2', textDark: true, span: 1 },
+            { name: 'Beige', hex: '#C7B8A1', span: 1 },
+            { name: 'Light Grey', hex: '#B8BABC', span: 1 },
+            { name: 'Grey', hex: '#828588', span: 1 },
+            { name: 'Charcoal', hex: '#404347', span: 1 },
+            { name: 'Green', hex: '#43594E', span: 1 },
+        ],
+    },
+    Marble: {
+        title: 'Marble Patterned Velvet Colours',
+        subtitle: 'Statement veined marble-effect velvet upholstery',
+        textureStyle: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%, rgba(0,0,0,0.15) 100%)',
+        textureSize: '100% 100%',
+        swatches: [
+            { name: 'White Marble', hex: '#EAE8E3', textDark: true, span: 1 },
+            { name: 'Silver', hex: '#A4A7AB', span: 1 },
+            { name: 'Grey', hex: '#75787C', span: 1 },
+            { name: 'Charcoal', hex: '#393C40', span: 1 },
+            { name: 'Beige', hex: '#BDA98E', span: 1 },
+            { name: 'Black', hex: '#1F2022', span: 1 },
+        ],
+    },
+};
+
 export const VARIATION_PRESETS = {
     fabrics: [
         'Linoso',
@@ -117,10 +274,6 @@ export const VARIATION_PRESETS = {
     liftOptions: ['Standard Base (No Lift)', 'End Lift Ottoman', 'Side Lift Ottoman'],
 };
 
-/**
- * Determines which variation groups are relevant for a given furniture category.
- * Prevents showing Mattresses or Gas-Lift options on Tables, Wardrobes, or Cabinets.
- */
 export function getCategoryVariationConfig(category = '', subcategory = '') {
     const cat = category.toLowerCase();
     const sub = subcategory.toLowerCase();
@@ -154,7 +307,6 @@ export function getCategoryVariationConfig(category = '', subcategory = '') {
             showLiftOptions: false,
         };
     }
-    // Custom categories default to Sizes & Fabrics
     return {
         showFabrics: true,
         showSizes: true,
@@ -205,7 +357,7 @@ export const CATEGORY_TAXONOMY = {
 
 export const categories = [
     { id: 'All', label: 'All Collections' },
-    { id: 'Popular', label: '★ Popular' },
+    { id: 'Popular', label: '★ Best Value' },
     { id: 'Trending', label: '🔥 Trending' },
     { id: 'Sofas', label: 'Sofas' },
     { id: 'Beds', label: 'Beds' },
@@ -223,10 +375,10 @@ export const initialProducts = [
         price: 1399.0,
         previousPrice: 1699.0,
         description:
-            'Designed for generous family living, the Luna U-Shape transforms effortlessly into a spacious guest sleeper with hidden under-chaise storage compartments and multi-position ratcheted headrests.',
+            'Unbeatable value for generous family living. Built with a solid hardwood frame, high-density foam cushions, two hidden under-chaise storage compartments, and a pull-out guest sleeper.',
         category: 'Sofas',
         subcategory: 'U-Shape Sofas',
-        badge: 'Bestseller',
+        badge: 'Great Value',
         stock: 6,
         isPopular: true,
         isTrending: true,
@@ -250,7 +402,7 @@ export const initialProducts = [
             'High-density reflex foam seat cushions',
         ],
         variations: {
-            fabrics: ['Linoso', 'Plush Velvet', 'Naples', 'Teddy'],
+            fabrics: ['Linoso', 'Plush Velvet', 'Naples', 'Teddy', 'Wool', 'Spice Velvet'],
             sizes: ['U-Shape Sofa (10ft 8in / 326 cm)'],
             mattresses: [],
             liftOptions: [],
@@ -277,10 +429,10 @@ export const initialProducts = [
         price: 649.0,
         previousPrice: 799.0,
         description:
-            'Handcrafted in the UK with a deep fluted wingback headboard and heavy-duty hydraulic gas-lift storage base. Customise your fabric, size, lift orientation, and optional orthopaedic mattress.',
+            'Direct showroom value on a solid UK-built ottoman bed. Features a deep fluted wingback headboard and heavy-duty gas-lift storage base. Click any fabric option to view its full colour chart.',
         category: 'Beds',
         subcategory: 'Ottoman Beds',
-        badge: 'Showroom Favourite',
+        badge: 'Best Seller',
         stock: 9,
         isPopular: true,
         isTrending: true,
@@ -305,10 +457,11 @@ export const initialProducts = [
             fabrics: [
                 'Plush Velvet',
                 'Naples',
-                'Linoso',
                 'Spice Velvet',
-                'Teddy',
                 'Wool',
+                'Linoso',
+                'Teddy',
+                'Marble',
             ],
             sizes: [
                 '3ft Single (90 × 190 cm)',
@@ -396,10 +549,10 @@ export const initialProducts = [
         price: 599.0,
         previousPrice: 749.0,
         description:
-            'Featuring a heat, stain, and scratch-resistant sintered stone marble top set upon an architectural powder-coated pedestal base. Comfortably seats 6 to 8 guests.',
+            'High-end dining quality without the designer price tag. Heat, stain, and scratch-resistant sintered stone top on a sturdy powder-coated steel pedestal base.',
         category: 'Tables',
         subcategory: 'Dining Tables',
-        badge: 'Luxury Stone Top',
+        badge: 'Showroom Value',
         stock: 4,
         isPopular: true,
         isTrending: false,
@@ -414,7 +567,7 @@ export const initialProducts = [
         features: [
             '12mm sintered stone marble surface',
             'Heat, stain, and scratch resistant',
-            'Architectural powder-coated steel pedestal base',
+            'Heavy-duty powder-coated steel pedestal base',
         ],
         variations: {
             fabrics: [],
@@ -449,7 +602,7 @@ export const initialProducts = [
         price: 229.0,
         previousPrice: null,
         description:
-            'Button-tufted velvet dining chairs finished with chrome ring knockers, silver studding trim, and solid tapered legs.',
+            'Affordable everyday quality. Deep button-tufted velvet dining chairs finished with polished chrome ring knockers, silver stud trim, and solid wooden legs.',
         category: 'Chairs',
         subcategory: 'Dining Chairs',
         badge: 'Pair (Set of 2)',
@@ -470,7 +623,7 @@ export const initialProducts = [
             'High-density sprung seat pad',
         ],
         variations: {
-            fabrics: ['Plush Velvet', 'Naples'],
+            fabrics: ['Plush Velvet', 'Naples', 'Spice Velvet', 'Wool'],
             sizes: [],
             mattresses: [],
             liftOptions: [],
@@ -492,7 +645,7 @@ export const initialProducts = [
         price: 499.0,
         previousPrice: 599.0,
         description:
-            'Maximise bedroom light and storage with full-length safety-backed mirrors, smooth German-engineered aluminium sliding tracks, internal hanging rails, and overhead shelving.',
+            'Built to last at an affordable showroom price. Full-length safety-backed mirrors, smooth aluminium sliding tracks, dual hanging rails, and deep overhead storage shelves.',
         category: 'Wardrobes',
         subcategory: 'Sliding Wardrobes',
         badge: 'Space Saver',
@@ -564,10 +717,10 @@ export const initialProducts = [
         price: 429.0,
         previousPrice: null,
         description:
-            'Architectural fluted tambour doors paired with warm natural oak veneer and brushed brass hardware. Ideal as a dining room credenza or large living room media console.',
+            'Sturdy, stylish storage at a fair price. Fluted tambour doors paired with warm natural oak veneer and brushed brass hardware.',
         category: 'Cabinets',
         subcategory: 'Sideboards',
-        badge: 'New Arrival',
+        badge: 'Direct Price',
         stock: null,
         isPopular: false,
         isTrending: false,
@@ -612,7 +765,7 @@ export const initialReviews = [
         date: 'October 2026',
         productName: 'Luna U-Shape Modular Sofa Bed',
         comment:
-            'Popped into the High Street showroom in Maltby to test the fabrics first. Delivered within 4 days and the lads set the whole U-shape sofa up in our living room. Quality is spot on.',
+            'Popped into the High Street showroom in Maltby to test the fabrics first. Saved ratusan compared to the big retail parks and the quality is genuinely spot on.',
         images: [],
         verified: true,
         adminResponse:
@@ -626,7 +779,7 @@ export const initialReviews = [
         date: 'October 2026',
         productName: 'Kensington Wingback Gas-Lift Ottoman Bed',
         comment:
-            'Ordered the 5ft King in Plush Velvet Grey with the Orthopaedic mattress. The gas lift storage underneath holds all our spare suitcases and bedding easily.',
+            'Ordered the 5ft King with the Orthopaedic mattress. Brilliant price for a solid bed and the gas-lift storage underneath holds all our spare suitcases easily.',
         images: [],
         verified: true,
         adminResponse: '',
@@ -639,7 +792,7 @@ export const initialReviews = [
         date: 'September 2026',
         productName: 'Bellagio 180cm Sintered Marble Dining Table',
         comment:
-            'Stunning marble dining table, heavy and solid. Communication from the showroom team regarding delivery time was brilliant.',
+            'Heavy, solid marble dining table at half the price we saw elsewhere. Communication from the showroom team regarding delivery time was brilliant.',
         images: [],
         verified: true,
         adminResponse: '',
