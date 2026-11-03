@@ -25,6 +25,21 @@
  * ============================================================================
  */
 
+export const SHOP_INFO = {
+    name: 'SJ Home Interiors',
+    tagline: 'Maltby Showroom & Online Collection',
+    address: 'High Street, Maltby, Rotherham, S66 8JE',
+    street: 'High Street',
+    town: 'Maltby',
+    city: 'Rotherham',
+    county: 'South Yorkshire',
+    postcode: 'S66 8JE',
+    phone: '07830141250',
+    phoneFormatted: '07830 141250',
+    email: 'info@sjhomeinteriors.co.uk',
+    hours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
+};
+
 export const colorMap = {
     Beige: '#D8CFC2',
     Cream: '#F3EFE6',

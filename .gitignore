@@ -1,5 +1,6 @@
-node_modules/\ndist/\n.DS_Store
-
+node_modules/
+dist/
 .env
 .env.local
-.env.*.local
+.wrangler/
+.DS_Store
