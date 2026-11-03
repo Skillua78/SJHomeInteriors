@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     X,
     Plus,
@@ -14,6 +14,9 @@ import {
     CheckCircle2,
     ShieldAlert,
     EyeOff,
+    Settings,
+    Search,
+    Save,
 } from 'lucide-react';
 import { CATEGORY_TAXONOMY } from '../data/products';
 import { sanitizeText, validateImageFile, validateSafeImageUrl } from '../utils/security';
@@ -53,15 +56,58 @@ export default function StockManagerModal({
     onToggleVerifyReview,
     onRespondToReview,
     onDeleteReview,
+    siteSettings,
+    onSaveSiteSettings,
 }) {
-    const [activeTab, setActiveTab] = useState('inventory');
+    const [activeTab, setActiveTab] = useState('inventory'); // 'inventory' | 'reviews' | 'settings'
     const [copied, setCopied] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [replyDrafts, setReplyDrafts] = useState({});
     const [formError, setFormError] = useState('');
     const [prodForm, setProdForm] = useState(EMPTY_FORM);
 
+    // Admin Database Inventory Search & Filter States
+    const [invSearch, setInvSearch] = useState('');
+    const [invCategoryFilter, setInvCategoryFilter] = useState('All');
+    const [invStockFilter, setInvStockFilter] = useState('All'); // 'All' | 'in_stock' | 'out_of_stock' | 'hidden'
+
+    // Site & Payment Settings Form State
+    const [settingsForm, setSettingsForm] = useState(siteSettings || {});
+    const [heroUrlInput, setHeroUrlInput] = useState('');
+    const [settingsSavedMsg, setSettingsSavedMsg] = useState('');
+
+    useEffect(() => {
+        if (siteSettings) {
+            setSettingsForm(siteSettings);
+        }
+    }, [siteSettings]);
+
     const categoryKeys = Object.keys(CATEGORY_TAXONOMY);
+
+    // Filtered Admin Inventory List
+    const filteredInventory = useMemo(() => {
+        const q = invSearch.trim().toLowerCase();
+        return products.filter((p) => {
+            const matchesQuery =
+                !q ||
+                p.name.toLowerCase().includes(q) ||
+                (p.id || '').toLowerCase().includes(q) ||
+                (p.subcategory || '').toLowerCase().includes(q) ||
+                (p.description || '').toLowerCase().includes(q);
+
+            const matchesCat =
+                invCategoryFilter === 'All' || p.category === invCategoryFilter;
+
+            const isHidden = p.stock === null || p.stock === undefined || p.stock === '';
+            let matchesStock = true;
+            if (invStockFilter === 'hidden') matchesStock = isHidden;
+            else if (invStockFilter === 'in_stock') matchesStock = !isHidden && Number(p.stock) > 0;
+            else if (invStockFilter === 'out_of_stock')
+                matchesStock = !isHidden && Number(p.stock) === 0;
+
+            return matchesQuery && matchesCat && matchesStock;
+        });
+    }, [products, invSearch, invCategoryFilter, invStockFilter]);
 
     if (!isOpen || currentUser?.role !== 'admin') return null;
 
@@ -73,7 +119,6 @@ export default function StockManagerModal({
         }));
     };
 
-    // Add an HTTPS image URL to the product's gallery list
     const handleAddImageUrl = () => {
         setFormError('');
         const safeUrl = validateSafeImageUrl(prodForm.imageInput);
@@ -92,7 +137,6 @@ export default function StockManagerModal({
         }));
     };
 
-    // Upload one or more local image files into the product's gallery list
     const handleImageFiles = (e) => {
         setFormError('');
         const files = Array.from(e.target.files || []);
@@ -145,7 +189,6 @@ export default function StockManagerModal({
             return;
         }
 
-        // Include any URL left typed in the input box if the admin didn't click "+ Add URL"
         let finalGallery = [...prodForm.images];
         if (prodForm.imageInput.trim()) {
             const pendingUrl = validateSafeImageUrl(prodForm.imageInput.trim());
@@ -158,14 +201,12 @@ export default function StockManagerModal({
             );
         }
 
-        // Parse optional previousPrice
         const rawPrev = prodForm.previousPrice.toString().trim();
         const parsedPrevPrice =
             rawPrev !== '' && !Number.isNaN(parseFloat(rawPrev)) && parseFloat(rawPrev) > 0
                 ? parseFloat(rawPrev)
                 : null;
 
-        // Parse optional stock (blank = null = hidden on card)
         const rawStock = prodForm.stock.toString().trim();
         const parsedStock =
             rawStock === '' || Number.isNaN(parseInt(rawStock, 10))
@@ -245,6 +286,51 @@ export default function StockManagerModal({
         });
     };
 
+    // Hero Slideshow Image Handlers
+    const handleAddHeroSlideUrl = () => {
+        const safeUrl = validateSafeImageUrl(heroUrlInput);
+        if (!safeUrl) return;
+        setSettingsForm((prev) => ({
+            ...prev,
+            heroImages: [...(prev.heroImages || []), safeUrl],
+        }));
+        setHeroUrlInput('');
+    };
+
+    const handleUploadHeroSlide = (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach((file) => {
+            const check = validateImageFile(file);
+            if (!check.valid) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const safeUrl = validateSafeImageUrl(ev.target.result);
+                if (safeUrl) {
+                    setSettingsForm((prev) => ({
+                        ...prev,
+                        heroImages: [...(prev.heroImages || []), safeUrl],
+                    }));
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = '';
+    };
+
+    const handleRemoveHeroSlide = (idx) => {
+        setSettingsForm((prev) => ({
+            ...prev,
+            heroImages: (prev.heroImages || []).filter((_, i) => i !== idx),
+        }));
+    };
+
+    const handleSaveSettingsSubmit = async (e) => {
+        e.preventDefault();
+        await onSaveSiteSettings(settingsForm);
+        setSettingsSavedMsg('Site & Payment Settings saved to Cloudflare D1!');
+        setTimeout(() => setSettingsSavedMsg(''), 4000);
+    };
+
     const copyProductsCode = () => {
         const codeString = `export const initialProducts = ${JSON.stringify(products, null, 2)};`;
         navigator.clipboard.writeText(codeString);
@@ -267,11 +353,10 @@ export default function StockManagerModal({
                             <ShieldAlert className="w-3.5 h-3.5" /> Admin Dashboard ({currentUser.email})
                         </span>
                         <h2 className="font-serif text-xl sm:text-2xl font-bold mt-0.5">
-                            Catalog Database & Review Moderation
+                            Storefront, Inventory & Payment Control
                         </h2>
                     </div>
 
-                    {/* Action & Tab Bar */}
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
@@ -283,6 +368,18 @@ export default function StockManagerModal({
                         >
                             <Package className="w-3.5 h-3.5" /> Products ({products.length})
                         </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('settings')}
+                            className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${activeTab === 'settings'
+                                    ? 'bg-[#9A7B56] text-white'
+                                    : 'bg-white/10 text-stone-300 hover:bg-white/20'
+                                }`}
+                        >
+                            <Settings className="w-3.5 h-3.5" /> Site & Payment Settings
+                        </button>
+
                         <button
                             type="button"
                             onClick={() => setActiveTab('reviews')}
@@ -294,16 +391,11 @@ export default function StockManagerModal({
                             <MessageSquare className="w-3.5 h-3.5" /> Reviews ({reviews.length})
                         </button>
 
-                        {/* Non-Destructive UNDO Button */}
                         <button
                             type="button"
                             onClick={onUndoLastAction}
                             disabled={!canUndo}
-                            title={
-                                canUndo
-                                    ? `Undo: ${lastActionLabel}`
-                                    : 'No recent action to undo'
-                            }
+                            title={canUndo ? `Undo: ${lastActionLabel}` : 'No recent action to undo'}
                             className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${canUndo
                                     ? 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer'
                                     : 'bg-white/5 text-stone-500 cursor-not-allowed'
@@ -333,10 +425,10 @@ export default function StockManagerModal({
                     </div>
                 </div>
 
-                {/* TAB 1: INVENTORY & PRODUCT CRUD */}
+                {/* TAB 1: INVENTORY & PRODUCT CRUD WITH SEARCH & FILTERS */}
                 {activeTab === 'inventory' && (
                     <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-                        {/* Left: Add / Edit Form (All Empty Ghost Placeholders) */}
+                        {/* Left: Add / Edit Product Form */}
                         <form
                             onSubmit={handleSaveProduct}
                             className="lg:col-span-5 space-y-3.5 bg-[#FAF8F5] p-4 sm:p-5 rounded-2xl border border-stone-200"
@@ -423,7 +515,6 @@ export default function StockManagerModal({
                                 </div>
                             </div>
 
-                            {/* Current Price, Previous Strikethrough Price & Optional Stock */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div>
                                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
@@ -471,7 +562,6 @@ export default function StockManagerModal({
                                 </div>
                             </div>
 
-                            {/* Product Description Textarea */}
                             <div>
                                 <label className="block text-[11px] font-semibold text-stone-700 mb-1">
                                     Product Description (Optional)
@@ -487,7 +577,6 @@ export default function StockManagerModal({
                                 />
                             </div>
 
-                            {/* Multi-Picture Gallery Section */}
                             <div className="p-3.5 rounded-xl bg-white border border-stone-200 space-y-2.5">
                                 <label className="block text-[11px] font-semibold text-stone-700">
                                     Product Pictures (First photo is main cover &bull; Scrollable gallery)
@@ -521,17 +610,16 @@ export default function StockManagerModal({
                                     </label>
                                 </div>
 
-                                {/* Thumbnail Previews of Added Pictures */}
                                 {prodForm.images.length > 0 && (
                                     <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1">
                                         {prodForm.images.map((imgSrc, idx) => (
                                             <div
                                                 key={idx}
-                                                className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shrink-0 group"
+                                                className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shrink-0"
                                             >
                                                 <img
                                                     src={imgSrc}
-                                                    alt={`Product preview ${idx + 1}`}
+                                                    alt={`Preview ${idx + 1}`}
                                                     className="w-full h-full object-cover"
                                                 />
                                                 <span className="absolute bottom-0.5 left-1 px-1 rounded bg-black/70 text-[9px] text-white font-bold">
@@ -540,7 +628,6 @@ export default function StockManagerModal({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRemoveGalleryImage(idx)}
-                                                    aria-label={`Remove image ${idx + 1}`}
                                                     className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-0.5 cursor-pointer"
                                                 >
                                                     <X className="w-3 h-3" />
@@ -653,133 +740,559 @@ export default function StockManagerModal({
                             </button>
                         </form>
 
-                        {/* Right: Live Inventory List */}
+                        {/* Right: Searchable & Filterable Database Inventory List */}
                         <div className="lg:col-span-7 space-y-3">
-                            <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
-                                Database Inventory ({products.length} Items)
-                            </h3>
-                            <div className="space-y-2.5 max-h-[65vh] overflow-y-auto pr-1 custom-scrollbar">
-                                {products.map((p) => {
-                                    const isStockHidden =
-                                        p.stock === null || p.stock === undefined || p.stock === '';
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                                    Database Inventory ({filteredInventory.length} of {products.length} Items)
+                                </h3>
+                                {(invSearch || invCategoryFilter !== 'All' || invStockFilter !== 'All') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setInvSearch('');
+                                            setInvCategoryFilter('All');
+                                            setInvStockFilter('All');
+                                        }}
+                                        className="text-xs font-semibold text-[#9A7B56] hover:underline cursor-pointer"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                )}
+                            </div>
 
-                                    return (
-                                        <div
-                                            key={p.id}
-                                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-stone-200"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={validateSafeImageUrl(p.image)}
-                                                    alt={p.name}
-                                                    className="w-12 h-12 rounded-xl object-cover shrink-0"
-                                                />
-                                                <div>
-                                                    <span className="text-[10px] font-bold uppercase text-[#9A7B56]">
-                                                        {p.category} {p.subcategory ? `• ${p.subcategory}` : ''} &bull;{' '}
-                                                        {p.previousPrice ? (
-                                                            <span className="line-through text-stone-400 mr-1">
-                                                                £{p.previousPrice}
-                                                            </span>
-                                                        ) : null}
-                                                        £{p.price}
-                                                    </span>
-                                                    <h4 className="text-xs font-bold text-[#1C1B18]">{p.name}</h4>
-                                                    <span className="text-[10px] text-stone-400">
-                                                        {(p.images?.length || 1)} photo(s) &bull;{' '}
-                                                        {isStockHidden ? 'Stock Hidden' : `${p.stock} in stock`}
-                                                    </span>
+                            {/* Search & Filter Bar */}
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-[#FAF8F5] p-3 rounded-2xl border border-stone-200">
+                                <div className="sm:col-span-6 relative">
+                                    <input
+                                        type="search"
+                                        value={invSearch}
+                                        onChange={(e) => setInvSearch(e.target.value)}
+                                        placeholder="Search inventory by title, subcategory, ID..."
+                                        className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                    />
+                                    <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                                </div>
+
+                                <div className="sm:col-span-3">
+                                    <select
+                                        value={invCategoryFilter}
+                                        onChange={(e) => setInvCategoryFilter(e.target.value)}
+                                        aria-label="Filter inventory by category"
+                                        className="w-full px-2.5 py-2 rounded-xl bg-white border border-stone-200 text-xs text-stone-700"
+                                    >
+                                        <option value="All">All Categories</option>
+                                        {categoryKeys.map((cat) => (
+                                            <option key={cat} value={cat}>
+                                                {cat}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="sm:col-span-3">
+                                    <select
+                                        value={invStockFilter}
+                                        onChange={(e) => setInvStockFilter(e.target.value)}
+                                        aria-label="Filter inventory by stock status"
+                                        className="w-full px-2.5 py-2 rounded-xl bg-white border border-stone-200 text-xs text-stone-700"
+                                    >
+                                        <option value="All">All Stock States</option>
+                                        <option value="in_stock">In Stock (&gt;0)</option>
+                                        <option value="out_of_stock">Out of Stock (0)</option>
+                                        <option value="hidden">Stock Hidden</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+                                {filteredInventory.length === 0 ? (
+                                    <div className="p-8 text-center rounded-2xl bg-[#FAF8F5] border border-stone-200 text-xs text-stone-500">
+                                        No products match your current search or filter criteria.
+                                    </div>
+                                ) : (
+                                    filteredInventory.map((p) => {
+                                        const isStockHidden =
+                                            p.stock === null || p.stock === undefined || p.stock === '';
+
+                                        return (
+                                            <div
+                                                key={p.id}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-stone-200"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={validateSafeImageUrl(p.image)}
+                                                        alt={p.name}
+                                                        className="w-12 h-12 rounded-xl object-cover shrink-0"
+                                                    />
+                                                    <div>
+                                                        <span className="text-[10px] font-bold uppercase text-[#9A7B56]">
+                                                            {p.category} {p.subcategory ? `• ${p.subcategory}` : ''} &bull;{' '}
+                                                            {p.previousPrice ? (
+                                                                <span className="line-through text-stone-400 mr-1">
+                                                                    £{p.previousPrice}
+                                                                </span>
+                                                            ) : null}
+                                                            £{p.price}
+                                                        </span>
+                                                        <h4 className="text-xs font-bold text-[#1C1B18]">{p.name}</h4>
+                                                        <span className="text-[10px] text-stone-400">
+                                                            {p.images?.length || 1} photo(s) &bull;{' '}
+                                                            {isStockHidden ? 'Stock Hidden' : `${p.stock} in stock`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onUpdateStock(p.id, isStockHidden ? 5 : null)}
+                                                        title={
+                                                            isStockHidden
+                                                                ? 'Click to enable stock counter'
+                                                                : 'Click to clear & hide stock badge'
+                                                        }
+                                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border flex items-center gap-1 cursor-pointer ${isStockHidden
+                                                                ? 'bg-stone-100 text-stone-600 border-stone-300'
+                                                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                            }`}
+                                                    >
+                                                        <EyeOff className="w-3 h-3" />
+                                                        {isStockHidden ? 'Hidden' : 'Hide'}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            onUpdateStock(p.id, Math.max(0, (Number(p.stock) || 0) - 1))
+                                                        }
+                                                        className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                                    >
+                                                        <Minus className="w-3 h-3" />
+                                                    </button>
+
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="—"
+                                                        value={isStockHidden ? '' : p.stock}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            onUpdateStock(
+                                                                p.id,
+                                                                val === '' ? null : Math.max(0, parseInt(val, 10) || 0)
+                                                            );
+                                                        }}
+                                                        className="w-14 text-center py-1 rounded-lg border border-stone-200 text-xs font-bold placeholder:text-stone-400"
+                                                    />
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onUpdateStock(p.id, (Number(p.stock) || 0) + 1)}
+                                                        className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEditProduct(p)}
+                                                        className="p-1.5 text-stone-500 hover:text-[#9A7B56] cursor-pointer ml-1"
+                                                        title="Edit item"
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onDeleteProduct(p.id)}
+                                                        className="p-1.5 text-stone-400 hover:text-red-600 cursor-pointer"
+                                                        title="Delete item"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                                {/* Toggle Hide Stock vs Tracked Stock */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        onUpdateStock(p.id, isStockHidden ? 5 : null)
-                                                    }
-                                                    title={
-                                                        isStockHidden
-                                                            ? 'Click to enable stock counter'
-                                                            : 'Click to clear & hide stock badge'
-                                                    }
-                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border flex items-center gap-1 cursor-pointer ${isStockHidden
-                                                            ? 'bg-stone-100 text-stone-600 border-stone-300'
-                                                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                                        }`}
-                                                >
-                                                    <EyeOff className="w-3 h-3" />
-                                                    {isStockHidden ? 'Hidden' : 'Hide'}
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    aria-label={`Decrease stock for ${p.name}`}
-                                                    onClick={() =>
-                                                        onUpdateStock(
-                                                            p.id,
-                                                            Math.max(0, (Number(p.stock) || 0) - 1)
-                                                        )
-                                                    }
-                                                    className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
-                                                >
-                                                    <Minus className="w-3 h-3" />
-                                                </button>
-
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    placeholder="—"
-                                                    aria-label={`Stock quantity for ${p.name}`}
-                                                    value={isStockHidden ? '' : p.stock}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        onUpdateStock(
-                                                            p.id,
-                                                            val === '' ? null : Math.max(0, parseInt(val, 10) || 0)
-                                                        );
-                                                    }}
-                                                    className="w-14 text-center py-1 rounded-lg border border-stone-200 text-xs font-bold placeholder:text-stone-400"
-                                                />
-
-                                                <button
-                                                    type="button"
-                                                    aria-label={`Increase stock for ${p.name}`}
-                                                    onClick={() =>
-                                                        onUpdateStock(p.id, (Number(p.stock) || 0) + 1)
-                                                    }
-                                                    className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
-                                                >
-                                                    <Plus className="w-3 h-3" />
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => startEditProduct(p)}
-                                                    className="p-1.5 text-stone-500 hover:text-[#9A7B56] cursor-pointer ml-1"
-                                                    title="Edit item"
-                                                >
-                                                    <Edit3 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onDeleteProduct(p.id)}
-                                                    className="p-1.5 text-stone-400 hover:text-red-600 cursor-pointer"
-                                                    title="Delete item"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* TAB 2: CUSTOMER REVIEW MODERATION */}
+                {/* TAB 2: SITE, HERO SLIDESHOW, SOCIAL LINKS & PAYMENT SETTINGS */}
+                {activeTab === 'settings' && (
+                    <form
+                        onSubmit={handleSaveSettingsSubmit}
+                        className="p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6 max-h-[78vh]"
+                    >
+                        {settingsSavedMsg && (
+                            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                                <span>{settingsSavedMsg}</span>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Section A: Payment & Maintenance Mode Control */}
+                            <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                                            1. Payment & Checkout Control
+                                        </h3>
+                                        <p className="text-[11px] text-stone-500">
+                                            Enable or disable checkout on the basket page.
+                                        </p>
+                                    </div>
+
+                                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsForm.paymentEnabled !== false}
+                                            onChange={(e) =>
+                                                setSettingsForm({
+                                                    ...settingsForm,
+                                                    paymentEnabled: e.target.checked,
+                                                })
+                                            }
+                                            className="w-4 h-4 accent-emerald-700"
+                                        />
+                                        <span
+                                            className={`text-xs font-bold px-2.5 py-1 rounded-full ${settingsForm.paymentEnabled !== false
+                                                    ? 'bg-emerald-100 text-emerald-800'
+                                                    : 'bg-amber-100 text-amber-800'
+                                                }`}
+                                        >
+                                            {settingsForm.paymentEnabled !== false
+                                                ? 'Payments Enabled'
+                                                : 'Maintenance Mode (Disabled)'}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Maintenance Mode Message (Shown when payments are disabled)
+                                    </label>
+                                    <textarea
+                                        rows={2}
+                                        value={settingsForm.paymentMaintenanceMessage || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({
+                                                ...settingsForm,
+                                                paymentMaintenanceMessage: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Payment section currently under maintenance. Please contact us here."
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t border-stone-200 text-xs">
+                                    <span className="font-semibold text-stone-700 block">
+                                        Accepted Checkout Options (When Enabled):
+                                    </span>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsForm.allowCashOnDelivery !== false}
+                                            onChange={(e) =>
+                                                setSettingsForm({
+                                                    ...settingsForm,
+                                                    allowCashOnDelivery: e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        <span>Pay on Delivery (Cash or Card Terminal)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsForm.allowShowroomPayment !== false}
+                                            onChange={(e) =>
+                                                setSettingsForm({
+                                                    ...settingsForm,
+                                                    allowShowroomPayment: e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        <span>Reserve Online & Pay in Maltby Showroom</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(settingsForm.allowBankTransfer)}
+                                            onChange={(e) =>
+                                                setSettingsForm({
+                                                    ...settingsForm,
+                                                    allowBankTransfer: e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        <span>Direct Bank Transfer (BACS)</span>
+                                    </label>
+
+                                    {settingsForm.allowBankTransfer && (
+                                        <textarea
+                                            rows={2}
+                                            value={settingsForm.bankTransferInstructions || ''}
+                                            onChange={(e) =>
+                                                setSettingsForm({
+                                                    ...settingsForm,
+                                                    bankTransferInstructions: e.target.value,
+                                                })
+                                            }
+                                            placeholder="Enter Account Name, Sort Code, and Account Number..."
+                                            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs mt-1"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section B: Contact Info, Facebook & WhatsApp */}
+                            <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3.5">
+                                <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                                    2. Showroom Contact & Social Links
+                                </h3>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                            Showroom Phone Number
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={settingsForm.phone || ''}
+                                            onChange={(e) =>
+                                                setSettingsForm({ ...settingsForm, phone: e.target.value })
+                                            }
+                                            placeholder="e.g. 07830 141250"
+                                            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                            Showroom Email Address
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={settingsForm.email || ''}
+                                            onChange={(e) =>
+                                                setSettingsForm({ ...settingsForm, email: e.target.value })
+                                            }
+                                            placeholder="e.g. info@sjhomeinteriors.co.uk"
+                                            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Showroom Physical Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settingsForm.address || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, address: e.target.value })
+                                        }
+                                        placeholder="High Street, Maltby, Rotherham, S66 8JE"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Opening Hours
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settingsForm.openingHours || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, openingHours: e.target.value })
+                                        }
+                                        placeholder="Mon–Sat: 10:00 AM – 5:00 PM | Sun: Closed"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    <div>
+                                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                            Facebook Page Link (Appears if filled)
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={settingsForm.facebookUrl || ''}
+                                            onChange={(e) =>
+                                                setSettingsForm({ ...settingsForm, facebookUrl: e.target.value })
+                                            }
+                                            placeholder="https://facebook.com/..."
+                                            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                            WhatsApp Number or Link (Appears if filled)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={settingsForm.whatsappNumber || ''}
+                                            onChange={(e) =>
+                                                setSettingsForm({ ...settingsForm, whatsappNumber: e.target.value })
+                                            }
+                                            placeholder="e.g. 07830141250 or https://wa.me/..."
+                                            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section C: Main Page Text */}
+                            <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3.5">
+                                <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                                    3. Main Page Text & Headings
+                                </h3>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Top Announcement Bar Text
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settingsForm.announcementText || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, announcementText: e.target.value })
+                                        }
+                                        placeholder="Visit Our Maltby Showroom • Fast Local Delivery"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Hero Small Badge Text
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settingsForm.heroBadge || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, heroBadge: e.target.value })
+                                        }
+                                        placeholder="Maltby Showroom & Online Collection"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Main Hero Headline
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settingsForm.heroTitle || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, heroTitle: e.target.value })
+                                        }
+                                        placeholder="Luxury Sofas, Beds & Timeless Living"
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                                        Main Hero Description Paragraph
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={settingsForm.heroSubtitle || ''}
+                                        onChange={(e) =>
+                                            setSettingsForm({ ...settingsForm, heroSubtitle: e.target.value })
+                                        }
+                                        placeholder="Handcrafted comfort tailored for British homes..."
+                                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Section D: Main Page Hero Slideshow Images */}
+                            <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3.5">
+                                <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                                    4. Main Page Slideshow Pictures
+                                </h3>
+                                <p className="text-[11px] text-stone-500">
+                                    Add multiple pictures of your showroom or furniture to create an interactive
+                                    slideshow at the top of the home page.
+                                </p>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <input
+                                        type="text"
+                                        value={heroUrlInput}
+                                        onChange={(e) => setHeroUrlInput(e.target.value)}
+                                        placeholder="Paste https:// image URL..."
+                                        className="flex-1 min-w-[160px] px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddHeroSlideUrl}
+                                        className="px-3.5 py-2 rounded-xl bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer hover:bg-[#9A7B56]"
+                                    >
+                                        + Add Slide URL
+                                    </button>
+                                    <label className="px-3.5 py-2 rounded-xl bg-white border border-stone-200 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer flex items-center gap-1">
+                                        <Upload className="w-3.5 h-3.5 text-[#9A7B56]" /> Upload Slide Photos
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            multiple
+                                            onChange={handleUploadHeroSlide}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                                    {(settingsForm.heroImages || []).map((imgUrl, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="relative aspect-[4/3] rounded-xl overflow-hidden border border-stone-200 bg-stone-100"
+                                        >
+                                            <img
+                                                src={imgUrl}
+                                                alt={`Slide ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/70 text-[10px] text-white font-bold">
+                                                Slide #{idx + 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveHeroSlide(idx)}
+                                                className="absolute top-1.5 right-1.5 p-1 rounded-full bg-red-600 text-white cursor-pointer"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <button
+                                type="submit"
+                                className="px-8 py-4 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition cursor-pointer shadow-lg"
+                            >
+                                <Save className="w-4 h-4" /> Save All Site & Payment Settings
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {/* TAB 3: CUSTOMER REVIEW MODERATION */}
                 {activeTab === 'reviews' && (
                     <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4 max-h-[75vh]">
                         <h3 className="font-serif text-xl font-bold text-[#1C1B18]">

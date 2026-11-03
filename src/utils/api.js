@@ -11,6 +11,26 @@ function getAdminHeaders() {
 }
 
 export const api = {
+    // SITE SETTINGS
+    async getSettings() {
+        try {
+            const res = await fetch('/api/settings');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch {
+            return null;
+        }
+    },
+
+    async updateSettings(settings) {
+        const res = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: getAdminHeaders(),
+            body: JSON.stringify(settings),
+        });
+        return res.json();
+    },
+
     // AUTHENTICATION
     async register(name, email, phone, password) {
         const res = await fetch('/api/auth?action=register', {
@@ -46,7 +66,7 @@ export const api = {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
         } catch (err) {
-            console.warn('API unavailable, falling back to cached/default catalog:', err);
+            console.warn('API unavailable, falling back to cached catalog:', err);
             return null;
         }
     },

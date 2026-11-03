@@ -24,6 +24,34 @@ import CookieBanner from './components/CookieBanner';
 import LegalModals from './components/LegalModals';
 import Footer from './components/Footer';
 
+const DEFAULT_SETTINGS = {
+    phone: '07830 141250',
+    email: 'info@sjhomeinteriors.co.uk',
+    address: 'High Street, Maltby, Rotherham, S66 8JE',
+    openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
+    facebookUrl: '',
+    whatsappNumber: '',
+    announcementText: 'Visit Our Maltby Showroom • Fast Local Delivery Across South Yorkshire',
+    heroBadge: 'Maltby Showroom & Online Collection',
+    heroTitle: 'Luxury Sofas, Beds & Timeless Living',
+    heroSubtitle:
+        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online with two-person room-of-choice delivery.',
+    heroImages: [
+        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
+        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
+        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=85',
+    ],
+    catalogSubtitle: 'Showroom & Online Collection',
+    catalogTitle: 'Explore Our Furniture',
+    paymentEnabled: true,
+    paymentMaintenanceMessage:
+        'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
+    allowCashOnDelivery: true,
+    allowShowroomPayment: true,
+    allowBankTransfer: false,
+    bankTransferInstructions: '',
+};
+
 export default function App() {
     const [currentPage, setCurrentPage] = useState('home');
     const [activeCategory, setActiveCategory] = useState('All');
@@ -37,8 +65,7 @@ export default function App() {
 
     const [products, setProducts] = useState(initialProducts);
     const [reviews, setReviews] = useState(initialReviews);
-
-    // Undo History Stack for safe Admin Product operations
+    const [siteSettings, setSiteSettings] = useState(DEFAULT_SETTINGS);
     const [undoStack, setUndoStack] = useState([]);
 
     const [cart, setCart] = useState(() => {
@@ -67,9 +94,10 @@ export default function App() {
         let isMounted = true;
 
         async function loadCloudflareData() {
-            const [remoteProducts, remoteReviews] = await Promise.all([
+            const [remoteProducts, remoteReviews, remoteSettings] = await Promise.all([
                 api.getProducts(),
                 api.getReviews(),
+                api.getSettings(),
             ]);
 
             if (isMounted) {
@@ -78,6 +106,9 @@ export default function App() {
                 }
                 if (remoteReviews && Array.isArray(remoteReviews) && remoteReviews.length > 0) {
                     setReviews(remoteReviews);
+                }
+                if (remoteSettings && typeof remoteSettings === 'object') {
+                    setSiteSettings((prev) => ({ ...prev, ...remoteSettings }));
                 }
             }
         }
@@ -131,7 +162,6 @@ export default function App() {
         return list;
     }, [products, activeCategory, activeSubcategory, searchQuery, sortBy]);
 
-    // Cart Handlers
     const handleAddToCart = (product, selectedColor) => {
         const color = selectedColor || product.colors?.[0] || 'Standard';
         setCart((prev) => {
@@ -179,8 +209,13 @@ export default function App() {
         await api.submitOrder(orderSnapshot);
     };
 
-    // Admin Mutations with Undo History Recording
     const requireAdmin = () => currentUser?.role === 'admin';
+
+    const handleSaveSiteSettings = async (newSettings) => {
+        if (!requireAdmin()) return;
+        setSiteSettings(newSettings);
+        await api.updateSettings(newSettings);
+    };
 
     const pushUndoEntry = (entry) => {
         setUndoStack((prev) => [entry, ...prev.slice(0, 19)]);
@@ -243,7 +278,6 @@ export default function App() {
         await api.deleteProduct(productId);
     };
 
-    // Execute Undo and sync reversal to Cloudflare D1
     const handleUndoLastAction = async () => {
         if (!requireAdmin() || undoStack.length === 0) return;
         const [lastAction, ...remainingStack] = undoStack;
@@ -269,7 +303,6 @@ export default function App() {
         }
     };
 
-    // Review Moderation Handlers
     const handleAddReview = async (newRev) => {
         setReviews((prev) => [newRev, ...prev]);
         await api.submitReview(newRev);
@@ -307,7 +340,7 @@ export default function App() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <AnnouncementBar onNavigate={setCurrentPage} />
+            <AnnouncementBar onNavigate={setCurrentPage} siteSettings={siteSettings} />
 
             <Navbar
                 currentPage={currentPage}
@@ -326,7 +359,7 @@ export default function App() {
             <main className="flex-1">
                 {currentPage === 'home' && (
                     <>
-                        <Hero onNavigate={setCurrentPage} />
+                        <Hero onNavigate={setCurrentPage} siteSettings={siteSettings} />
                         <ValueBar />
                         <CategoryGrid
                             onSelectCategory={(cat) => {
@@ -339,10 +372,10 @@ export default function App() {
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-stone-200">
                                 <div>
                                     <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
-                                        Showroom & Online Collection
+                                        {siteSettings.catalogSubtitle || 'Showroom & Online Collection'}
                                     </span>
                                     <h2 className="font-serif text-3xl sm:text-4xl font-bold mt-1">
-                                        Explore Our Furniture
+                                        {siteSettings.catalogTitle || 'Explore Our Furniture'}
                                     </h2>
                                 </div>
 
@@ -363,7 +396,6 @@ export default function App() {
                                 </div>
                             </div>
 
-                            {/* Horizontally Scrollable Category Filter Pills on Mobile, Wrap on Desktop */}
                             <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible no-scrollbar">
                                 {categories.map((cat) => (
                                     <button
@@ -444,10 +476,12 @@ export default function App() {
                         onRemoveItem={handleRemoveFromCart}
                         onCompleteOrder={handleCompleteOrder}
                         onBackToShop={() => setCurrentPage('home')}
+                        onNavigate={setCurrentPage}
+                        siteSettings={siteSettings}
                     />
                 )}
 
-                {currentPage === 'contact' && <ContactPage />}
+                {currentPage === 'contact' && <ContactPage siteSettings={siteSettings} />}
 
                 {currentPage === 'auth' && (
                     <AuthPage
@@ -475,6 +509,7 @@ export default function App() {
                     if (requireAdmin()) setIsStockManagerOpen(true);
                 }}
                 currentUser={currentUser}
+                siteSettings={siteSettings}
             />
 
             <SpecModal
@@ -512,6 +547,8 @@ export default function App() {
                 onToggleVerifyReview={handleToggleVerifyReview}
                 onRespondToReview={handleRespondToReview}
                 onDeleteReview={handleDeleteReview}
+                siteSettings={siteSettings}
+                onSaveSiteSettings={handleSaveSiteSettings}
             />
 
             <LegalModals activeDoc={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />
