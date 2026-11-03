@@ -6,16 +6,48 @@ import {
     Package,
     ChevronLeft,
     ChevronRight,
+    Edit3,
 } from 'lucide-react';
 import { colorMap } from '../data/products';
 import { validateSafeImageUrl } from '../utils/security';
 
-export default function ProductCard({ product, onOpenModal, onAddToCart }) {
-    const colorsList = product.colors?.length ? product.colors : ['Standard'];
-    const [selectedColor, setSelectedColor] = useState(colorsList[0]);
+export function resolveColorHex(colorName, customColors = {}) {
+    if (!colorName) return '#D6D3CD';
+    if (customColors[colorName]) return customColors[colorName];
+    if (colorMap[colorName]) return colorMap[colorName];
+
+    const lower = colorName.toLowerCase();
+    const foundKey = Object.keys(colorMap).find((k) => k.toLowerCase() === lower);
+    if (foundKey) return colorMap[foundKey];
+
+    // Fallback keyword matching
+    if (lower.includes('black')) return '#1C1B18';
+    if (lower.includes('navy')) return '#1B2A4A';
+    if (lower.includes('blue')) return '#2B547E';
+    if (lower.includes('green') || lower.includes('sage') || lower.includes('olive')) return '#3B5249';
+    if (lower.includes('charcoal') || lower.includes('dark grey')) return '#3E4042';
+    if (lower.includes('grey') || lower.includes('silver')) return '#8C8C8C';
+    if (lower.includes('white') || lower.includes('ivory')) return '#F5F5F2';
+    if (lower.includes('cream') || lower.includes('beige') || lower.includes('champagne')) return '#E6DEC8';
+    if (lower.includes('taupe') || lower.includes('mink')) return '#9E9082';
+    if (lower.includes('brown') || lower.includes('walnut') || lower.includes('tan')) return '#6B4C35';
+    if (lower.includes('oak') || lower.includes('wood') || lower.includes('gold')) return '#C8A165';
+    if (lower.includes('pink') || lower.includes('blush')) return '#E3BCBC';
+    return '#C2B9AC';
+}
+
+export default function ProductCard({
+    product,
+    onOpenModal,
+    onAddToCart,
+    isAdmin,
+    onEditProduct,
+    customColors,
+}) {
+    const colorsList = product.colors?.length ? product.colors : [];
+    const [selectedColor, setSelectedColor] = useState(colorsList[0] || 'Standard');
     const [imgIndex, setImgIndex] = useState(0);
 
-    // Build validated image gallery array
     const rawGallery =
         Array.isArray(product.images) && product.images.length > 0
             ? product.images
@@ -23,10 +55,7 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                 ? [product.image]
                 : [];
 
-    const gallery = rawGallery
-        .map((u) => validateSafeImageUrl(u))
-        .filter(Boolean);
-
+    const gallery = rawGallery.map((u) => validateSafeImageUrl(u)).filter(Boolean);
     if (gallery.length === 0) {
         gallery.push(
             'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85'
@@ -35,11 +64,8 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
 
     const currentImg = gallery[imgIndex % gallery.length];
 
-    // Stock logic: null/undefined/'' means untracked (available & badge hidden)
     const hasStockTracking =
-        product.stock !== null &&
-        product.stock !== undefined &&
-        product.stock !== '';
+        product.stock !== null && product.stock !== undefined && product.stock !== '';
     const numericStock = hasStockTracking ? Number(product.stock) : null;
     const isAvailable = !hasStockTracking || numericStock > 0;
 
@@ -48,15 +74,22 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
         product.previousPrice !== undefined &&
         Number(product.previousPrice) > Number(product.price);
 
-    const handlePrevImg = (e) => {
-        e.stopPropagation();
-        setImgIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
-    };
+    const v = product.variations || {};
+    const fabricCount = Array.isArray(v.fabrics) ? v.fabrics.length : 0;
+    const sizeCount = Array.isArray(v.sizes) ? v.sizes.length : 0;
 
-    const handleNextImg = (e) => {
-        e.stopPropagation();
-        setImgIndex((prev) => (prev + 1) % gallery.length);
-    };
+    // Format primary dimension line from structuredDimensions or legacy dimensions
+    const defaultDim = v.structuredDimensions?.default;
+    const structuredDimSummary = defaultDim
+        ? [
+            defaultDim.length ? `L: ${defaultDim.length}` : '',
+            defaultDim.width ? `W: ${defaultDim.width}` : '',
+            defaultDim.depth ? `D: ${defaultDim.depth}` : '',
+        ]
+            .filter(Boolean)
+            .join(' × ')
+        : '';
+    const primaryDimText = structuredDimSummary || product.dimensions?.[0] || '';
 
     return (
         <article
@@ -64,7 +97,6 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
             className="group bg-white rounded-3xl overflow-hidden border border-stone-200/80 hover:shadow-xl transition duration-300 flex flex-col justify-between"
         >
             <div>
-                {/* Image Header with Multi-Image Carousel */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-stone-100 select-none">
                     <img
                         src={currentImg}
@@ -74,27 +106,31 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500 cursor-pointer"
                     />
 
-                    {/* Left / Right Image Carousel Controls (shown if multiple images exist) */}
                     {gallery.length > 1 && (
                         <>
                             <button
                                 type="button"
-                                onClick={handlePrevImg}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setImgIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+                                }}
                                 aria-label="Previous product image"
-                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white"
+                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
                             <button
                                 type="button"
-                                onClick={handleNextImg}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setImgIndex((prev) => (prev + 1) % gallery.length);
+                                }}
                                 aria-label="Next product image"
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
 
-                            {/* Image Dots Indicator */}
                             <div className="absolute bottom-3 left-3.5 flex items-center gap-1.5 bg-black/45 backdrop-blur-xs px-2.5 py-1 rounded-full">
                                 {gallery.map((_, idx) => (
                                     <button
@@ -116,7 +152,7 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                     )}
 
                     {/* Top Left Badges */}
-                    <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                    <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5 max-w-[65%]">
                         {!isAvailable ? (
                             <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-red-800 text-white shadow-xs">
                                 Out of Stock / Pre-Order
@@ -129,30 +165,46 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
 
                         {product.isTrending && (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shadow-xs">
-                                <Flame className="w-3 h-3" aria-hidden="true" /> Trending
+                                <Flame className="w-3 h-3" /> Trending
                             </span>
                         )}
                         {product.isPopular && !product.isTrending && (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#9A7B56] text-white flex items-center gap-1 shadow-xs">
-                                <Sparkles className="w-3 h-3" aria-hidden="true" /> Popular
+                                <Sparkles className="w-3 h-3" /> Popular
                             </span>
                         )}
                     </div>
 
-                    {/* Stock Indicator Pill — ONLY rendered if stock was explicitly set */}
-                    {hasStockTracking && (
-                        <span
-                            className={`absolute top-3.5 right-3.5 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs ${numericStock > 3
-                                    ? 'bg-emerald-900/90 text-emerald-100'
-                                    : numericStock > 0
-                                        ? 'bg-amber-700/95 text-white'
-                                        : 'bg-stone-800/90 text-stone-300'
-                                }`}
-                        >
-                            <Package className="w-3 h-3" aria-hidden="true" />
-                            {numericStock > 0 ? `${numericStock} in stock` : '0 in stock'}
-                        </span>
-                    )}
+                    {/* Top Right: Admin Direct Edit Button + Optional Stock Pill */}
+                    <div className="absolute top-3.5 right-3.5 flex flex-col items-end gap-1.5">
+                        {isAdmin && onEditProduct && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditProduct(product);
+                                }}
+                                className="px-3 py-1.5 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-md cursor-pointer transition"
+                                title="Edit this product in Admin Dashboard"
+                            >
+                                <Edit3 className="w-3 h-3" /> Edit Item
+                            </button>
+                        )}
+
+                        {hasStockTracking && (
+                            <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs ${numericStock > 3
+                                        ? 'bg-emerald-900/90 text-emerald-100'
+                                        : numericStock > 0
+                                            ? 'bg-amber-700/95 text-white'
+                                            : 'bg-stone-800/90 text-stone-300'
+                                    }`}
+                            >
+                                <Package className="w-3 h-3" />
+                                {numericStock > 0 ? `${numericStock} in stock` : '0 in stock'}
+                            </span>
+                        )}
+                    </div>
 
                     {product.delivery && (
                         <span className="absolute bottom-3 right-3.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/90 backdrop-blur-xs text-[#1C1B18] shadow-xs">
@@ -168,33 +220,40 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                             {product.category} {product.subcategory ? `• ${product.subcategory}` : ''}
                         </span>
 
-                        {/* Interactive Colour Swatches */}
-                        {product.colors?.length > 0 && (
+                        {colorsList.length > 0 && (
                             <div
                                 className="flex items-center space-x-1.5 shrink-0"
                                 role="group"
                                 aria-label="Available finishes"
                             >
-                                {product.colors.map((color) => (
+                                {colorsList.slice(0, 6).map((color) => (
                                     <button
                                         key={color}
                                         type="button"
                                         onClick={() => setSelectedColor(color)}
                                         aria-label={`Select ${color} finish`}
                                         aria-pressed={selectedColor === color}
-                                        title={`Select ${color}`}
-                                        className={`w-4 h-4 rounded-full border transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] ${selectedColor === color
-                                                ? 'ring-2 ring-offset-1 ring-[#9A7B56] border-stone-600'
-                                                : 'border-stone-300 opacity-80 hover:opacity-100'
+                                        title={color}
+                                        className={`w-4 h-4 rounded-full border transition cursor-pointer ${selectedColor === color
+                                                ? 'ring-2 ring-offset-1 ring-[#9A7B56] border-stone-700 scale-110'
+                                                : 'border-stone-300 opacity-85 hover:opacity-100'
                                             }`}
-                                        style={{ backgroundColor: colorMap[color] || '#ccc' }}
+                                        style={{ backgroundColor: resolveColorHex(color, customColors) }}
                                     />
                                 ))}
+                                {colorsList.length > 6 && (
+                                    <span className="text-[10px] font-bold text-stone-400">
+                                        +{colorsList.length - 6}
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#1C1B18] group-hover:text-[#9A7B56] transition">
+                    <h3
+                        onClick={() => onOpenModal(product, selectedColor)}
+                        className="font-serif text-xl sm:text-2xl font-bold text-[#1C1B18] group-hover:text-[#9A7B56] transition cursor-pointer"
+                    >
                         {product.name}
                     </h3>
 
@@ -204,16 +263,26 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                         </p>
                     )}
 
-                    {product.colors?.length > 0 && (
-                        <p className="text-[11px] text-stone-500 mt-1.5">
-                            Finish: <strong className="text-stone-700">{selectedColor}</strong>
-                        </p>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {colorsList.length > 0 && (
+                            <span className="text-[11px] text-stone-500">
+                                Finish: <strong className="text-stone-700">{selectedColor}</strong>
+                            </span>
+                        )}
+                        {(fabricCount > 0 || sizeCount > 0) && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF8F5] border border-stone-200 text-[#9A7B56]">
+                                {[
+                                    sizeCount > 0 ? `${sizeCount} Sizes` : '',
+                                    fabricCount > 0 ? `${fabricCount} Fabrics` : '',
+                                ]
+                                    .filter(Boolean)
+                                    .join(' • ')}
+                            </span>
+                        )}
+                    </div>
 
-                    {product.dimensions?.[0] && (
-                        <p className="text-xs text-stone-500 mt-1 line-clamp-1">
-                            {product.dimensions[0]}
-                        </p>
+                    {primaryDimText && (
+                        <p className="text-xs text-stone-500 mt-1.5 line-clamp-1">{primaryDimText}</p>
                     )}
 
                     {/* Price & Previous Strikethrough Price */}
@@ -235,9 +304,9 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                         <button
                             type="button"
                             onClick={() => onOpenModal(product, selectedColor)}
-                            className="text-xs font-semibold text-[#7D6242] hover:underline flex items-center gap-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] rounded"
+                            className="text-xs font-semibold text-[#7D6242] hover:underline flex items-center gap-1 cursor-pointer"
                         >
-                            Details & Photos ({gallery.length}) &rarr;
+                            Options & Photos ({gallery.length}) &rarr;
                         </button>
                     </div>
                 </div>
@@ -248,21 +317,32 @@ export default function ProductCard({ product, onOpenModal, onAddToCart }) {
                 <button
                     type="button"
                     onClick={() => onAddToCart(product, selectedColor)}
-                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] ${isAvailable
+                    className={`flex-1 py-3 px-4 rounded-full text-xs font-semibold transition cursor-pointer ${isAvailable
                             ? 'bg-[#1C1B18] hover:bg-[#9A7B56] text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                         }`}
                 >
                     {isAvailable ? 'Add to Basket' : 'Pre-Order in Basket'}
                 </button>
+                {isAdmin && onEditProduct && (
+                    <button
+                        type="button"
+                        onClick={() => onEditProduct(product)}
+                        aria-label={`Edit ${product.name}`}
+                        className="p-3 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 transition cursor-pointer"
+                        title="Edit Product"
+                    >
+                        <Edit3 className="w-4 h-4" />
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={() => onOpenModal(product, selectedColor)}
                     aria-label={`View full details and gallery for ${product.name}`}
-                    className="p-3 rounded-full border border-stone-200 hover:border-[#9A7B56] text-stone-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56]"
-                    title="View Gallery & Specifications"
+                    className="p-3 rounded-full border border-stone-200 hover:border-[#9A7B56] text-stone-700 transition cursor-pointer"
+                    title="View Gallery & Variations"
                 >
-                    <Maximize2 className="w-4 h-4" aria-hidden="true" />
+                    <Maximize2 className="w-4 h-4" />
                 </button>
             </div>
         </article>

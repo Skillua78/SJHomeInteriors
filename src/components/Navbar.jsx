@@ -20,6 +20,7 @@ export default function Navbar({
     onOpenCart,
     onOpenStockManager,
     currentUser,
+    availableCategories = [],
 }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const isAdmin = currentUser?.role === 'admin';
@@ -33,10 +34,11 @@ export default function Navbar({
         }, 50);
     };
 
+    const navCategories = ['All', ...availableCategories];
+
     return (
         <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80">
             <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-                {/* Left: Mobile Menu Button + Brand Logo */}
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
@@ -61,23 +63,21 @@ export default function Navbar({
                     </button>
                 </div>
 
-                {/* Desktop Navigation Links */}
+                {/* Desktop Navigation Links (Only Non-Empty Categories) */}
                 <nav
                     aria-label="Main Navigation"
                     className="hidden xl:flex items-center space-x-5 text-xs font-semibold uppercase tracking-wider text-stone-700"
                 >
-                    {['All', 'Sofas', 'Beds', 'Tables', 'Chairs', 'Wardrobes', 'Cabinets'].map(
-                        (cat) => (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => handleCategoryNav(cat)}
-                                className="cursor-pointer hover:text-[#9A7B56] transition"
-                            >
-                                {cat}
-                            </button>
-                        )
-                    )}
+                    {navCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => handleCategoryNav(cat)}
+                            className="cursor-pointer hover:text-[#9A7B56] transition"
+                        >
+                            {cat}
+                        </button>
+                    ))}
                     <button
                         type="button"
                         onClick={() => onNavigate('contact')}
@@ -88,7 +88,7 @@ export default function Navbar({
                     </button>
                 </nav>
 
-                {/* Right Controls: Search, Admin, Account & Basket */}
+                {/* Right Controls */}
                 <div className="flex items-center space-x-1.5 sm:space-x-2.5">
                     <div className="relative hidden md:block">
                         <label htmlFor="site-search" className="sr-only">
@@ -103,7 +103,7 @@ export default function Navbar({
                                 setSearchQuery(e.target.value);
                                 if (currentPage !== 'home') onNavigate('home');
                             }}
-                            placeholder="Search sofas, wardrobes, tables..."
+                            placeholder="Search sofas, beds, tables..."
                             className="pl-9 pr-4 py-2 text-xs bg-white border border-stone-200 rounded-full focus:outline-none focus:border-[#9A7B56] w-40 lg:w-56 transition"
                         />
                         <Search
@@ -154,10 +154,9 @@ export default function Navbar({
                 </div>
             </div>
 
-            {/* Mobile & Tablet Slide-Down Navigation Menu */}
+            {/* Mobile Drawer */}
             {mobileMenuOpen && (
                 <div className="xl:hidden bg-white border-b border-stone-200 px-4 pt-3 pb-5 space-y-4 shadow-lg">
-                    {/* Mobile Search Input */}
                     <div className="relative md:hidden">
                         <input
                             type="search"
@@ -167,33 +166,28 @@ export default function Navbar({
                                 setSearchQuery(e.target.value);
                                 if (currentPage !== 'home') onNavigate('home');
                             }}
-                            placeholder="Search sofas, beds, wardrobes, tables..."
+                            placeholder="Search sofas, beds, tables..."
                             className="w-full pl-9 pr-4 py-2.5 text-xs bg-[#FAF8F5] border border-stone-200 rounded-full focus:outline-none focus:border-[#9A7B56]"
                         />
                         <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                     </div>
 
-                    {/* Mobile Category Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold">
-                        {[
-                            { id: 'All', label: 'All Furniture' },
-                            { id: 'Popular', label: '★ Popular' },
-                            { id: 'Trending', label: '🔥 Trending' },
-                            { id: 'Sofas', label: 'Sofas' },
-                            { id: 'Beds', label: 'Beds & Mattresses' },
-                            { id: 'Tables', label: 'Tables' },
-                            { id: 'Chairs', label: 'Chairs' },
-                            { id: 'Wardrobes', label: 'Wardrobes' },
-                            { id: 'Cabinets', label: 'Cabinets & TV Units' },
-                            { id: 'Outdoor', label: 'Outdoor' },
-                        ].map((item) => (
+                        <button
+                            type="button"
+                            onClick={() => handleCategoryNav('All')}
+                            className="p-2.5 rounded-xl bg-[#FAF8F5] hover:bg-[#1C1B18] hover:text-white text-left transition cursor-pointer"
+                        >
+                            All Collections
+                        </button>
+                        {availableCategories.map((cat) => (
                             <button
-                                key={item.id}
+                                key={cat}
                                 type="button"
-                                onClick={() => handleCategoryNav(item.id)}
+                                onClick={() => handleCategoryNav(cat)}
                                 className="p-2.5 rounded-xl bg-[#FAF8F5] hover:bg-[#1C1B18] hover:text-white text-left transition cursor-pointer"
                             >
-                                {item.label}
+                                {cat}
                             </button>
                         ))}
                     </div>

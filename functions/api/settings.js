@@ -1,10 +1,8 @@
 /**
  * /api/settings
- * GET -> Returns global site settings (contact info, hero slideshow, text, payment status)
+ * GET -> Returns global site settings
  * PUT -> Admin-only update of global site settings into Cloudflare D1
  */
-
-import { validateSafeImageUrl } from '../../src/utils/security';
 
 export const DEFAULT_SITE_SETTINGS = {
     phone: '07830 141250',
@@ -17,7 +15,7 @@ export const DEFAULT_SITE_SETTINGS = {
     heroBadge: 'Maltby Showroom & Online Collection',
     heroTitle: 'Luxury Sofas, Beds & Timeless Living',
     heroSubtitle:
-        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online with two-person room-of-choice delivery.',
+        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online.',
     heroImages: [
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
@@ -25,6 +23,11 @@ export const DEFAULT_SITE_SETTINGS = {
     ],
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
+    showAssemblyHighlight: true,
+    assemblyTitle: 'Two-Person Room Assembly',
+    assemblySubtitle: 'Included Free',
+    customCategories: {},
+    customColors: {},
     paymentEnabled: true,
     paymentMaintenanceMessage:
         'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
@@ -74,7 +77,7 @@ export async function onRequestGet({ env }) {
 
         const parsed = JSON.parse(row.settings_json);
         return jsonResponse({ ...DEFAULT_SITE_SETTINGS, ...parsed });
-    } catch (err) {
+    } catch {
         return jsonResponse(DEFAULT_SITE_SETTINGS);
     }
 }
@@ -108,6 +111,17 @@ export async function onRequestPut({ request, env }) {
             heroImages: cleanHeroImages.length > 0 ? cleanHeroImages : DEFAULT_SITE_SETTINGS.heroImages,
             catalogSubtitle: String(body.catalogSubtitle ?? DEFAULT_SITE_SETTINGS.catalogSubtitle).slice(0, 80),
             catalogTitle: String(body.catalogTitle ?? DEFAULT_SITE_SETTINGS.catalogTitle).slice(0, 100),
+            showAssemblyHighlight: Boolean(body.showAssemblyHighlight ?? true),
+            assemblyTitle: String(body.assemblyTitle ?? DEFAULT_SITE_SETTINGS.assemblyTitle).slice(0, 80),
+            assemblySubtitle: String(body.assemblySubtitle ?? DEFAULT_SITE_SETTINGS.assemblySubtitle).slice(0, 80),
+            customCategories:
+                body.customCategories && typeof body.customCategories === 'object'
+                    ? body.customCategories
+                    : {},
+            customColors:
+                body.customColors && typeof body.customColors === 'object'
+                    ? body.customColors
+                    : {},
             paymentEnabled: Boolean(body.paymentEnabled),
             paymentMaintenanceMessage: String(
                 body.paymentMaintenanceMessage || DEFAULT_SITE_SETTINGS.paymentMaintenanceMessage

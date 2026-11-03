@@ -1,7 +1,7 @@
 /**
  * /api/products
- * Supports optional stock (null = hidden, 0 = out of stock, >0 = count),
- * previousPrice (strikethrough price), description, and multi-image galleries.
+ * Supports optional stock, previousPrice, description, multi-image galleries,
+ * and variations_json (fabrics, sizes, mattresses, liftOptions, structuredDimensions, assemblyText).
  */
 
 function verifyAdmin(request, env) {
@@ -19,6 +19,16 @@ function jsonResponse(data, status = 200) {
             'Cache-Control': status === 200 ? 'no-cache' : 'no-store',
         },
     });
+}
+
+async function ensureVariationsColumn(env) {
+    try {
+        await env.DB.prepare(
+            "ALTER TABLE products ADD COLUMN variations_json TEXT NOT NULL DEFAULT '{}'"
+        ).run();
+    } catch {
+        // Column already exists
+    }
 }
 
 function parseStockValue(rawStock) {
@@ -39,87 +49,121 @@ function parsePreviousPrice(rawPrev) {
     return parsed;
 }
 
+function safeJsonParse(str, fallback) {
+    try {
+        return str ? JSON.parse(str) : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
 function mapProductFromRow(row) {
-    const parsedImages = JSON.parse(row.images_json || '[]');
+    const parsedImages = safeJsonParse(row.images_json, []);
     const primaryImage = row.image || parsedImages[0] || '';
-    const gallery = parsedImages.length > 0 ? parsedImages : primaryImage ? [primaryImage] : [];
+    const gallery =
+        parsedImages.length > 0 ? parsedImages : primaryImage ? [primaryImage] : [];
+    const variations = safeJsonParse(row.variations_json, {});
 
     return {
         id: row.id,
         name: row.name,
         price: Number(row.price),
-        previousPrice: row.previous_price !== null && row.previous_price !== undefined ? Number(row.previous_price) : null,
+        previousPrice:
+            row.previous_price !== null && row.previous_price !== undefined
+                ? Number(row.previous_price)
+                : null,
         description: row.description || '',
         category: row.category,
         subcategory: row.subcategory || '',
         badge: row.badge || '',
-        stock: row.stock === null || row.stock === undefined ? null : Number(row.stock),
+        stock:
+            row.stock === null || row.stock === undefined ? null : Number(row.stock),
         isPopular: Boolean(row.is_popular),
         isTrending: Boolean(row.is_trending),
         delivery: row.delivery || '',
-        colors: JSON.parse(row.colors_json || '[]'),
+        colors: safeJsonParse(row.colors_json, []),
         image: primaryImage,
         images: gallery,
-        dimensions: JSON.parse(row.dimensions_json || '[]'),
-        features: JSON.parse(row.features_json || '[]'),
+        dimensions: safeJsonParse(row.dimensions_json, []),
+        features: safeJsonParse(row.features_json, []),
+        variations: variations && typeof variations === 'object' ? variations : {},
     };
 }
 
 export async function onRequestGet({ env }) {
     try {
+        await ensureVariationsColumn(env);
         const { results } = await env.DB.prepare(
             'SELECT * FROM products ORDER BY created_at DESC'
         ).all();
         return jsonResponse((results || []).map(mapProductFromRow));
     } catch (err) {
-        return jsonResponse({ error: 'Database read failed', details: err.message }, 500);
+        return jsonResponse(
+            { error: 'Database read failed', details: err.message },
+            500
+        );
     }
 }
 
 export async function onRequestPost({ request, env }) {
     if (!verifyAdmin(request, env)) {
-        return jsonResponse({ error: 'Unauthorized: Invalid administrative credentials.' }, 401);
+        return jsonResponse(
+            { error: 'Unauthorized: Invalid administrative credentials.' },
+            401
+        );
     }
 
     try {
+        await ensureVariationsColumn(env);
         const p = await request.json();
         const numericPrice = parseFloat(p.price);
         if (!p.id || !p.name || Number.isNaN(numericPrice) || numericPrice < 0) {
-            return jsonResponse({ error: 'Valid product ID, name, and price are required.' }, 400);
+            return jsonResponse(
+                { error: 'Valid product ID, name, and price are required.' },
+                400
+            );
         }
 
         const stockVal = parseStockValue(p.stock);
         const prevPriceVal = parsePreviousPrice(p.previousPrice);
-        const imagesArray = Array.isArray(p.images) && p.images.length > 0
-            ? p.images.slice(0, 10)
-            : p.image ? [p.image] : [];
+        const imagesArray =
+            Array.isArray(p.images) && p.images.length > 0
+                ? p.images.slice(0, 10)
+                : p.image
+                    ? [p.image]
+                    : [];
         const primaryImage = imagesArray[0] || p.image || '';
+        const variationsObj =
+            p.variations && typeof p.variations === 'object' ? p.variations : {};
 
         await env.DB.prepare(
             `INSERT INTO products (
         id, name, price, previous_price, description, category, subcategory, badge,
         stock, is_popular, is_trending, delivery, colors_json, image, images_json,
-        dimensions_json, features_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-        ).bind(
-            String(p.id).slice(0, 100),
-            String(p.name).slice(0, 120),
-            numericPrice,
-            prevPriceVal,
-            String(p.description || '').slice(0, 2000),
-            String(p.category || 'Sofas').slice(0, 60),
-            String(p.subcategory || '').slice(0, 60),
-            String(p.badge || '').slice(0, 40),
-            stockVal,
-            p.isPopular ? 1 : 0,
-            p.isTrending ? 1 : 0,
-            String(p.delivery || '').slice(0, 60),
-            JSON.stringify(Array.isArray(p.colors) ? p.colors : []),
-            primaryImage,
-            JSON.stringify(imagesArray),
-            JSON.stringify(Array.isArray(p.dimensions) ? p.dimensions : []),
-            JSON.stringify(Array.isArray(p.features) ? p.features : [])
-        ).run();
+        dimensions_json, features_json, variations_json, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+        )
+            .bind(
+                String(p.id).slice(0, 100),
+                String(p.name).slice(0, 120),
+                numericPrice,
+                prevPriceVal,
+                String(p.description || '').slice(0, 2000),
+                String(p.category || 'Sofas').slice(0, 60),
+                String(p.subcategory || '').slice(0, 60),
+                String(p.badge || '').slice(0, 40),
+                stockVal,
+                p.isPopular ? 1 : 0,
+                p.isTrending ? 1 : 0,
+                String(p.delivery || '').slice(0, 60),
+                JSON.stringify(Array.isArray(p.colors) ? p.colors : []),
+                primaryImage,
+                JSON.stringify(imagesArray),
+                JSON.stringify(Array.isArray(p.dimensions) ? p.dimensions : []),
+                JSON.stringify(Array.isArray(p.features) ? p.features : []),
+                JSON.stringify(variationsObj)
+            )
+            .run();
 
         return jsonResponse({ success: true, id: p.id }, 201);
     } catch (err) {
@@ -129,10 +173,14 @@ export async function onRequestPost({ request, env }) {
 
 export async function onRequestPut({ request, env }) {
     if (!verifyAdmin(request, env)) {
-        return jsonResponse({ error: 'Unauthorized: Invalid administrative credentials.' }, 401);
+        return jsonResponse(
+            { error: 'Unauthorized: Invalid administrative credentials.' },
+            401
+        );
     }
 
     try {
+        await ensureVariationsColumn(env);
         const body = await request.json();
         const { id, stockOnly, stock } = body;
 
@@ -144,7 +192,9 @@ export async function onRequestPut({ request, env }) {
             const sanitizedStock = parseStockValue(stock);
             await env.DB.prepare(
                 'UPDATE products SET stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-            ).bind(sanitizedStock, id).run();
+            )
+                .bind(sanitizedStock, id)
+                .run();
 
             return jsonResponse({ success: true, id, stock: sanitizedStock });
         }
@@ -152,37 +202,47 @@ export async function onRequestPut({ request, env }) {
         const numericPrice = parseFloat(body.price);
         const stockVal = parseStockValue(body.stock);
         const prevPriceVal = parsePreviousPrice(body.previousPrice);
-        const imagesArray = Array.isArray(body.images) && body.images.length > 0
-            ? body.images.slice(0, 10)
-            : body.image ? [body.image] : [];
+        const imagesArray =
+            Array.isArray(body.images) && body.images.length > 0
+                ? body.images.slice(0, 10)
+                : body.image
+                    ? [body.image]
+                    : [];
         const primaryImage = imagesArray[0] || body.image || '';
+        const variationsObj =
+            body.variations && typeof body.variations === 'object'
+                ? body.variations
+                : {};
 
         await env.DB.prepare(
             `UPDATE products SET
         name = ?, price = ?, previous_price = ?, description = ?, category = ?,
         subcategory = ?, badge = ?, stock = ?, is_popular = ?, is_trending = ?,
         delivery = ?, colors_json = ?, image = ?, images_json = ?,
-        dimensions_json = ?, features_json = ?, updated_at = CURRENT_TIMESTAMP
+        dimensions_json = ?, features_json = ?, variations_json = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?`
-        ).bind(
-            String(body.name || '').slice(0, 120),
-            numericPrice,
-            prevPriceVal,
-            String(body.description || '').slice(0, 2000),
-            String(body.category || '').slice(0, 60),
-            String(body.subcategory || '').slice(0, 60),
-            String(body.badge || '').slice(0, 40),
-            stockVal,
-            body.isPopular ? 1 : 0,
-            body.isTrending ? 1 : 0,
-            String(body.delivery || '').slice(0, 60),
-            JSON.stringify(Array.isArray(body.colors) ? body.colors : []),
-            primaryImage,
-            JSON.stringify(imagesArray),
-            JSON.stringify(Array.isArray(body.dimensions) ? body.dimensions : []),
-            JSON.stringify(Array.isArray(body.features) ? body.features : []),
-            id
-        ).run();
+        )
+            .bind(
+                String(body.name || '').slice(0, 120),
+                numericPrice,
+                prevPriceVal,
+                String(body.description || '').slice(0, 2000),
+                String(body.category || '').slice(0, 60),
+                String(body.subcategory || '').slice(0, 60),
+                String(body.badge || '').slice(0, 40),
+                stockVal,
+                body.isPopular ? 1 : 0,
+                body.isTrending ? 1 : 0,
+                String(body.delivery || '').slice(0, 60),
+                JSON.stringify(Array.isArray(body.colors) ? body.colors : []),
+                primaryImage,
+                JSON.stringify(imagesArray),
+                JSON.stringify(Array.isArray(body.dimensions) ? body.dimensions : []),
+                JSON.stringify(Array.isArray(body.features) ? body.features : []),
+                JSON.stringify(variationsObj),
+                id
+            )
+            .run();
 
         return jsonResponse({ success: true, id });
     } catch (err) {
@@ -192,7 +252,10 @@ export async function onRequestPut({ request, env }) {
 
 export async function onRequestDelete({ request, env }) {
     if (!verifyAdmin(request, env)) {
-        return jsonResponse({ error: 'Unauthorized: Invalid administrative credentials.' }, 401);
+        return jsonResponse(
+            { error: 'Unauthorized: Invalid administrative credentials.' },
+            401
+        );
     }
 
     try {

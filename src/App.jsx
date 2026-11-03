@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import {
     initialProducts,
     initialReviews,
-    categories,
     CATEGORY_TAXONOMY,
 } from './data/products';
 import { api } from './utils/api';
@@ -35,7 +34,7 @@ const DEFAULT_SETTINGS = {
     heroBadge: 'Maltby Showroom & Online Collection',
     heroTitle: 'Luxury Sofas, Beds & Timeless Living',
     heroSubtitle:
-        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online with two-person room-of-choice delivery.',
+        'Handcrafted comfort tailored for British homes. Explore our curated collection in-store on High Street, Maltby or order online.',
     heroImages: [
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
@@ -43,6 +42,11 @@ const DEFAULT_SETTINGS = {
     ],
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
+    showAssemblyHighlight: true,
+    assemblyTitle: 'Two-Person Room Assembly',
+    assemblySubtitle: 'Included Free',
+    customCategories: {},
+    customColors: {},
     paymentEnabled: true,
     paymentMaintenanceMessage:
         'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
@@ -61,6 +65,7 @@ export default function App() {
     const [modalData, setModalData] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isStockManagerOpen, setIsStockManagerOpen] = useState(false);
+    const [adminEditTarget, setAdminEditTarget] = useState(null);
     const [activeLegalDoc, setActiveLegalDoc] = useState(null);
 
     const [products, setProducts] = useState(initialProducts);
@@ -118,6 +123,40 @@ export default function App() {
             isMounted = false;
         };
     }, []);
+
+    // Compute ONLY categories that have at least 1 product in the catalog
+    const populatedCategories = useMemo(() => {
+        const set = new Set();
+        products.forEach((p) => {
+            if (p.category && p.category.trim()) {
+                set.add(p.category.trim());
+            }
+        });
+        return Array.from(set);
+    }, [products]);
+
+    // Build filter pills dynamically from non-empty categories
+    const dynamicCategoryPills = useMemo(() => {
+        const pills = [{ id: 'All', label: 'All Collections' }];
+        if (products.some((p) => p.isPopular)) pills.push({ id: 'Popular', label: '★ Popular' });
+        if (products.some((p) => p.isTrending)) pills.push({ id: 'Trending', label: '🔥 Trending' });
+        populatedCategories.forEach((cat) => {
+            pills.push({ id: cat, label: cat });
+        });
+        return pills;
+    }, [products, populatedCategories]);
+
+    // Compute ONLY subcategories for the active category that have at least 1 product
+    const availableSubcategories = useMemo(() => {
+        if (activeCategory === 'All' || activeCategory === 'Popular' || activeCategory === 'Trending') {
+            return [];
+        }
+        const subSet = new Set();
+        products
+            .filter((p) => p.category === activeCategory && p.subcategory)
+            .forEach((p) => subSet.add(p.subcategory));
+        return Array.from(subSet);
+    }, [products, activeCategory]);
 
     const handleLogin = (userObj) => {
         setCurrentUser(userObj);
@@ -210,6 +249,13 @@ export default function App() {
     };
 
     const requireAdmin = () => currentUser?.role === 'admin';
+
+    // Open Admin Modal directly to edit a clicked product from the catalog
+    const handleTriggerAdminEditProduct = (productToEdit) => {
+        if (!requireAdmin()) return;
+        setAdminEditTarget(productToEdit);
+        setIsStockManagerOpen(true);
+    };
 
     const handleSaveSiteSettings = async (newSettings) => {
         if (!requireAdmin()) return;
@@ -335,7 +381,6 @@ export default function App() {
         await api.deleteReview(reviewId);
     };
 
-    const availableSubcategories = CATEGORY_TAXONOMY[activeCategory] || [];
     const totalCartItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
     return (
@@ -354,14 +399,16 @@ export default function App() {
                     if (requireAdmin()) setIsStockManagerOpen(true);
                 }}
                 currentUser={currentUser}
+                availableCategories={populatedCategories}
             />
 
             <main className="flex-1">
                 {currentPage === 'home' && (
                     <>
                         <Hero onNavigate={setCurrentPage} siteSettings={siteSettings} />
-                        <ValueBar />
+                        <ValueBar siteSettings={siteSettings} />
                         <CategoryGrid
+                            products={products}
                             onSelectCategory={(cat) => {
                                 handleSelectCategory(cat);
                                 document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
@@ -396,8 +443,9 @@ export default function App() {
                                 </div>
                             </div>
 
+                            {/* Dynamic Category Pills (Only Non-Empty Categories Appear) */}
                             <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible no-scrollbar">
-                                {categories.map((cat) => (
+                                {dynamicCategoryPills.map((cat) => (
                                     <button
                                         key={cat.id}
                                         type="button"
@@ -452,6 +500,9 @@ export default function App() {
                                             setModalData({ product: prod, initialColor: color })
                                         }
                                         onAddToCart={handleAddToCart}
+                                        isAdmin={currentUser?.role === 'admin'}
+                                        onEditProduct={handleTriggerAdminEditProduct}
+                                        customColors={siteSettings?.customColors}
                                     />
                                 ))}
                             </div>
@@ -516,6 +567,9 @@ export default function App() {
                 modalData={modalData}
                 onClose={() => setModalData(null)}
                 onAddToCart={handleAddToCart}
+                isAdmin={currentUser?.role === 'admin'}
+                onEditProduct={handleTriggerAdminEditProduct}
+                siteSettings={siteSettings}
             />
 
             <CartDrawer
@@ -549,6 +603,8 @@ export default function App() {
                 onDeleteReview={handleDeleteReview}
                 siteSettings={siteSettings}
                 onSaveSiteSettings={handleSaveSiteSettings}
+                initialEditProduct={adminEditTarget}
+                onClearInitialEdit={() => setAdminEditTarget(null)}
             />
 
             <LegalModals activeDoc={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />
