@@ -40,7 +40,6 @@ export default function SpecModal({
         }
     }, [modalData]);
 
-    // Close on Escape key
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') onClose();
@@ -59,8 +58,36 @@ export default function SpecModal({
     const sizes = Array.isArray(v.sizes) ? v.sizes : [];
     const mattresses = Array.isArray(v.mattresses) ? v.mattresses : [];
     const liftOptions = Array.isArray(v.liftOptions) ? v.liftOptions : [];
+    const deltas = v.priceDeltas || {};
 
-    // Resolve dynamic dimensions based on chosenSize (falls back to default structuredDimensions)
+    // Calculate price adjustments
+    const getDelta = (group, key) => {
+        if (!key || !deltas[group]) return 0;
+        const val = parseFloat(deltas[group][key]);
+        return Number.isNaN(val) ? 0 : val;
+    };
+
+    const totalDelta =
+        getDelta('fabrics', chosenFabric) +
+        getDelta('sizes', chosenSize) +
+        getDelta('mattresses', chosenMattress) +
+        getDelta('liftOptions', chosenLift);
+
+    const finalPrice = Math.max(0, Number(product.price) + totalDelta);
+    const finalPreviousPrice =
+        product.previousPrice !== null &&
+            product.previousPrice !== undefined &&
+            Number(product.previousPrice) > Number(product.price)
+            ? Math.max(0, Number(product.previousPrice) + totalDelta)
+            : null;
+
+    const formatDeltaBadge = (group, key) => {
+        const d = getDelta(group, key);
+        if (d === 0) return '';
+        return d > 0 ? ` (+£${d.toFixed(0)})` : ` (-£${Math.abs(d).toFixed(0)})`;
+    };
+
+    // Resolve dynamic dimensions based on chosenSize
     const structuredDims = v.structuredDimensions || {};
     const sizeSpecificDim =
         chosenSize && structuredDims.bySize && structuredDims.bySize[chosenSize]
@@ -81,7 +108,6 @@ export default function SpecModal({
         Boolean(activeDim.depth) ||
         Boolean(activeDim.custom);
 
-    // Assembly badge (controlled globally in siteSettings or per-product override)
     const showGlobalAssembly = siteSettings?.showAssemblyHighlight !== false;
     const assemblyTitle =
         v.assemblyText !== undefined
@@ -110,12 +136,6 @@ export default function SpecModal({
     const numericStock = hasStockTracking ? Number(product.stock) : null;
     const isAvailable = !hasStockTracking || numericStock > 0;
 
-    const hasPreviousPrice =
-        product.previousPrice !== null &&
-        product.previousPrice !== undefined &&
-        Number(product.previousPrice) > Number(product.price);
-
-    // Build combined variant summary for basket
     const buildSelectedVariantLabel = () => {
         const parts = [];
         if (chosenColor) parts.push(chosenColor);
@@ -134,12 +154,11 @@ export default function SpecModal({
             onClick={onClose}
             className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
         >
-            {/* Modal Container: stops propagation so clicking inside doesn't close, clicking outside backdrop does */}
             <div
                 onClick={(e) => e.stopPropagation()}
                 className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-stone-200 custom-scrollbar"
             >
-                {/* STICKY TOP-RIGHT BAR: Always stays pinned at top right while scrolling */}
+                {/* Sticky Top-Right Controls */}
                 <div className="sticky top-3 right-3 z-30 flex justify-end gap-2 px-4 pt-3 pointer-events-none">
                     {isAdmin && onEditProduct && (
                         <button
@@ -225,7 +244,7 @@ export default function SpecModal({
                         )}
                     </div>
 
-                    {/* Right Column: Specifications, Variations & Dynamic Dimensions */}
+                    {/* Right Column: Specifications, Variations & Live Price */}
                     <div className="md:col-span-6 p-5 sm:p-8 pt-12 md:pt-14 flex flex-col justify-between">
                         <div className="space-y-4">
                             <div>
@@ -237,16 +256,22 @@ export default function SpecModal({
                                 </h3>
                             </div>
 
-                            {/* Price & Optional Stock Badge */}
+                            {/* Dynamic Live Price & Optional Stock Badge */}
                             <div className="flex flex-wrap items-baseline gap-3">
-                                {hasPreviousPrice && (
+                                {finalPreviousPrice && (
                                     <span className="text-base font-medium text-stone-400 line-through">
-                                        £{Number(product.previousPrice).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                                        £{finalPreviousPrice.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                                     </span>
                                 )}
                                 <span className="text-2xl font-bold text-[#9A7B56]">
-                                    £{Number(product.price).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                                    £{finalPrice.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                                 </span>
+                                {totalDelta !== 0 && (
+                                    <span className="text-[11px] font-semibold text-stone-500">
+                                        (Base £{Number(product.price).toFixed(0)}{' '}
+                                        {totalDelta > 0 ? `+ £${totalDelta.toFixed(0)} options` : `- £${Math.abs(totalDelta).toFixed(0)}`})
+                                    </span>
+                                )}
 
                                 {hasStockTracking && (
                                     <span
@@ -324,17 +349,18 @@ export default function SpecModal({
                                                     }`}
                                             >
                                                 {fab}
+                                                {formatDeltaBadge('fabrics', fab)}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* 3. Size Selector (Updates Dimensions Dynamically!) */}
+                            {/* 3. Size Selector (Updates Dimensions & Price Dynamically) */}
                             {sizes.length > 0 && (
                                 <div>
                                     <span className="text-xs font-semibold text-stone-700 block mb-1.5">
-                                        Size: <strong className="text-[#9A7B56]">{chosenSize}</strong>
+                                        Size (ft/in &amp; cm): <strong className="text-[#9A7B56]">{chosenSize}</strong>
                                     </span>
                                     <div className="flex flex-wrap gap-1.5">
                                         {sizes.map((sz) => (
@@ -342,12 +368,13 @@ export default function SpecModal({
                                                 key={sz}
                                                 type="button"
                                                 onClick={() => setChosenSize(sz)}
-                                                className={`px-3.5 py-1.5 rounded-xl text-xs border cursor-pointer transition ${chosenSize === sz
+                                                className={`px-3 py-1.5 rounded-xl text-xs border cursor-pointer transition ${chosenSize === sz
                                                         ? 'border-[#9A7B56] bg-[#9A7B56] text-white font-bold shadow-xs'
                                                         : 'border-stone-200 bg-white text-stone-700 hover:border-[#9A7B56]'
                                                     }`}
                                             >
                                                 {sz}
+                                                {formatDeltaBadge('sizes', sz)}
                                             </button>
                                         ))}
                                     </div>
@@ -372,6 +399,7 @@ export default function SpecModal({
                                                     }`}
                                             >
                                                 {mat}
+                                                {formatDeltaBadge('mattresses', mat)}
                                             </button>
                                         ))}
                                     </div>
@@ -396,19 +424,20 @@ export default function SpecModal({
                                                     }`}
                                             >
                                                 {lift}
+                                                {formatDeltaBadge('liftOptions', lift)}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Structured Dimensions Box (Updates dynamically when Size changes) */}
+                            {/* Structured Dimensions Box */}
                             {(hasStructuredDims || product.dimensions?.length > 0) && (
                                 <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200/80 space-y-2.5">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-xs font-bold uppercase tracking-wider text-[#1C1B18] flex items-center gap-1.5">
                                             <Ruler className="w-4 h-4 text-[#9A7B56]" /> Dimensions
-                                            {chosenSize ? ` (${chosenSize})` : ''}
+                                            {chosenSize ? ` — ${chosenSize}` : ''}
                                         </h4>
                                     </div>
 
@@ -485,14 +514,17 @@ export default function SpecModal({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    onAddToCart(product, buildSelectedVariantLabel());
+                                    onAddToCart(
+                                        { ...product, price: finalPrice },
+                                        buildSelectedVariantLabel()
+                                    );
                                     onClose();
                                 }}
                                 className="w-full py-3.5 px-6 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white font-semibold text-xs uppercase tracking-wider transition cursor-pointer"
                             >
                                 {isAvailable
-                                    ? `Add to Basket (${buildSelectedVariantLabel()})`
-                                    : `Pre-Order (${buildSelectedVariantLabel()})`}
+                                    ? `Add to Basket — £${finalPrice.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+                                    : `Pre-Order — £${finalPrice.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`}
                             </button>
                         </div>
                     </div>

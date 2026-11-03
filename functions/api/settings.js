@@ -1,7 +1,6 @@
 /**
  * /api/settings
- * GET -> Returns global site settings
- * PUT -> Admin-only update of global site settings into Cloudflare D1
+ * Persists global site settings + saved/removed Admin presets in Cloudflare D1
  */
 
 export const DEFAULT_SITE_SETTINGS = {
@@ -27,7 +26,19 @@ export const DEFAULT_SITE_SETTINGS = {
     assemblyTitle: 'Two-Person Room Assembly',
     assemblySubtitle: 'Included Free',
     customCategories: {},
+    removedCategories: [],
     customColors: {},
+    removedColors: [],
+    savedPresets: {
+        fabrics: [],
+        removedFabrics: [],
+        sizes: [],
+        removedSizes: [],
+        mattresses: [],
+        removedMattresses: [],
+        liftOptions: [],
+        removedLiftOptions: [],
+    },
     paymentEnabled: true,
     paymentMaintenanceMessage:
         'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
@@ -118,10 +129,16 @@ export async function onRequestPut({ request, env }) {
                 body.customCategories && typeof body.customCategories === 'object'
                     ? body.customCategories
                     : {},
+            removedCategories: Array.isArray(body.removedCategories) ? body.removedCategories : [],
             customColors:
                 body.customColors && typeof body.customColors === 'object'
                     ? body.customColors
                     : {},
+            removedColors: Array.isArray(body.removedColors) ? body.removedColors : [],
+            savedPresets:
+                body.savedPresets && typeof body.savedPresets === 'object'
+                    ? body.savedPresets
+                    : DEFAULT_SITE_SETTINGS.savedPresets,
             paymentEnabled: Boolean(body.paymentEnabled),
             paymentMaintenanceMessage: String(
                 body.paymentMaintenanceMessage || DEFAULT_SITE_SETTINGS.paymentMaintenanceMessage
