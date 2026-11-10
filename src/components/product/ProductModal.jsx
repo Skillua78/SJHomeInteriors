@@ -13,6 +13,7 @@ import DimensionsBox from './DimensionsBox';
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
 const DESCRIPTION_PREVIEW = 320;
+const EMPTY_VARIATIONS = {};
 
 /**
  * Product quick-view. Opens instantly with the summary the catalogue already
@@ -82,8 +83,11 @@ export default function ProductModal({
         };
     }, [summary, onClose]);
 
-    const product = detail || summary;
-    const variations = detail?.variations || {};
+    // Only use loaded detail while it belongs to the product being shown; otherwise the
+    // view would keep rendering (and refuse to close) from the previous product's data.
+    const activeDetail = summary && detail?.id === summary.id ? detail : null;
+    const product = summary ? activeDetail || summary : null;
+    const variations = activeDetail?.variations || EMPTY_VARIATIONS;
 
     const priced = useMemo(() => {
         if (!product) return null;
@@ -92,7 +96,7 @@ export default function ProductModal({
 
     if (!product) return null;
 
-    const waitingForOptions = !detail && summary.hasOptions && !loadError;
+    const waitingForOptions = !activeDetail && summary.hasOptions && !loadError;
     const unitPrice = priced?.ok ? fromPence(priced.unitPence) : Number(product.price);
     const optionsDelta = unitPrice - Number(product.price);
     const wasPrice =
@@ -104,7 +108,7 @@ export default function ProductModal({
     const stock = tracked ? Number(product.stock) : null;
     const available = !tracked || stock > 0;
 
-    const gallery = (detail?.images?.length ? detail.images : [product.image])
+    const gallery = (activeDetail?.images?.length ? activeDetail.images : [product.image])
         .map(validateSafeImageUrl)
         .filter(Boolean);
     if (gallery.length === 0) gallery.push(FALLBACK_IMAGE);
@@ -213,12 +217,11 @@ export default function ProductModal({
                             <Truck className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
                             <span>
                                 <strong className="text-[#1C1B18]">
-                                    {product.deliveryFee > 0
-                                        ? `Two-person delivery & assembly: ${formatGBP(product.deliveryFee)}`
-                                        : 'Two-person delivery & assembly included'}
+                                    Estimated delivery &amp; assembly
+                                    {product.delivery ? `: ${product.delivery}` : ''}
                                 </strong>
-                                {product.delivery ? ` · usually ${product.delivery}` : ''}
                                 <span className="block text-xs text-stone-500 mt-0.5">
+                                    One delivery &amp; assembly charge per order, shown in your basket.
                                     Collect from our Maltby showroom at no charge.
                                 </span>
                             </span>
@@ -333,16 +336,16 @@ export default function ProductModal({
                         <DimensionsBox
                             variations={variations}
                             chosenSize={selections.size}
-                            legacyDimensions={detail?.dimensions}
+                            legacyDimensions={activeDetail?.dimensions}
                         />
 
-                        {detail?.features?.length > 0 && (
+                        {activeDetail?.features?.length > 0 && (
                             <div>
                                 <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-[#1C1B18] mb-2">
                                     Key features
                                 </h3>
                                 <ul className="space-y-1.5 text-sm text-stone-700">
-                                    {detail.features.map((feature, i) => (
+                                    {activeDetail.features.map((feature, i) => (
                                         <li key={i} className="flex items-start gap-2">
                                             <Check className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
                                             <span>{feature}</span>
@@ -359,9 +362,7 @@ export default function ProductModal({
                     <div className="min-w-0">
                         <p className="text-xl font-bold text-[#1C1B18] leading-tight">{formatGBP(unitPrice)}</p>
                         <p className="text-xs text-stone-500 truncate">
-                            {product.deliveryFee > 0
-                                ? `+ ${formatGBP(product.deliveryFee)} delivery & assembly`
-                                : 'Delivery & assembly included'}
+                            Delivery &amp; assembly added once per order
                         </p>
                     </div>
                     <div className="flex-1 flex flex-col items-end">

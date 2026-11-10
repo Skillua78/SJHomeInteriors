@@ -214,8 +214,9 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                 </div>
             </div>
             <p id="pf-delivery-fee-hint" className="text-[11px] text-stone-500 -mt-2">
-                Delivery &amp; assembly is charged per item at checkout. Leave blank to use the standard £
-                {defaultDeliveryFee}; enter 0 for no charge on this item. Collection is always free.
+                Delivery &amp; assembly is charged once per order (the highest fee among the items in the
+                basket). Leave blank to use the standard £{defaultDeliveryFee}; enter 0 if this item adds
+                no charge. Collection is always free.
             </p>
 
             <div>

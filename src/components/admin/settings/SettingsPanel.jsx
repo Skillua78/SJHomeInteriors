@@ -3,6 +3,7 @@ import { Save, CheckCircle2, Upload, X, Loader2 } from 'lucide-react';
 import { validateSafeImageUrl } from '../../../utils/security';
 import { compressImageFiles } from '../../../utils/image';
 import { inputClass, labelClass, primaryButtonClass, sectionTitleClass } from '../adminUi';
+import { DEFAULT_HOME_TEXT } from '../../../data/defaultSettings';
 
 const cardClass = 'p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-4';
 
@@ -129,13 +130,13 @@ function DeliverySettings({ form, set }) {
             <h3 className={sectionTitleClass}>Delivery &amp; assembly</h3>
             <TextField
                 id="st-fee"
-                label="Standard delivery & assembly fee per item (£)"
+                label="Standard delivery & assembly fee per order (£)"
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.defaultDeliveryFee ?? 50}
                 onChange={(v) => set({ defaultDeliveryFee: v })}
-                hint="Used for every product that does not have its own fee. Set a different fee per product in its Essentials step. Showroom collection is never charged."
+                hint="Charged once per order, however many items are in it. A product can have its own fee (set in its Essentials step); an order pays the highest fee among its items. Showroom collection is never charged."
             />
             <Toggle
                 label="Show the delivery & assembly tile on the home page"
@@ -198,7 +199,16 @@ function ContactSettings({ form, set }) {
 function HomepageSettings({ form, set }) {
     return (
         <section className={cardClass}>
-            <h3 className={sectionTitleClass}>Home page text</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className={sectionTitleClass}>Home page text</h3>
+                <button
+                    type="button"
+                    onClick={() => set({ ...DEFAULT_HOME_TEXT })}
+                    className="text-xs font-bold text-[#7D6242] hover:underline cursor-pointer"
+                >
+                    Restore default text
+                </button>
+            </div>
             <TextField id="st-ann" label="Announcement bar" maxLength={200} value={form.announcementText} onChange={(v) => set({ announcementText: v })} />
             <TextField id="st-badge" label="Hero badge" maxLength={80} value={form.heroBadge} onChange={(v) => set({ heroBadge: v })} />
             <TextField id="st-title" label="Hero headline" maxLength={140} value={form.heroTitle} onChange={(v) => set({ heroTitle: v })} />

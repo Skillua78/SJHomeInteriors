@@ -84,8 +84,9 @@ export function priceSelection(basePence, options, selections = {}) {
 }
 
 /**
- * Basket totals. Delivery & assembly is charged per unit and waived for
- * showroom collection.
+ * Basket totals. Delivery & assembly is charged ONCE per order - adding more
+ * items does not add more delivery. Each product can carry its own fee, so the
+ * order pays the highest fee among its items. Waived for showroom collection.
  * @param lines [{ unitPence, deliveryUnitPence, qty }]
  */
 export function computeTotals(lines, deliveryMethod = 'delivery') {
@@ -94,7 +95,7 @@ export function computeTotals(lines, deliveryMethod = 'delivery') {
     for (const line of lines) {
         const qty = Math.max(1, Math.floor(Number(line.qty) || 1));
         subtotalPence += Math.round(line.unitPence) * qty;
-        deliveryPence += Math.round(line.deliveryUnitPence || 0) * qty;
+        deliveryPence = Math.max(deliveryPence, Math.round(line.deliveryUnitPence || 0));
     }
     if (deliveryMethod !== 'delivery') deliveryPence = 0;
     return { subtotalPence, deliveryPence, totalPence: subtotalPence + deliveryPence };

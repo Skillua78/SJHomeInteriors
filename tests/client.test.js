@@ -51,9 +51,9 @@ describe('basket', () => {
         expect(changeQty(cart, b.key, -1)).toHaveLength(1);
     });
 
-    it('totals items plus per-unit delivery, free for collection', () => {
+    it('totals items plus one delivery charge per order, free for collection', () => {
         const line = { ...buildCartLine(bed, { fabric: 'Teddy', size: 'King' }).line, qty: 2 };
-        expect(cartTotals([line], 'delivery')).toMatchObject({ subtotal: 1260.98, delivery: 100, total: 1360.98, totalPence: 136098 });
+        expect(cartTotals([line], 'delivery')).toMatchObject({ subtotal: 1260.98, delivery: 50, total: 1310.98, totalPence: 131098 });
         expect(cartTotals([line], 'collection').total).toBe(1260.98);
     });
 

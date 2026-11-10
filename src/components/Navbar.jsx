@@ -31,19 +31,18 @@ export default function Navbar({
         if (currentPage !== 'home') onNavigate('home');
     };
 
-    // Keep the desktop bar on one line; every category is still in the catalogue filters.
-    const navCategories = ['All', ...availableCategories.slice(0, 6)];
+    const navCategories = ['All', ...availableCategories];
 
     return (
         <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80">
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-                <div className="flex items-center gap-2 min-w-0">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[4.5rem] flex items-center justify-between gap-3 sm:gap-6">
+                <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-none">
                     <button
                         type="button"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Toggle navigation menu"
                         aria-expanded={mobileMenuOpen}
-                        className="xl:hidden p-2.5 rounded-xl border border-stone-200 bg-white text-stone-700 hover:border-[#9A7B56] cursor-pointer"
+                        className="lg:hidden shrink-0 p-2.5 rounded-xl border border-stone-200 bg-white text-stone-700 hover:border-[#9A7B56] cursor-pointer"
                     >
                         {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                     </button>
@@ -61,33 +60,8 @@ export default function Navbar({
                     </button>
                 </div>
 
-                <nav
-                    aria-label="Main navigation"
-                    className="hidden xl:flex items-center gap-x-5 text-xs font-semibold uppercase tracking-wider text-stone-700 whitespace-nowrap"
-                >
-                    {navCategories.map((cat) => (
-                        <button
-                            key={cat}
-                            type="button"
-                            onClick={() => handleCategoryNav(cat)}
-                            className="cursor-pointer hover:text-[#9A7B56] transition"
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={() => onNavigate('contact')}
-                        className={`cursor-pointer hover:text-[#9A7B56] transition flex items-center gap-1 ${
-                            currentPage === 'contact' ? 'text-[#9A7B56]' : ''
-                        }`}
-                    >
-                        <MapPin className="w-3.5 h-3.5" aria-hidden="true" /> Showroom
-                    </button>
-                </nav>
-
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                    <div className="relative hidden md:block">
+                    <div className="relative hidden md:block lg:w-80 xl:w-96">
                         <label htmlFor="site-search" className="sr-only">
                             Search furniture
                         </label>
@@ -98,7 +72,7 @@ export default function Navbar({
                             value={searchQuery}
                             onChange={(e) => handleSearch(e.target.value)}
                             placeholder="Search sofas, beds, tables…"
-                            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-300 rounded-full focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20 w-44 lg:w-56 transition"
+                            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-300 rounded-full focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20 w-48 lg:w-full transition"
                         />
                         <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" aria-hidden="true" />
                     </div>
@@ -149,8 +123,36 @@ export default function Navbar({
                 </div>
             </div>
 
+            {/* Desktop category bar: its own row, scrolls sideways if there are many departments */}
+            <nav
+                aria-label="Main navigation"
+                className="hidden lg:block border-t border-stone-200/70 bg-white/60"
+            >
+                <div className="max-w-7xl mx-auto px-8 h-11 flex items-center gap-x-7 overflow-x-auto text-xs font-semibold uppercase tracking-wider text-stone-700 whitespace-nowrap">
+                    {navCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => handleCategoryNav(cat)}
+                            className="cursor-pointer hover:text-[#9A7B56] transition shrink-0"
+                        >
+                            {cat === 'All' ? 'All furniture' : cat}
+                        </button>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => onNavigate('contact')}
+                        className={`cursor-pointer hover:text-[#9A7B56] transition flex items-center gap-1 shrink-0 ml-auto ${
+                            currentPage === 'contact' ? 'text-[#9A7B56]' : ''
+                        }`}
+                    >
+                        <MapPin className="w-3.5 h-3.5" aria-hidden="true" /> Visit our showroom
+                    </button>
+                </div>
+            </nav>
+
             {mobileMenuOpen && (
-                <div className="xl:hidden bg-white border-b border-stone-200 px-4 pt-3 pb-5 space-y-4 shadow-lg">
+                <div className="lg:hidden bg-white border-b border-stone-200 px-4 pt-3 pb-5 space-y-4 shadow-lg">
                     <div className="relative md:hidden">
                         <input
                             type="search"

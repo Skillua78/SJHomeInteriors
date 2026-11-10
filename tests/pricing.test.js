@@ -46,15 +46,15 @@ describe('delivery & assembly', () => {
         expect(resolveDeliveryFeePence(undefined, undefined)).toBe(5000);
     });
 
-    it('charges per unit and waives the fee for collection', () => {
+    it('charges once per order (the highest item fee) and waives it for collection', () => {
         const lines = [
             { unitPence: 94999, deliveryUnitPence: 7500, qty: 2 },
             { unitPence: 8900, deliveryUnitPence: 5000, qty: 1 },
         ];
         expect(computeTotals(lines, 'delivery')).toEqual({
             subtotalPence: 198898,
-            deliveryPence: 20000,
-            totalPence: 218898,
+            deliveryPence: 7500,
+            totalPence: 206398,
         });
         expect(computeTotals(lines, 'collection').deliveryPence).toBe(0);
     });

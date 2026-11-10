@@ -71,13 +71,13 @@ export function changeQty(cart, key, delta) {
         .filter((item) => item.qty > 0);
 }
 
-/** Totals in pounds for display. Delivery & assembly is per unit, waived for collection. */
+/** Totals in pounds for display. One delivery & assembly charge per order (the highest item fee). */
 export function cartTotals(cart, deliveryMethod = 'delivery') {
     let subtotalPence = 0;
     let deliveryPence = 0;
     for (const item of cart) {
         subtotalPence += toPence(item.unitPrice) * item.qty;
-        deliveryPence += toPence(item.deliveryFee) * item.qty;
+        deliveryPence = Math.max(deliveryPence, toPence(item.deliveryFee));
     }
     if (deliveryMethod !== 'delivery') deliveryPence = 0;
     return {
