@@ -16,6 +16,11 @@ export function validateSafeImageUrl(url) {
     if (typeof url !== 'string' || !url.trim()) return '';
     const trimmed = url.trim();
 
+    // Photos uploaded through the admin are served from our own image endpoint
+    if (/^\/api\/img\/[A-Za-z0-9_-]{16,40}$/.test(trimmed)) {
+        return trimmed;
+    }
+
     // Allow safe base64 image data URLs
     if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
         return trimmed;
@@ -32,10 +37,9 @@ export function validateSafeImageUrl(url) {
     return '';
 }
 
-// Validate uploaded image files (MIME allowlist + 2MB size cap to prevent Storage DoS)
-export function validateImageFile(file) {
+// Validate uploaded image files (MIME allowlist + size cap)
+export function validateImageFile(file, maxBytes = 2 * 1024 * 1024) {
     const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
-    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
     if (!file) return { valid: false, error: 'No file provided.' };
     if (!ALLOWED_MIMES.includes(file.type)) {
@@ -44,31 +48,22 @@ export function validateImageFile(file) {
             error: `Invalid file type (${file.type || 'unknown'}). Only JPG, PNG, and WebP images are permitted.`,
         };
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > maxBytes) {
         return {
             valid: false,
-            error: `File "${file.name}" exceeds the 2MB maximum size limit.`,
+            error: `File "${file.name}" exceeds the ${Math.round(maxBytes / 1024 / 1024)}MB maximum size limit.`,
         };
     }
     return { valid: true, error: null };
 }
 
-// Compute SHA-256 hex digest using browser native Web Crypto API
-export async function sha256Hex(plainText) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(plainText);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Enforce strong password complexity
-export function validatePasswordStrength(password) {
-    if (typeof password !== 'string' || password.length < 10) {
-        return 'Password must be at least 10 characters long.';
+// Only https links may be used as hrefs for admin-configured URLs
+export function validateSafeHttpsUrl(url) {
+    if (typeof url !== 'string' || !url.trim()) return '';
+    try {
+        const parsed = new URL(url.trim());
+        return parsed.protocol === 'https:' ? parsed.toString() : '';
+    } catch {
+        return '';
     }
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-        return 'Password must include uppercase, lowercase, and numeric characters.';
-    }
-    return null;
 }

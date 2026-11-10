@@ -1,58 +1,55 @@
-export async function onRequestPost({ request, env }) {
-    try {
-        const body = await request.json();
-        const { customer, items, total, orderRef } = body;
+/**
+ * /api/orders (administrators only - customers place orders via /api/checkout)
+ *   GET  ?limit=&offset=&status=   newest first
+ *   PUT  { id, status }            update fulfilment status
+ */
+import { HttpError, json, readJson, cleanText, intParam } from '../../server/http.js';
+import { requireAdmin } from '../../server/auth.js';
+import { ORDER_STATUSES, publicOrder } from '../../server/orders.js';
 
-        if (!customer || !items || !items.length) {
-            return new Response(JSON.stringify({ error: 'Incomplete order payload' }), { status: 400 });
-        }
+export async function onRequestGet({ request, env }) {
+    await requireAdmin(request, env);
+    const q = new URL(request.url).searchParams;
+    const limit = intParam(q.get('limit'), 25, 1, 100);
+    const offset = intParam(q.get('offset'), 0, 0, 100000);
+    const status = cleanText(q.get('status'), 30);
 
-        const orderId = orderRef || `SJH-${Date.now()}`;
-        const statements = [];
+    const where = ORDER_STATUSES.includes(status) ? 'WHERE status = ?' : '';
+    const binds = where ? [status] : [];
 
-        statements.push(
-            env.DB.prepare(
-                `INSERT INTO orders (
-          id, customer_name, customer_email, customer_phone, delivery_address,
-          city, postcode, delivery_method, items_json, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(
-                orderId,
-                String(customer.fullName || '').slice(0, 100),
-                String(customer.email || '').slice(0, 100),
-                String(customer.phone || '').slice(0, 30),
-                String(customer.address || '').slice(0, 200),
-                String(customer.city || '').slice(0, 60),
-                String(customer.postcode || '').slice(0, 20),
-                customer.deliveryMethod || 'delivery',
-                JSON.stringify(items),
-                Number(total) || 0
-            )
-        );
+    const { results } = await env.DB.prepare(
+        `SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    )
+        .bind(...binds, limit + 1, offset)
+        .all();
 
-        // Only deduct stock if stock is not NULL (untracked stock stays NULL)
-        for (const item of items) {
-            const quantity = Math.max(1, parseInt(item.qty, 10) || 1);
-            statements.push(
-                env.DB.prepare(
-                    `UPDATE products
-           SET stock = CASE WHEN stock IS NULL THEN NULL ELSE MAX(0, stock - ?) END,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?`
-                ).bind(quantity, item.id)
-            );
-        }
+    const rows = results || [];
+    return json({
+        items: rows.slice(0, limit).map((o) => ({
+            ...publicOrder(o),
+            email: o.customer_email,
+            address: [o.delivery_address, o.city, o.postcode].filter(Boolean).join(', '),
+            createdAt: o.created_at,
+        })),
+        nextOffset: rows.length > limit ? offset + limit : null,
+    });
+}
 
-        await env.DB.batch(statements);
+export async function onRequestPut({ request, env }) {
+    await requireAdmin(request, env);
+    const body = await readJson(request);
+    const id = cleanText(body.id, 40);
+    const status = cleanText(body.status, 30);
+    if (!id || !ORDER_STATUSES.includes(status)) throw new HttpError(400, 'Invalid order update.');
 
-        return new Response(
-            JSON.stringify({ success: true, orderId }),
-            { status: 201, headers: { 'Content-Type': 'application/json' } }
-        );
-    } catch (err) {
-        return new Response(
-            JSON.stringify({ error: 'Transaction failed', details: err.message }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
+    const res = await env.DB.prepare('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?')
+        .bind(status, new Date().toISOString(), id)
+        .run();
+    if (!res.meta?.changes) throw new HttpError(404, 'Order not found.');
+    return json({ success: true, id, status });
+}
+
+// The old public "POST /api/orders" trusted browser-supplied prices and is retired.
+export function onRequestPost() {
+    throw new HttpError(410, 'Please place orders through the checkout.');
 }

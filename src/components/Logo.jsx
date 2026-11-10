@@ -63,13 +63,13 @@ export default function Logo({ variant = 'dark', className = '' }) {
             </svg>
 
             {/* Brand Wordmark */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-xl sm:text-2xl font-bold tracking-tight leading-none ${primaryText}`}
+                    className={`font-serif text-base sm:text-2xl font-bold tracking-tight leading-none whitespace-nowrap ${primaryText}`}
                 >
                     SJ HOME INTERIORS
                 </span>
-                <span className="text-[9px] uppercase tracking-[0.26em] text-[#9A7B56] font-semibold mt-1">
+                <span className="hidden sm:block text-[9px] uppercase tracking-[0.26em] text-[#9A7B56] font-semibold mt-1 whitespace-nowrap">
                     Maltby Showroom &bull; Est. UK
                 </span>
             </div>
