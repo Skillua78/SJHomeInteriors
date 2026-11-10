@@ -1,166 +1,31 @@
 /**
  * /api/settings
- * Persists global site settings + saved/removed Admin presets in Cloudflare D1
+ *   GET  public  site settings + which payment methods are currently available
+ *   PUT  admin   validated update
  */
+import { json, readJson } from '../../server/http.js';
+import { requireAdmin } from '../../server/auth.js';
+import { loadSettings, sanitizeSettings, paymentOptions } from '../../server/settings.js';
 
-export const DEFAULT_SITE_SETTINGS = {
-    phone: '07830 141250',
-    email: 'info@sjhomeinteriors.co.uk',
-    address: 'High Street, Maltby, Rotherham, S66 8JE',
-    openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
-    facebookUrl: '',
-    whatsappNumber: '',
-    announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
-    heroBadge: 'Maltby Showroom • Quality Furniture, Affordable Prices',
-    heroTitle: 'Quality Sofas, Beds & Dining at Prices You’ll Love',
-    heroSubtitle:
-        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
-    heroImages: [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=85',
-    ],
-    catalogSubtitle: 'Showroom & Online Collection',
-    catalogTitle: 'Explore Our Furniture',
-    showAssemblyHighlight: true,
-    assemblyTitle: 'Two-Person Room Assembly',
-    assemblySubtitle: 'Included Free',
-    customCategories: {},
-    removedCategories: [],
-    customColors: {},
-    removedColors: [],
-    savedPresets: {
-        fabrics: [],
-        removedFabrics: [],
-        sizes: [],
-        removedSizes: [],
-        mattresses: [],
-        removedMattresses: [],
-        liftOptions: [],
-        removedLiftOptions: [],
-    },
-    paymentEnabled: true,
-    paymentMaintenanceMessage:
-        'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
-    allowCashOnDelivery: true,
-    allowShowroomPayment: true,
-    allowBankTransfer: false,
-    bankTransferInstructions: '',
-};
+const MAX_SETTINGS_BODY = 12 * 1024 * 1024; // may include new slideshow uploads
 
-function verifyAdmin(request, env) {
-    const authHeader = request.headers.get('Authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    const validSecret = env.ADMIN_API_KEY;
-    return Boolean(validSecret && token === validSecret);
-}
-
-function jsonResponse(data, status = 200) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-cache',
-        },
-    });
-}
-
-async function ensureTable(env) {
-    await env.DB.prepare(
-        `CREATE TABLE IF NOT EXISTS site_settings (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      settings_json TEXT NOT NULL,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`
-    ).run();
+function present(env, settings) {
+    return {
+        ...settings,
+        paymentOptions: paymentOptions(env, settings),
+        // Booleans only - the keys themselves never leave the server.
+        stripeConfigured: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET),
+    };
 }
 
 export async function onRequestGet({ env }) {
-    try {
-        await ensureTable(env);
-        const row = await env.DB.prepare(
-            'SELECT settings_json FROM site_settings WHERE id = 1'
-        ).first();
-
-        if (!row || !row.settings_json) {
-            return jsonResponse(DEFAULT_SITE_SETTINGS);
-        }
-
-        const parsed = JSON.parse(row.settings_json);
-        return jsonResponse({ ...DEFAULT_SITE_SETTINGS, ...parsed });
-    } catch {
-        return jsonResponse(DEFAULT_SITE_SETTINGS);
-    }
+    return json(present(env, await loadSettings(env)), 200, { 'Cache-Control': 'no-cache' });
 }
 
 export async function onRequestPut({ request, env }) {
-    if (!verifyAdmin(request, env)) {
-        return jsonResponse({ error: 'Unauthorized: Invalid admin key.' }, 401);
-    }
-
-    try {
-        await ensureTable(env);
-        const body = await request.json();
-
-        const rawHeroImages = Array.isArray(body.heroImages) ? body.heroImages : [];
-        const cleanHeroImages = rawHeroImages
-            .map((u) => (typeof u === 'string' ? u.trim() : ''))
-            .filter((u) => u.startsWith('https://') || u.startsWith('data:image/'))
-            .slice(0, 10);
-
-        const sanitized = {
-            phone: String(body.phone ?? DEFAULT_SITE_SETTINGS.phone).slice(0, 40),
-            email: String(body.email ?? DEFAULT_SITE_SETTINGS.email).slice(0, 100),
-            address: String(body.address ?? DEFAULT_SITE_SETTINGS.address).slice(0, 200),
-            openingHours: String(body.openingHours ?? DEFAULT_SITE_SETTINGS.openingHours).slice(0, 160),
-            facebookUrl: String(body.facebookUrl ?? '').trim().slice(0, 300),
-            whatsappNumber: String(body.whatsappNumber ?? '').trim().slice(0, 60),
-            announcementText: String(body.announcementText ?? DEFAULT_SITE_SETTINGS.announcementText).slice(0, 200),
-            heroBadge: String(body.heroBadge ?? DEFAULT_SITE_SETTINGS.heroBadge).slice(0, 80),
-            heroTitle: String(body.heroTitle ?? DEFAULT_SITE_SETTINGS.heroTitle).slice(0, 140),
-            heroSubtitle: String(body.heroSubtitle ?? DEFAULT_SITE_SETTINGS.heroSubtitle).slice(0, 500),
-            heroImages: cleanHeroImages.length > 0 ? cleanHeroImages : DEFAULT_SITE_SETTINGS.heroImages,
-            catalogSubtitle: String(body.catalogSubtitle ?? DEFAULT_SITE_SETTINGS.catalogSubtitle).slice(0, 80),
-            catalogTitle: String(body.catalogTitle ?? DEFAULT_SITE_SETTINGS.catalogTitle).slice(0, 100),
-            showAssemblyHighlight: Boolean(body.showAssemblyHighlight ?? true),
-            assemblyTitle: String(body.assemblyTitle ?? DEFAULT_SITE_SETTINGS.assemblyTitle).slice(0, 80),
-            assemblySubtitle: String(body.assemblySubtitle ?? DEFAULT_SITE_SETTINGS.assemblySubtitle).slice(0, 80),
-            customCategories:
-                body.customCategories && typeof body.customCategories === 'object'
-                    ? body.customCategories
-                    : {},
-            removedCategories: Array.isArray(body.removedCategories) ? body.removedCategories : [],
-            customColors:
-                body.customColors && typeof body.customColors === 'object'
-                    ? body.customColors
-                    : {},
-            removedColors: Array.isArray(body.removedColors) ? body.removedColors : [],
-            savedPresets:
-                body.savedPresets && typeof body.savedPresets === 'object'
-                    ? body.savedPresets
-                    : DEFAULT_SITE_SETTINGS.savedPresets,
-            paymentEnabled: Boolean(body.paymentEnabled),
-            paymentMaintenanceMessage: String(
-                body.paymentMaintenanceMessage || DEFAULT_SITE_SETTINGS.paymentMaintenanceMessage
-            ).slice(0, 400),
-            allowCashOnDelivery: Boolean(body.allowCashOnDelivery ?? true),
-            allowShowroomPayment: Boolean(body.allowShowroomPayment ?? true),
-            allowBankTransfer: Boolean(body.allowBankTransfer ?? false),
-            bankTransferInstructions: String(body.bankTransferInstructions ?? '').slice(0, 500),
-        };
-
-        await env.DB.prepare(
-            `INSERT INTO site_settings (id, settings_json, updated_at)
-       VALUES (1, ?, CURRENT_TIMESTAMP)
-       ON CONFLICT(id) DO UPDATE SET
-         settings_json = excluded.settings_json,
-         updated_at = CURRENT_TIMESTAMP`
-        )
-            .bind(JSON.stringify(sanitized))
-            .run();
-
-        return jsonResponse({ success: true, settings: sanitized });
-    } catch (err) {
-        return jsonResponse({ error: 'Failed to save settings', details: err.message }, 500);
-    }
+    await requireAdmin(request, env);
+    const body = await readJson(request, MAX_SETTINGS_BODY);
+    const { settings, statements } = await sanitizeSettings(env, body);
+    await env.DB.batch(statements);
+    return json({ success: true, settings: present(env, settings) });
 }

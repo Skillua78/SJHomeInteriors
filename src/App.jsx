@@ -1,28 +1,30 @@
-import { useState, useMemo, useEffect } from 'react';
-import {
-    initialProducts,
-    initialReviews,
-    CATEGORY_TAXONOMY,
-} from './data/products';
-import { api } from './utils/api';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { api, isApiUnavailable } from './utils/api';
+import { useCatalog } from './hooks/useCatalog';
+import { useCart } from './hooks/useCart';
 import AnnouncementBar from './components/AnnouncementBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ValueBar from './components/ValueBar';
 import CategoryGrid from './components/CategoryGrid';
 import ProductCard from './components/ProductCard';
-import SpecModal from './components/SpecModal';
+import ProductModal from './components/product/ProductModal';
 import CartDrawer from './components/CartDrawer';
-import BasketPage from './components/BasketPage';
+import BasketPage from './components/checkout/BasketPage';
+import OrderStatusPage from './components/checkout/OrderStatusPage';
 import ContactPage from './components/ContactPage';
 import AuthPage from './components/AuthPage';
 import ReviewsSection from './components/ReviewsSection';
-import StockManagerModal from './components/StockManagerModal';
 import FeedbackBar from './components/FeedbackBar';
 import CookieBanner from './components/CookieBanner';
 import LegalModals from './components/LegalModals';
 import Footer from './components/Footer';
 
+// The admin dashboard is only downloaded when an administrator opens it.
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
+
+// Shown until /api/settings responds (and when running without the API).
 const DEFAULT_SETTINGS = {
     phone: '07830 141250',
     email: 'info@sjhomeinteriors.co.uk',
@@ -43,380 +45,239 @@ const DEFAULT_SETTINGS = {
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
     showAssemblyHighlight: true,
-    assemblyTitle: 'Two-Person Room Assembly',
-    assemblySubtitle: 'Included Free',
+    assemblyTitle: 'Two-Person Delivery & Assembly',
+    assemblySubtitle: 'Standard charge £50 per item',
+    defaultDeliveryFee: 50,
     customCategories: {},
     customColors: {},
     paymentEnabled: true,
-    paymentMaintenanceMessage:
-        'Payment section currently under maintenance. Please contact us directly to place your order or arrange showroom payment.',
-    allowCashOnDelivery: true,
-    allowShowroomPayment: true,
-    allowBankTransfer: false,
-    bankTransferInstructions: '',
+    paymentOptions: { card: false, klarna: false, cod: true, showroom: true, bacs: false },
 };
 
+/** Read (and then remove) the query string Stripe Checkout sends the customer back with. */
+function readCheckoutReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get('checkout');
+    if (!outcome) return null;
+    const result = { outcome, sessionId: params.get('session_id') || '' };
+    window.history.replaceState({}, '', window.location.pathname);
+    return result;
+}
+
 export default function App() {
-    const [currentPage, setCurrentPage] = useState('home');
+    const [checkoutReturn] = useState(readCheckoutReturn);
+    const [currentPage, setCurrentPage] = useState(() => {
+        if (checkoutReturn?.outcome === 'success' && checkoutReturn.sessionId) return 'order';
+        if (checkoutReturn?.outcome === 'cancelled') return 'basket';
+        return 'home';
+    });
+
     const [activeCategory, setActiveCategory] = useState('All');
     const [activeSubcategory, setActiveSubcategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('featured');
+
     const [modalData, setModalData] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isStockManagerOpen, setIsStockManagerOpen] = useState(false);
+    const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const [adminLoaded, setAdminLoaded] = useState(false); // stays mounted so a half-filled form survives closing
     const [adminEditTarget, setAdminEditTarget] = useState(null);
     const [activeLegalDoc, setActiveLegalDoc] = useState(null);
 
-    const [products, setProducts] = useState(initialProducts);
-    const [reviews, setReviews] = useState(initialReviews);
     const [siteSettings, setSiteSettings] = useState(DEFAULT_SETTINGS);
-    const [undoStack, setUndoStack] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [reviewStats, setReviewStats] = useState(null);
 
-    const [cart, setCart] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sj_cart_v3');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
+    const catalog = useCatalog({
+        category: activeCategory,
+        subcategory: activeSubcategory,
+        search: searchQuery,
+        sort: sortBy,
     });
+    const { cart, count: cartCount, addItem, updateQty, removeItem, clear: clearCart, repriceFromQuote } =
+        useCart();
 
-    useEffect(() => {
-        localStorage.setItem('sj_cart_v3', JSON.stringify(cart));
-    }, [cart]);
+    const isAdmin = currentUser?.role === 'admin';
 
-    const [currentUser, setCurrentUser] = useState(() => {
+    const loadReviews = useCallback(async () => {
         try {
-            const saved = localStorage.getItem('sj_user_v3');
-            return saved ? JSON.parse(saved) : null;
+            const data = await api.getReviews();
+            setReviews(data.items || []);
+            setReviewStats(data.stats || null);
         } catch {
-            return null;
+            // Reviews are optional; the section simply shows its empty state.
         }
-    });
-
-    useEffect(() => {
-        let isMounted = true;
-
-        async function loadCloudflareData() {
-            const [remoteProducts, remoteReviews, remoteSettings] = await Promise.all([
-                api.getProducts(),
-                api.getReviews(),
-                api.getSettings(),
-            ]);
-
-            if (isMounted) {
-                if (remoteProducts && Array.isArray(remoteProducts) && remoteProducts.length > 0) {
-                    setProducts(remoteProducts);
-                }
-                if (remoteReviews && Array.isArray(remoteReviews) && remoteReviews.length > 0) {
-                    setReviews(remoteReviews);
-                }
-                if (remoteSettings && typeof remoteSettings === 'object') {
-                    setSiteSettings((prev) => ({ ...prev, ...remoteSettings }));
-                }
-            }
-        }
-
-        loadCloudflareData();
-        return () => {
-            isMounted = false;
-        };
     }, []);
 
-    // Compute ONLY categories that have at least 1 product in the catalog
-    const populatedCategories = useMemo(() => {
-        const set = new Set();
-        products.forEach((p) => {
-            if (p.category && p.category.trim()) {
-                set.add(p.category.trim());
-            }
-        });
-        return Array.from(set);
-    }, [products]);
+    // Session, settings and reviews are independent: load them in parallel.
+    useEffect(() => {
+        let active = true;
+        api.me()
+            .then((data) => active && setCurrentUser(data.user))
+            .catch(() => {});
+        api.getSettings()
+            .then((data) => active && setSiteSettings((prev) => ({ ...prev, ...data })))
+            .catch((err) => {
+                if (!isApiUnavailable(err)) console.warn('Settings unavailable:', err.message);
+            });
+        loadReviews();
+        return () => {
+            active = false;
+        };
+    }, [loadReviews]);
 
-    // Build filter pills dynamically from non-empty categories
-    const dynamicCategoryPills = useMemo(() => {
-        const pills = [{ id: 'All', label: 'All Collections' }];
-        if (products.some((p) => p.isPopular)) pills.push({ id: 'Popular', label: '★ Popular' });
-        if (products.some((p) => p.isTrending)) pills.push({ id: 'Trending', label: '🔥 Trending' });
-        populatedCategories.forEach((cat) => {
-            pills.push({ id: cat, label: cat });
-        });
-        return pills;
-    }, [products, populatedCategories]);
+    // Admins also see unpublished reviews, so reload when the signed-in user changes.
+    useEffect(() => {
+        if (currentUser) loadReviews();
+    }, [currentUser, loadReviews]);
 
-    // Compute ONLY subcategories for the active category that have at least 1 product
-    const availableSubcategories = useMemo(() => {
-        if (activeCategory === 'All' || activeCategory === 'Popular' || activeCategory === 'Trending') {
-            return [];
-        }
-        const subSet = new Set();
-        products
-            .filter((p) => p.category === activeCategory && p.subcategory)
-            .forEach((p) => subSet.add(p.subcategory));
-        return Array.from(subSet);
-    }, [products, activeCategory]);
+    /* ----- navigation ----- */
 
-    const handleLogin = (userObj) => {
-        setCurrentUser(userObj);
-        localStorage.setItem('sj_user_v3', JSON.stringify(userObj));
-    };
+    const navigate = useCallback((page) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0 });
+    }, []);
 
-    const handleLogout = () => {
-        setCurrentUser(null);
-        setIsStockManagerOpen(false);
-        localStorage.removeItem('sj_user_v3');
-    };
-
-    const handleSelectCategory = (cat) => {
-        setActiveCategory(cat);
+    const handleSelectCategory = (category) => {
+        setActiveCategory(category);
         setActiveSubcategory('All');
     };
 
-    const filteredProducts = useMemo(() => {
-        const q = searchQuery.toLowerCase();
-        let list = products.filter((p) => {
-            let matchesCategory = false;
-            if (activeCategory === 'All') matchesCategory = true;
-            else if (activeCategory === 'Popular') matchesCategory = Boolean(p.isPopular);
-            else if (activeCategory === 'Trending') matchesCategory = Boolean(p.isTrending);
-            else matchesCategory = p.category === activeCategory;
+    const scrollToCatalog = () =>
+        document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
 
-            const matchesSub =
-                activeSubcategory === 'All' || p.subcategory === activeSubcategory;
+    const categoryNames = useMemo(
+        () => catalog.facets.categories.map((c) => c.name),
+        [catalog.facets]
+    );
 
-            const matchesSearch =
-                p.name.toLowerCase().includes(q) ||
-                (p.description || '').toLowerCase().includes(q) ||
-                (p.category || '').toLowerCase().includes(q) ||
-                (p.subcategory || '').toLowerCase().includes(q) ||
-                (p.features || []).join(' ').toLowerCase().includes(q);
+    const categoryPills = useMemo(() => {
+        const pills = [{ id: 'All', label: 'All' }];
+        if (catalog.facets.popular > 0) pills.push({ id: 'Popular', label: 'Popular' });
+        if (catalog.facets.trending > 0) pills.push({ id: 'Trending', label: 'Trending' });
+        catalog.facets.categories.forEach((c) => pills.push({ id: c.name, label: c.name }));
+        return pills;
+    }, [catalog.facets]);
 
-            return matchesCategory && matchesSub && matchesSearch;
-        });
+    const subcategories = useMemo(
+        () => catalog.facets.categories.find((c) => c.name === activeCategory)?.subcategories || [],
+        [catalog.facets, activeCategory]
+    );
 
-        if (sortBy === 'low') list = [...list].sort((a, b) => a.price - b.price);
-        if (sortBy === 'high') list = [...list].sort((a, b) => b.price - a.price);
-        return list;
-    }, [products, activeCategory, activeSubcategory, searchQuery, sortBy]);
+    /* ----- basket ----- */
 
-    const handleAddToCart = (product, selectedColor) => {
-        const color = selectedColor || product.colors?.[0] || 'Standard';
-        setCart((prev) => {
-            const existingIndex = prev.findIndex(
-                (item) => item.id === product.id && item.selectedColor === color
-            );
-            if (existingIndex > -1) {
-                const updated = [...prev];
-                updated[existingIndex].qty += 1;
-                return updated;
-            }
-            return [...prev, { ...product, selectedColor: color, qty: 1 }];
-        });
-        setIsCartOpen(true);
+    const handleAddToCart = (product, selections) => {
+        const result = addItem(product, selections);
+        if (result.ok) setIsCartOpen(true);
+        return result;
     };
 
-    const handleUpdateCartQty = (index, delta) => {
-        setCart((prev) => {
-            const updated = [...prev];
-            const newQty = updated[index].qty + delta;
-            if (newQty <= 0) return updated.filter((_, i) => i !== index);
-            updated[index].qty = newQty;
-            return updated;
-        });
-    };
+    /* ----- session ----- */
 
-    const handleRemoveFromCart = (index) => {
-        setCart((prev) => prev.filter((_, idx) => idx !== index));
-    };
-
-    const handleCompleteOrder = async (orderSnapshot) => {
-        setProducts((prevProducts) =>
-            prevProducts.map((prod) => {
-                if (prod.stock === null || prod.stock === undefined) return prod;
-                const boughtQty = orderSnapshot.items
-                    .filter((i) => i.id === prod.id)
-                    .reduce((s, i) => s + i.qty, 0);
-                if (boughtQty > 0) {
-                    return { ...prod, stock: Math.max(0, prod.stock - boughtQty) };
-                }
-                return prod;
-            })
-        );
-        setCart([]);
-        await api.submitOrder(orderSnapshot);
-    };
-
-    const requireAdmin = () => currentUser?.role === 'admin';
-
-    // Open Admin Modal directly to edit a clicked product from the catalog
-    const handleTriggerAdminEditProduct = (productToEdit) => {
-        if (!requireAdmin()) return;
-        setAdminEditTarget(productToEdit);
-        setIsStockManagerOpen(true);
-    };
-
-    const handleSaveSiteSettings = async (newSettings) => {
-        if (!requireAdmin()) return;
-        setSiteSettings(newSettings);
-        await api.updateSettings(newSettings);
-    };
-
-    const pushUndoEntry = (entry) => {
-        setUndoStack((prev) => [entry, ...prev.slice(0, 19)]);
-    };
-
-    const handleUpdateStock = async (productId, newStock) => {
-        if (!requireAdmin()) return;
-        const target = products.find((p) => p.id === productId);
-        if (target) {
-            pushUndoEntry({
-                type: 'stock',
-                label: `Stock change on ${target.name}`,
-                previousProduct: { ...target },
-            });
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+        } catch {
+            // Even if the request fails, drop the local view of the session.
         }
-        setProducts((prev) =>
-            prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
-        );
-        await api.updateStock(productId, newStock);
+        setCurrentUser(null);
+        setIsAdminOpen(false);
+        setAdminLoaded(false);
     };
 
-    const handleAddNewProduct = async (newProduct) => {
-        if (!requireAdmin()) return;
-        pushUndoEntry({
-            type: 'add',
-            label: `Added ${newProduct.name}`,
-            addedId: newProduct.id,
-        });
-        setProducts((prev) => [newProduct, ...prev]);
-        await api.addProduct(newProduct);
+    const openAdmin = () => {
+        if (!isAdmin) return;
+        setAdminLoaded(true);
+        setIsAdminOpen(true);
     };
 
-    const handleUpdateProduct = async (updatedProduct) => {
-        if (!requireAdmin()) return;
-        const existing = products.find((p) => p.id === updatedProduct.id);
-        if (existing) {
-            pushUndoEntry({
-                type: 'update',
-                label: `Edited ${existing.name}`,
-                previousProduct: { ...existing },
-            });
-        }
-        setProducts((prev) =>
-            prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-        );
-        await api.updateProduct(updatedProduct);
+    const handleEditProduct = (product) => {
+        if (!isAdmin) return;
+        setAdminEditTarget(product);
+        setAdminLoaded(true);
+        setIsAdminOpen(true);
     };
 
-    const handleDeleteProduct = async (productId) => {
-        if (!requireAdmin()) return;
-        const deletedItem = products.find((p) => p.id === productId);
-        if (deletedItem) {
-            pushUndoEntry({
-                type: 'delete',
-                label: `Deleted ${deletedItem.name}`,
-                deletedProduct: { ...deletedItem },
-            });
-        }
-        setProducts((prev) => prev.filter((p) => p.id !== productId));
-        await api.deleteProduct(productId);
-    };
+    /** Saves settings and adopts the server's validated copy. Throws on failure. */
+    const handleSaveSiteSettings = useCallback(async (next) => {
+        const { settings } = await api.updateSettings(next);
+        setSiteSettings((prev) => ({ ...prev, ...settings }));
+    }, []);
 
-    const handleUndoLastAction = async () => {
-        if (!requireAdmin() || undoStack.length === 0) return;
-        const [lastAction, ...remainingStack] = undoStack;
-        setUndoStack(remainingStack);
+    /* ----- reviews ----- */
 
-        if (lastAction.type === 'stock' && lastAction.previousProduct) {
-            const prev = lastAction.previousProduct;
-            setProducts((list) =>
-                list.map((p) => (p.id === prev.id ? { ...p, stock: prev.stock } : p))
-            );
-            await api.updateStock(prev.id, prev.stock);
-        } else if (lastAction.type === 'update' && lastAction.previousProduct) {
-            const prev = lastAction.previousProduct;
-            setProducts((list) => list.map((p) => (p.id === prev.id ? prev : p)));
-            await api.updateProduct(prev);
-        } else if (lastAction.type === 'delete' && lastAction.deletedProduct) {
-            const restored = lastAction.deletedProduct;
-            setProducts((list) => [restored, ...list]);
-            await api.addProduct(restored);
-        } else if (lastAction.type === 'add' && lastAction.addedId) {
-            setProducts((list) => list.filter((p) => p.id !== lastAction.addedId));
-            await api.deleteProduct(lastAction.addedId);
+    const handleAddReview = async (review) => {
+        try {
+            await api.submitReview(review);
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err.message };
         }
     };
 
-    const handleAddReview = async (newRev) => {
-        setReviews((prev) => [newRev, ...prev]);
-        await api.submitReview(newRev);
-    };
-
-    const handleToggleVerifyReview = async (reviewId) => {
-        if (!requireAdmin()) return;
-        const current = reviews.find((r) => r.id === reviewId);
-        setReviews((prev) =>
-            prev.map((r) => (r.id === reviewId ? { ...r, verified: !r.verified } : r))
-        );
-        if (current) {
-            await api.toggleVerifyReview(reviewId, current.verified);
+    const reviewAction = async (action) => {
+        try {
+            await action();
+        } catch (err) {
+            window.alert(err.message);
         }
+        loadReviews();
     };
 
-    const handleRespondToReview = async (reviewId, responseText) => {
-        if (!requireAdmin()) return;
-        setReviews((prev) =>
-            prev.map((r) =>
-                r.id === reviewId ? { ...r, adminResponse: responseText } : r
-            )
-        );
-        await api.respondToReview(reviewId, responseText);
+    const handleToggleVerifyReview = (id) => {
+        const review = reviews.find((r) => r.id === id);
+        if (review) reviewAction(() => api.setReviewVerified(id, !review.verified));
     };
 
-    const handleDeleteReview = async (reviewId) => {
-        if (!requireAdmin()) return;
-        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-        await api.deleteReview(reviewId);
-    };
-
-    const totalCartItems = cart.reduce((sum, item) => sum + item.qty, 0);
+    const { refresh: refreshCatalog } = catalog;
+    const handlePaid = useCallback(() => {
+        clearCart();
+        refreshCatalog();
+    }, [clearCart, refreshCatalog]);
 
     return (
         <div className="min-h-screen flex flex-col">
-            <AnnouncementBar onNavigate={setCurrentPage} siteSettings={siteSettings} />
+            <a
+                href="#main"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-full focus:bg-white focus:text-[#1C1B18] focus:shadow-lg"
+            >
+                Skip to content
+            </a>
+
+            <AnnouncementBar onNavigate={navigate} siteSettings={siteSettings} />
 
             <Navbar
                 currentPage={currentPage}
-                onNavigate={setCurrentPage}
+                onNavigate={navigate}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 onSelectCategory={handleSelectCategory}
-                cartCount={totalCartItems}
+                cartCount={cartCount}
                 onOpenCart={() => setIsCartOpen(true)}
-                onOpenStockManager={() => {
-                    if (requireAdmin()) setIsStockManagerOpen(true);
-                }}
+                onOpenStockManager={openAdmin}
                 currentUser={currentUser}
-                availableCategories={populatedCategories}
+                availableCategories={categoryNames}
             />
 
-            <main className="flex-1">
+            <main id="main" className="flex-1">
                 {currentPage === 'home' && (
                     <>
-                        <Hero onNavigate={setCurrentPage} siteSettings={siteSettings} />
+                        <Hero onNavigate={navigate} siteSettings={siteSettings} />
                         <ValueBar siteSettings={siteSettings} />
                         <CategoryGrid
-                            products={products}
+                            categories={catalog.facets.categories}
                             onSelectCategory={(cat) => {
                                 handleSelectCategory(cat);
-                                document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+                                scrollToCatalog();
                             }}
                         />
 
-                        <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-stone-200">
+                        <section
+                            id="catalog"
+                            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 scroll-mt-24"
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-stone-200">
                                 <div>
                                     <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
                                         {siteSettings.catalogSubtitle || 'Showroom & Online Collection'}
@@ -427,6 +288,11 @@ export default function App() {
                                 </div>
 
                                 <div className="flex items-center gap-3">
+                                    {!catalog.loading && (
+                                        <span className="text-sm text-stone-500 whitespace-nowrap" role="status">
+                                            {catalog.total} {catalog.total === 1 ? 'item' : 'items'}
+                                        </span>
+                                    )}
                                     <label htmlFor="sort-select" className="sr-only">
                                         Sort products
                                     </label>
@@ -434,88 +300,164 @@ export default function App() {
                                         id="sort-select"
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="w-full sm:w-auto px-4 py-2.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-[#9A7B56]"
+                                        className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-stone-300 text-stone-700 focus:outline-none focus:border-[#9A7B56]"
                                     >
-                                        <option value="featured">Sort: Featured</option>
-                                        <option value="low">Price: Low to High</option>
-                                        <option value="high">Price: High to Low</option>
+                                        <option value="featured">Newest first</option>
+                                        <option value="low">Price: low to high</option>
+                                        <option value="high">Price: high to low</option>
                                     </select>
                                 </div>
                             </div>
 
-                            {/* Dynamic Category Pills (Only Non-Empty Categories Appear) */}
-                            <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible no-scrollbar">
-                                {dynamicCategoryPills.map((cat) => (
+                            <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
+                                {categoryPills.map((pill) => (
                                     <button
-                                        key={cat.id}
+                                        key={pill.id}
                                         type="button"
-                                        onClick={() => handleSelectCategory(cat.id)}
-                                        className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer shrink-0 ${activeCategory === cat.id
-                                            ? 'bg-[#1C1B18] text-white shadow-xs'
-                                            : 'bg-white border border-stone-200 text-stone-700 hover:border-[#9A7B56]'
-                                            }`}
+                                        aria-pressed={activeCategory === pill.id}
+                                        onClick={() => handleSelectCategory(pill.id)}
+                                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition cursor-pointer shrink-0 ${
+                                            activeCategory === pill.id
+                                                ? 'bg-[#1C1B18] text-white'
+                                                : 'bg-white border border-stone-300 text-stone-700 hover:border-[#9A7B56]'
+                                        }`}
                                     >
-                                        {cat.label}
+                                        {pill.label}
                                     </button>
                                 ))}
                             </div>
 
-                            {availableSubcategories.length > 0 && (
-                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-200/60 overflow-x-auto pb-1 sm:flex-wrap">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mr-1 shrink-0">
-                                        {activeCategory}:
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveSubcategory('All')}
-                                        className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === 'All'
-                                            ? 'bg-[#9A7B56] text-white'
-                                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                                            }`}
-                                    >
-                                        All {activeCategory}
-                                    </button>
-                                    {availableSubcategories.map((sub) => (
+                            {subcategories.length > 0 && (
+                                <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1 sm:flex-wrap">
+                                    {[{ name: 'All' }, ...subcategories].map((sub) => (
                                         <button
-                                            key={sub}
+                                            key={sub.name}
                                             type="button"
-                                            onClick={() => setActiveSubcategory(sub)}
-                                            className={`px-3 py-1 rounded-full text-[11px] font-semibold cursor-pointer shrink-0 ${activeSubcategory === sub
-                                                ? 'bg-[#9A7B56] text-white'
-                                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                                                }`}
+                                            aria-pressed={activeSubcategory === sub.name}
+                                            onClick={() => setActiveSubcategory(sub.name)}
+                                            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer shrink-0 ${
+                                                activeSubcategory === sub.name
+                                                    ? 'bg-[#9A7B56] text-white'
+                                                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                                            }`}
                                         >
-                                            {sub}
+                                            {sub.name === 'All' ? `All ${activeCategory}` : sub.name}
                                         </button>
                                     ))}
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-8 sm:mt-10">
-                                {filteredProducts.map((product) => (
-                                    <ProductCard
-                                        key={product.id}
-                                        product={product}
-                                        onOpenModal={(prod, color) =>
-                                            setModalData({ product: prod, initialColor: color })
-                                        }
-                                        onAddToCart={handleAddToCart}
-                                        isAdmin={currentUser?.role === 'admin'}
-                                        onEditProduct={handleTriggerAdminEditProduct}
-                                        customColors={siteSettings?.customColors}
-                                    />
-                                ))}
-                            </div>
+                            {searchQuery.trim() && (
+                                <p className="mt-4 text-sm text-stone-600">
+                                    Results for “{searchQuery.trim()}” ·{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery('')}
+                                        className="font-semibold text-[#7D6242] underline cursor-pointer"
+                                    >
+                                        clear search
+                                    </button>
+                                </p>
+                            )}
+
+                            {catalog.error && (
+                                <div
+                                    role="alert"
+                                    className="mt-8 p-5 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-800 flex flex-wrap items-center justify-between gap-3"
+                                >
+                                    <span>{catalog.error}</span>
+                                    <button
+                                        type="button"
+                                        onClick={catalog.refresh}
+                                        className="px-4 py-2 rounded-full bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer"
+                                    >
+                                        Try again
+                                    </button>
+                                </div>
+                            )}
+
+                            {catalog.loading ? (
+                                <div
+                                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8"
+                                    aria-busy="true"
+                                    aria-label="Loading products"
+                                >
+                                    {[0, 1, 2].map((i) => (
+                                        <div
+                                            key={i}
+                                            className="rounded-3xl border border-stone-200 bg-white overflow-hidden animate-pulse"
+                                        >
+                                            <div className="aspect-[4/3] bg-stone-200" />
+                                            <div className="p-5 space-y-3">
+                                                <div className="h-3 w-1/3 bg-stone-200 rounded" />
+                                                <div className="h-5 w-3/4 bg-stone-200 rounded" />
+                                                <div className="h-8 w-1/2 bg-stone-200 rounded" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                                        {catalog.items.map((product) => (
+                                            <ProductCard
+                                                key={product.id}
+                                                product={product}
+                                                onOpenModal={(prod, color) =>
+                                                    setModalData({ product: prod, initialColor: color })
+                                                }
+                                                onAddToCart={handleAddToCart}
+                                                isAdmin={isAdmin}
+                                                onEditProduct={handleEditProduct}
+                                                customColors={siteSettings.customColors}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {catalog.items.length === 0 && !catalog.error && (
+                                        <div className="mt-8 p-10 text-center bg-white rounded-3xl border border-stone-200 space-y-3">
+                                            <p className="text-base text-stone-700">
+                                                We could not find anything matching that.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchQuery('');
+                                                    handleSelectCategory('All');
+                                                }}
+                                                className="px-6 py-2.5 rounded-full bg-[#1C1B18] text-white text-sm font-semibold cursor-pointer"
+                                            >
+                                                Show all furniture
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {catalog.hasMore && (
+                                        <div className="mt-10 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={catalog.loadMore}
+                                                disabled={catalog.loadingMore}
+                                                className="px-8 py-3.5 rounded-full border border-[#1C1B18] text-[#1C1B18] hover:bg-[#1C1B18] hover:text-white text-sm font-semibold transition cursor-pointer inline-flex items-center gap-2"
+                                            >
+                                                {catalog.loadingMore && (
+                                                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                                )}
+                                                Show more ({catalog.items.length} of {catalog.total})
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </section>
 
                         <ReviewsSection
                             reviews={reviews}
+                            stats={reviewStats}
                             onAddReview={handleAddReview}
-                            products={products}
+                            products={catalog.items}
                             currentUser={currentUser}
-                            onOpenAdmin={() => {
-                                if (requireAdmin()) setIsStockManagerOpen(true);
-                            }}
+                            onOpenAdmin={openAdmin}
                         />
                     </>
                 )}
@@ -523,12 +465,30 @@ export default function App() {
                 {currentPage === 'basket' && (
                     <BasketPage
                         cart={cart}
-                        onUpdateQty={handleUpdateCartQty}
-                        onRemoveItem={handleRemoveFromCart}
-                        onCompleteOrder={handleCompleteOrder}
-                        onBackToShop={() => setCurrentPage('home')}
-                        onNavigate={setCurrentPage}
+                        onUpdateQty={updateQty}
+                        onRemoveItem={removeItem}
+                        onClearCart={clearCart}
+                        onRepriceCart={repriceFromQuote}
+                        onOrderPlaced={catalog.refresh}
+                        onBackToShop={() => navigate('home')}
+                        onNavigate={navigate}
+                        onOpenLegal={setActiveLegalDoc}
                         siteSettings={siteSettings}
+                        currentUser={currentUser}
+                        notice={
+                            checkoutReturn?.outcome === 'cancelled'
+                                ? 'Your payment was cancelled and nothing has been charged. Your basket is still here when you are ready.'
+                                : ''
+                        }
+                    />
+                )}
+
+                {currentPage === 'order' && (
+                    <OrderStatusPage
+                        sessionId={checkoutReturn?.sessionId}
+                        onPaid={handlePaid}
+                        onBackToShop={() => navigate('home')}
+                        onBackToBasket={() => navigate('basket')}
                     />
                 )}
 
@@ -537,12 +497,10 @@ export default function App() {
                 {currentPage === 'auth' && (
                     <AuthPage
                         currentUser={currentUser}
-                        onLogin={handleLogin}
+                        onLogin={setCurrentUser}
                         onLogout={handleLogout}
-                        onBackToShop={() => setCurrentPage('home')}
-                        onOpenAdmin={() => {
-                            if (requireAdmin()) setIsStockManagerOpen(true);
-                        }}
+                        onBackToShop={() => navigate('home')}
+                        onOpenAdmin={openAdmin}
                     />
                 )}
             </main>
@@ -551,24 +509,20 @@ export default function App() {
 
             <Footer
                 onSelectCategory={handleSelectCategory}
-                onNavigate={(page) => {
-                    setCurrentPage(page);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onNavigate={navigate}
                 onOpenLegal={setActiveLegalDoc}
-                onOpenStockManager={() => {
-                    if (requireAdmin()) setIsStockManagerOpen(true);
-                }}
+                onOpenStockManager={openAdmin}
                 currentUser={currentUser}
                 siteSettings={siteSettings}
+                availableCategories={categoryNames}
             />
 
-            <SpecModal
+            <ProductModal
                 modalData={modalData}
                 onClose={() => setModalData(null)}
                 onAddToCart={handleAddToCart}
-                isAdmin={currentUser?.role === 'admin'}
-                onEditProduct={handleTriggerAdminEditProduct}
+                isAdmin={isAdmin}
+                onEditProduct={handleEditProduct}
                 siteSettings={siteSettings}
             />
 
@@ -576,36 +530,33 @@ export default function App() {
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
                 cart={cart}
-                onUpdateQty={handleUpdateCartQty}
-                onRemoveItem={handleRemoveFromCart}
+                onUpdateQty={updateQty}
+                onRemoveItem={removeItem}
                 onGoToBasketPage={() => {
                     setIsCartOpen(false);
-                    setCurrentPage('basket');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    navigate('basket');
                 }}
             />
 
-            <StockManagerModal
-                isOpen={isStockManagerOpen}
-                onClose={() => setIsStockManagerOpen(false)}
+            {isAdmin && adminLoaded && (
+                <Suspense fallback={null}>
+            <AdminDashboard
+                isOpen={isAdminOpen}
+                onClose={() => setIsAdminOpen(false)}
                 currentUser={currentUser}
-                products={products}
-                onUpdateStock={handleUpdateStock}
-                onAddNewProduct={handleAddNewProduct}
-                onUpdateProduct={handleUpdateProduct}
-                onDeleteProduct={handleDeleteProduct}
-                canUndo={undoStack.length > 0}
-                lastActionLabel={undoStack[0]?.label || ''}
-                onUndoLastAction={handleUndoLastAction}
-                reviews={reviews}
-                onToggleVerifyReview={handleToggleVerifyReview}
-                onRespondToReview={handleRespondToReview}
-                onDeleteReview={handleDeleteReview}
                 siteSettings={siteSettings}
                 onSaveSiteSettings={handleSaveSiteSettings}
+                facets={catalog.facets}
+                onCatalogChanged={catalog.refresh}
+                reviews={reviews}
+                onToggleVerifyReview={handleToggleVerifyReview}
+                onRespondToReview={(id, text) => reviewAction(() => api.respondToReview(id, text))}
+                onDeleteReview={(id) => reviewAction(() => api.deleteReview(id))}
                 initialEditProduct={adminEditTarget}
                 onClearInitialEdit={() => setAdminEditTarget(null)}
             />
+                </Suspense>
+            )}
 
             <LegalModals activeDoc={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />
             <CookieBanner onOpenLegal={setActiveLegalDoc} />

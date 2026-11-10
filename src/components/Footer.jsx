@@ -1,11 +1,12 @@
 import { MapPin, Phone, Mail, ShieldAlert, MessageCircle, Share2 } from 'lucide-react';
 import Logo from './Logo';
+import { validateSafeHttpsUrl } from '../utils/security';
 
 export function formatWhatsAppHref(raw) {
     if (!raw) return '';
     const trimmed = String(raw).trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-        return trimmed;
+    if (/^https?:/i.test(trimmed)) {
+        return validateSafeHttpsUrl(trimmed);
     }
     let digits = trimmed.replace(/[^0-9]/g, '');
     if (digits.startsWith('07') && digits.length === 11) {
@@ -29,7 +30,7 @@ export default function Footer({
     const address = siteSettings?.address || 'High Street, Maltby, Rotherham, S66 8JE';
     const openingHours =
         siteSettings?.openingHours || 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM';
-    const facebookUrl = siteSettings?.facebookUrl?.trim() || '';
+    const facebookUrl = validateSafeHttpsUrl(siteSettings?.facebookUrl);
     const whatsappHref = formatWhatsAppHref(siteSettings?.whatsappNumber);
 
     const footerCategories =

@@ -1,271 +1,180 @@
 /**
  * /api/auth
- * POST ?action=register   -> Register new customer into D1 (role forced to 'customer')
- * POST ?action=login      -> Validate credentials against D1 or strict Admin config
- * POST ?action=google     -> Verify Google OAuth credential and sync to D1
+ *   GET                   -> current session ({ user } or { user: null })
+ *   POST ?action=register -> create a customer account
+ *   POST ?action=login    -> customer or administrator sign-in
+ *   POST ?action=google   -> Google Identity sign-in (customers only)
+ *   POST ?action=logout   -> clear the session cookie
+ *
+ * Sessions live in an HttpOnly cookie; no secret or token is ever returned
+ * to page JavaScript.
  */
+import { HttpError, json, readJson, cleanText, clientIp, randomId } from '../../server/http.js';
+import { rateLimit } from '../../server/rateLimit.js';
+import {
+    adminEmail,
+    createSessionCookie,
+    clearSessionCookie,
+    getSession,
+    hashPassword,
+    verifyPassword,
+    verifyAdminPassword,
+} from '../../server/auth.js';
 
-const HARDCODED_ADMIN_EMAIL = 'info@sjhomeinteriors.co.uk';
+const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+const INVALID_LOGIN = 'Incorrect email or password.';
+const GOOGLE_ISSUERS = new Set(['accounts.google.com', 'https://accounts.google.com']);
 
-function jsonResponse(data, status = 200) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store',
-        },
+function publicUser(user) {
+    return { id: user.id, name: user.name, email: user.email, phone: user.phone || '', role: user.role };
+}
+
+async function respondWithSession(env, user, status = 200) {
+    return json({ success: true, user: publicUser(user) }, status, {
+        'Set-Cookie': await createSessionCookie(env, user),
     });
 }
 
-// PBKDF2-HMAC-SHA256 Password Hashing via Web Crypto API
-async function hashPasswordWithSalt(password, saltHex) {
-    const enc = new TextEncoder();
-    const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
-    const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(password),
-        { name: 'PBKDF2' },
-        false,
-        ['deriveBits']
-    );
-    const derivedBits = await crypto.subtle.deriveBits(
-        {
-            name: 'PBKDF2',
-            salt: salt,
-            iterations: 100000,
-            hash: 'SHA-256',
-        },
-        keyMaterial,
-        256
-    );
-    return Array.from(new Uint8Array(derivedBits))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
+export async function onRequestGet({ request, env }) {
+    const session = await getSession(request, env);
+    return json({ user: session ? publicUser(session) : null });
 }
 
-function generateRandomSalt() {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
+async function register(env, body, ip) {
+    await rateLimit(env, `register:${ip}`, 5, 3600);
+
+    const name = cleanText(body.name, 80);
+    const email = cleanText(body.email, 254).toLowerCase();
+    const phone = cleanText(body.phone, 30);
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    if (!name || !EMAIL.test(email)) throw new HttpError(400, 'Please enter your name and a valid email address.');
+    if (password.length < 10 || password.length > 200) {
+        throw new HttpError(400, 'Password must be at least 10 characters long.');
+    }
+    if (email === adminEmail(env)) {
+        throw new HttpError(403, 'This email is reserved for showroom administration.');
+    }
+
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+    if (existing) throw new HttpError(409, 'An account with this email already exists. Please sign in.');
+
+    const { salt, hash } = await hashPassword(password);
+    const id = `usr_${randomId(12)}`;
+    await env.DB.prepare(
+        `INSERT INTO users (id, name, email, phone, password_hash, salt, role)
+         VALUES (?, ?, ?, ?, ?, ?, 'customer')`
+    )
+        .bind(id, name, email, phone, hash, salt)
+        .run();
+
+    return respondWithSession(env, { id, name, email, phone, role: 'customer' }, 201);
+}
+
+async function login(env, body, ip) {
+    const email = cleanText(body.email, 254).toLowerCase();
+    const password = typeof body.password === 'string' ? body.password.slice(0, 200) : '';
+    if (!email || !password) throw new HttpError(400, 'Email and password are required.');
+
+    // Throttle by network address and by account to blunt password guessing.
+    await rateLimit(env, `login-ip:${ip}`, 15, 600);
+    await rateLimit(env, `login-acct:${email}`, 8, 900);
+
+    if (email === adminEmail(env)) {
+        if (!(await verifyAdminPassword(env, password))) throw new HttpError(401, INVALID_LOGIN);
+        return respondWithSession(env, {
+            id: 'admin_master',
+            name: 'Showroom Admin',
+            email,
+            role: 'admin',
+        });
+    }
+
+    const user = await env.DB.prepare(
+        'SELECT id, name, email, phone, password_hash, salt FROM users WHERE email = ?'
+    )
+        .bind(email)
+        .first();
+
+    // Same response whether the account is missing, Google-only or the password is wrong.
+    const valid = user?.password_hash
+        ? await verifyPassword(password, user.salt, user.password_hash)
+        : false;
+    if (!valid) throw new HttpError(401, INVALID_LOGIN);
+
+    return respondWithSession(env, { ...user, role: 'customer' });
+}
+
+async function google(env, body, ip) {
+    await rateLimit(env, `google:${ip}`, 20, 600);
+
+    const clientId = env.GOOGLE_CLIENT_ID;
+    if (!clientId) throw new HttpError(503, 'Google sign-in is not configured on this server.');
+
+    const credential = typeof body.credential === 'string' ? body.credential : '';
+    if (!credential || credential.length > 4096) throw new HttpError(400, 'Missing Google credential.');
+
+    const verifyRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+    );
+    if (!verifyRes.ok) throw new HttpError(401, 'Google sign-in could not be verified.');
+    const token = await verifyRes.json();
+
+    // The token must have been issued by Google *for this site* and still be valid.
+    const valid =
+        token.aud === clientId &&
+        GOOGLE_ISSUERS.has(token.iss) &&
+        Number(token.exp) * 1000 > Date.now() &&
+        (token.email_verified === true || token.email_verified === 'true') &&
+        token.sub &&
+        token.email;
+    if (!valid) throw new HttpError(401, 'Google sign-in could not be verified.');
+
+    const email = String(token.email).toLowerCase().trim();
+    if (email === adminEmail(env)) {
+        throw new HttpError(403, 'Administrators must sign in with the admin password.');
+    }
+    const name = cleanText(token.name, 80) || email.split('@')[0];
+
+    let user = await env.DB.prepare(
+        'SELECT id, name, email, phone, google_id FROM users WHERE google_id = ?'
+    )
+        .bind(token.sub)
+        .first();
+
+    if (!user) {
+        user = await env.DB.prepare('SELECT id, name, email, phone, google_id FROM users WHERE email = ?')
+            .bind(email)
+            .first();
+        if (user) {
+            await env.DB.prepare('UPDATE users SET google_id = ? WHERE id = ? AND google_id IS NULL')
+                .bind(token.sub, user.id)
+                .run();
+        } else {
+            user = { id: `usr_${randomId(12)}`, name, email, phone: '' };
+            await env.DB.prepare(
+                `INSERT INTO users (id, name, email, google_id, role) VALUES (?, ?, ?, ?, 'customer')`
+            )
+                .bind(user.id, name, email, token.sub)
+                .run();
+        }
+    }
+
+    return respondWithSession(env, { ...user, role: 'customer' });
 }
 
 export async function onRequestPost({ request, env }) {
-    const url = new URL(request.url);
-    const action = url.searchParams.get('action');
+    const action = new URL(request.url).searchParams.get('action');
 
-    try {
-        const body = await request.json();
-
-        // =========================================================================
-        // 1. REGISTER
-        // =========================================================================
-        if (action === 'register') {
-            const { name, email, phone, password } = body;
-            const cleanEmail = (email || '').trim().toLowerCase();
-            const cleanName = (name || '').trim();
-
-            if (!cleanEmail || !password || !cleanName) {
-                return jsonResponse({ error: 'Name, email, and password are required.' }, 400);
-            }
-            if (password.length < 8) {
-                return jsonResponse({ error: 'Password must be at least 8 characters long.' }, 400);
-            }
-
-            // Security Lockdown: Never allow public registration of admin email
-            if (cleanEmail === HARDCODED_ADMIN_EMAIL) {
-                return jsonResponse({ error: 'This email is reserved for showroom administration.' }, 403);
-            }
-
-            // Check if user already exists
-            const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
-                .bind(cleanEmail)
-                .first();
-
-            if (existing) {
-                return jsonResponse({ error: 'An account with this email already exists. Please sign in.' }, 409);
-            }
-
-            // Hash password and store user
-            const salt = generateRandomSalt();
-            const passwordHash = await hashPasswordWithSalt(password, salt);
-            const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-            await env.DB.prepare(
-                `INSERT INTO users (id, name, email, phone, password_hash, salt, role)
-         VALUES (?, ?, ?, ?, ?, ?, 'customer')`
-            )
-                .bind(userId, cleanName.slice(0, 80), cleanEmail, (phone || '').slice(0, 30), passwordHash, salt)
-                .run();
-
-            return jsonResponse(
-                {
-                    success: true,
-                    user: {
-                        id: userId,
-                        name: cleanName,
-                        email: cleanEmail,
-                        phone: phone || '',
-                        role: 'customer',
-                    },
-                },
-                201
-            );
-        }
-
-        // =========================================================================
-        // 2. LOGIN
-        // =========================================================================
-        if (action === 'login') {
-            const { email, password } = body;
-            const cleanEmail = (email || '').trim().toLowerCase();
-
-            if (!cleanEmail || !password) {
-                return jsonResponse({ error: 'Email and password are required.' }, 400);
-            }
-
-            // STRICT ADMIN CHECK: Only HARDCODED_ADMIN_EMAIL can be evaluated for admin status
-            if (cleanEmail === HARDCODED_ADMIN_EMAIL) {
-                const configuredAdminSecret = env.ADMIN_API_KEY;
-                const configuredAdminHash = env.ADMIN_PASSWORD_HASH;
-
-                // Verify either against ADMIN_PASSWORD_HASH (SHA-256) or direct ADMIN_API_KEY
-                let isAuthorized = false;
-
-                if (configuredAdminHash) {
-                    const enc = new TextEncoder();
-                    const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(password));
-                    const inputHash = Array.from(new Uint8Array(hashBuf))
-                        .map((b) => b.toString(16).padStart(2, '0'))
-                        .join('');
-                    if (inputHash.toLowerCase() === configuredAdminHash.toLowerCase()) {
-                        isAuthorized = true;
-                    }
-                } else if (configuredAdminSecret && password === configuredAdminSecret) {
-                    isAuthorized = true;
-                }
-
-                if (isAuthorized) {
-                    return jsonResponse({
-                        success: true,
-                        user: {
-                            id: 'admin_master',
-                            name: 'Showroom Admin',
-                            email: HARDCODED_ADMIN_EMAIL,
-                            role: 'admin',
-                            token: configuredAdminSecret, // Auto-provisions API key for admin session
-                        },
-                    });
-                } else {
-                    return jsonResponse({ error: 'Invalid administrator credentials.' }, 401);
-                }
-            }
-
-            // STANDARD CUSTOMER DATABASE CHECK
-            const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
-                .bind(cleanEmail)
-                .first();
-
-            if (!user) {
-                return jsonResponse({ error: 'No account found with this email. Please register first.' }, 404);
-            }
-
-            if (!user.password_hash || !user.salt) {
-                return jsonResponse(
-                    { error: 'This account was created with Google. Please use Google Sign-In.' },
-                    400
-                );
-            }
-
-            const computedHash = await hashPasswordWithSalt(password, user.salt);
-            if (computedHash !== user.password_hash) {
-                return jsonResponse({ error: 'Incorrect password. Please try again.' }, 401);
-            }
-
-            return jsonResponse({
-                success: true,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    phone: user.phone || '',
-                    role: 'customer',
-                },
-            });
-        }
-
-        // =========================================================================
-        // 3. GOOGLE SIGN-IN / REGISTER
-        // =========================================================================
-        if (action === 'google') {
-            const { credential } = body;
-            if (!credential) {
-                return jsonResponse({ error: 'Missing Google credential token.' }, 400);
-            }
-
-            // Verify token with Google's public tokeninfo endpoint
-            const verifyRes = await fetch(
-                `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
-            );
-            if (!verifyRes.ok) {
-                return jsonResponse({ error: 'Failed to verify Google authentication token.' }, 401);
-            }
-
-            const payload = await verifyRes.json();
-            const googleId = payload.sub;
-            const googleEmail = (payload.email || '').toLowerCase().trim();
-            const googleName = payload.name || googleEmail.split('@')[0];
-
-            if (!googleEmail) {
-                return jsonResponse({ error: 'Google account did not return a valid email address.' }, 400);
-            }
-
-            // Check if user exists by google_id or email
-            let user = await env.DB.prepare(
-                'SELECT * FROM users WHERE google_id = ? OR email = ?'
-            )
-                .bind(googleId, googleEmail)
-                .first();
-
-            if (!user) {
-                // Create new customer account from Google Profile
-                const newId = `usr_g_${Date.now()}`;
-                await env.DB.prepare(
-                    `INSERT INTO users (id, name, email, google_id, role)
-           VALUES (?, ?, ?, ?, 'customer')`
-                )
-                    .bind(newId, googleName.slice(0, 80), googleEmail, googleId)
-                    .run();
-
-                user = {
-                    id: newId,
-                    name: googleName,
-                    email: googleEmail,
-                    phone: '',
-                    role: 'customer',
-                };
-            } else if (!user.google_id) {
-                // Link google_id if account was originally created via email
-                await env.DB.prepare('UPDATE users SET google_id = ? WHERE id = ?')
-                    .bind(googleId, user.id)
-                    .run();
-            }
-
-            return jsonResponse({
-                success: true,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    phone: user.phone || '',
-                    role: user.role === 'admin' && googleEmail === HARDCODED_ADMIN_EMAIL ? 'admin' : 'customer',
-                },
-            });
-        }
-
-        return jsonResponse({ error: 'Invalid action.' }, 400);
-    } catch (err) {
-        return jsonResponse({ error: 'Authentication service error', details: err.message }, 500);
+    if (action === 'logout') {
+        return json({ success: true }, 200, { 'Set-Cookie': clearSessionCookie() });
     }
+
+    const body = await readJson(request, 8 * 1024);
+    const ip = clientIp(request);
+
+    if (action === 'register') return register(env, body, ip);
+    if (action === 'login') return login(env, body, ip);
+    if (action === 'google') return google(env, body, ip);
+    throw new HttpError(400, 'Invalid action.');
 }

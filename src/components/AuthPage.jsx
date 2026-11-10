@@ -47,16 +47,9 @@ export default function AuthPage({
         setError('');
         try {
             const data = await api.googleAuth(response.credential);
-            if (data.error) {
-                setError(data.error);
-            } else if (data.user) {
-                if (data.user.role === 'admin' && data.user.token) {
-                    localStorage.setItem('sj_admin_api_key', data.user.token);
-                }
-                onLogin(data.user);
-            }
-        } catch {
-            setError('Failed to complete Google Sign-In. Please try again.');
+            onLogin(data.user);
+        } catch (err) {
+            setError(err.message || 'Failed to complete Google Sign-In. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -67,27 +60,21 @@ export default function AuthPage({
         setError('');
         setLoading(true);
 
+        if (mode === 'register' && password.length < 10) {
+            setError('Please choose a password of at least 10 characters.');
+            setLoading(false);
+            return;
+        }
+
         try {
-            if (mode === 'register') {
-                const data = await api.register(name, email, phone, password);
-                if (data.error) {
-                    setError(data.error);
-                } else if (data.user) {
-                    onLogin(data.user);
-                }
-            } else {
-                const data = await api.login(email, password);
-                if (data.error) {
-                    setError(data.error);
-                } else if (data.user) {
-                    if (data.user.role === 'admin' && data.user.token) {
-                        localStorage.setItem('sj_admin_api_key', data.user.token);
-                    }
-                    onLogin(data.user);
-                }
-            }
-        } catch {
-            setError('Connection to authentication service failed. Please try again.');
+            const data =
+                mode === 'register'
+                    ? await api.register(name, email, phone, password)
+                    : await api.login(email, password);
+            setPassword('');
+            onLogin(data.user);
+        } catch (err) {
+            setError(err.message || 'Sign-in failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -218,7 +205,7 @@ export default function AuthPage({
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="e.g. David Miller"
-                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
                                 />
                                 <User className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                             </div>
@@ -238,7 +225,7 @@ export default function AuthPage({
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="you@example.co.uk"
-                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
                             />
                             <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                         </div>
@@ -256,8 +243,8 @@ export default function AuthPage({
                                     autoComplete="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="07830 141250"
-                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                    placeholder="Your mobile number"
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
                                 />
                                 <Phone className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                             </div>
@@ -266,18 +253,20 @@ export default function AuthPage({
 
                     <div>
                         <label htmlFor="auth-password" className="block text-xs font-semibold text-stone-700 mb-1">
-                            Password * {mode === 'register' && '(Minimum 8 characters)'}
+                            Password * {mode === 'register' && '(at least 10 characters)'}
                         </label>
                         <div className="relative">
                             <input
                                 id="auth-password"
                                 required
                                 type="password"
+                                minLength={mode === 'register' ? 10 : undefined}
+                                maxLength={200}
                                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••••"
-                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
                             />
                             <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                         </div>

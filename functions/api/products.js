@@ -1,271 +1,96 @@
 /**
  * /api/products
- * Supports optional stock, previousPrice, description, multi-image galleries,
- * and variations_json (fabrics, sizes, mattresses, liftOptions, structuredDimensions, assemblyText).
+ *   GET     public   paginated summaries: ?category=&subcategory=&q=&sort=&stock=&limit=&offset=
+ *   POST    admin    create            (?action=restore&id= undoes a delete)
+ *   PUT     admin    replace a product, or { id, stockOnly, stock }
+ *   DELETE  admin    soft delete ?id=
  */
+import { HttpError, json, readJson, cleanText, intParam } from '../../server/http.js';
+import { requireAdmin } from '../../server/auth.js';
+import { loadSettings, deliveryFeePence } from '../../server/settings.js';
+import {
+    listProducts,
+    migrateLegacyProducts,
+    validateProduct,
+    saveProduct,
+    softDeleteProduct,
+    restoreProduct,
+    slugId,
+} from '../../server/products.js';
 
-function verifyAdmin(request, env) {
-    const authHeader = request.headers.get('Authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    const validSecret = env.ADMIN_API_KEY;
-    return Boolean(validSecret && token === validSecret);
-}
+// Product payloads may carry up to 10 freshly uploaded (client-compressed) photos.
+const MAX_PRODUCT_BODY = 16 * 1024 * 1024;
 
-function jsonResponse(data, status = 200) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': status === 200 ? 'no-cache' : 'no-store',
+export async function onRequestGet({ request, env }) {
+    const q = new URL(request.url).searchParams;
+
+    await migrateLegacyProducts(env);
+    const settings = await loadSettings(env);
+
+    const result = await listProducts(
+        env,
+        {
+            category: cleanText(q.get('category'), 60),
+            subcategory: cleanText(q.get('subcategory'), 60),
+            q: cleanText(q.get('q'), 80),
+            sort: cleanText(q.get('sort'), 12),
+            stock: cleanText(q.get('stock'), 16),
+            limit: intParam(q.get('limit'), 24, 1, 60),
+            offset: intParam(q.get('offset'), 0, 0, 100000),
         },
-    });
-}
-
-async function ensureVariationsColumn(env) {
-    try {
-        await env.DB.prepare(
-            "ALTER TABLE products ADD COLUMN variations_json TEXT NOT NULL DEFAULT '{}'"
-        ).run();
-    } catch {
-        // Column already exists
-    }
-}
-
-function parseStockValue(rawStock) {
-    if (rawStock === null || rawStock === undefined || rawStock === '') {
-        return null;
-    }
-    const parsed = parseInt(rawStock, 10);
-    if (Number.isNaN(parsed)) return null;
-    return Math.max(0, parsed);
-}
-
-function parsePreviousPrice(rawPrev) {
-    if (rawPrev === null || rawPrev === undefined || rawPrev === '') {
-        return null;
-    }
-    const parsed = parseFloat(rawPrev);
-    if (Number.isNaN(parsed) || parsed <= 0) return null;
-    return parsed;
-}
-
-function safeJsonParse(str, fallback) {
-    try {
-        return str ? JSON.parse(str) : fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-function mapProductFromRow(row) {
-    const parsedImages = safeJsonParse(row.images_json, []);
-    const primaryImage = row.image || parsedImages[0] || '';
-    const gallery =
-        parsedImages.length > 0 ? parsedImages : primaryImage ? [primaryImage] : [];
-    const variations = safeJsonParse(row.variations_json, {});
-
-    return {
-        id: row.id,
-        name: row.name,
-        price: Number(row.price),
-        previousPrice:
-            row.previous_price !== null && row.previous_price !== undefined
-                ? Number(row.previous_price)
-                : null,
-        description: row.description || '',
-        category: row.category,
-        subcategory: row.subcategory || '',
-        badge: row.badge || '',
-        stock:
-            row.stock === null || row.stock === undefined ? null : Number(row.stock),
-        isPopular: Boolean(row.is_popular),
-        isTrending: Boolean(row.is_trending),
-        delivery: row.delivery || '',
-        colors: safeJsonParse(row.colors_json, []),
-        image: primaryImage,
-        images: gallery,
-        dimensions: safeJsonParse(row.dimensions_json, []),
-        features: safeJsonParse(row.features_json, []),
-        variations: variations && typeof variations === 'object' ? variations : {},
-    };
-}
-
-export async function onRequestGet({ env }) {
-    try {
-        await ensureVariationsColumn(env);
-        const { results } = await env.DB.prepare(
-            'SELECT * FROM products ORDER BY created_at DESC'
-        ).all();
-        return jsonResponse((results || []).map(mapProductFromRow));
-    } catch (err) {
-        return jsonResponse(
-            { error: 'Database read failed', details: err.message },
-            500
-        );
-    }
+        deliveryFeePence(settings)
+    );
+    return json(result, 200, { 'Cache-Control': 'public, max-age=20' });
 }
 
 export async function onRequestPost({ request, env }) {
-    if (!verifyAdmin(request, env)) {
-        return jsonResponse(
-            { error: 'Unauthorized: Invalid administrative credentials.' },
-            401
-        );
+    await requireAdmin(request, env);
+    const url = new URL(request.url);
+
+    if (url.searchParams.get('action') === 'restore') {
+        const id = cleanText(url.searchParams.get('id'), 100);
+        if (!(await restoreProduct(env, id))) throw new HttpError(404, 'Nothing to restore.');
+        return json({ success: true, id });
     }
 
-    try {
-        await ensureVariationsColumn(env);
-        const p = await request.json();
-        const numericPrice = parseFloat(p.price);
-        if (!p.id || !p.name || Number.isNaN(numericPrice) || numericPrice < 0) {
-            return jsonResponse(
-                { error: 'Valid product ID, name, and price are required.' },
-                400
-            );
-        }
-
-        const stockVal = parseStockValue(p.stock);
-        const prevPriceVal = parsePreviousPrice(p.previousPrice);
-        const imagesArray =
-            Array.isArray(p.images) && p.images.length > 0
-                ? p.images.slice(0, 10)
-                : p.image
-                    ? [p.image]
-                    : [];
-        const primaryImage = imagesArray[0] || p.image || '';
-        const variationsObj =
-            p.variations && typeof p.variations === 'object' ? p.variations : {};
-
-        await env.DB.prepare(
-            `INSERT INTO products (
-        id, name, price, previous_price, description, category, subcategory, badge,
-        stock, is_popular, is_trending, delivery, colors_json, image, images_json,
-        dimensions_json, features_json, variations_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-        )
-            .bind(
-                String(p.id).slice(0, 100),
-                String(p.name).slice(0, 120),
-                numericPrice,
-                prevPriceVal,
-                String(p.description || '').slice(0, 2000),
-                String(p.category || 'Sofas').slice(0, 60),
-                String(p.subcategory || '').slice(0, 60),
-                String(p.badge || '').slice(0, 40),
-                stockVal,
-                p.isPopular ? 1 : 0,
-                p.isTrending ? 1 : 0,
-                String(p.delivery || '').slice(0, 60),
-                JSON.stringify(Array.isArray(p.colors) ? p.colors : []),
-                primaryImage,
-                JSON.stringify(imagesArray),
-                JSON.stringify(Array.isArray(p.dimensions) ? p.dimensions : []),
-                JSON.stringify(Array.isArray(p.features) ? p.features : []),
-                JSON.stringify(variationsObj)
-            )
-            .run();
-
-        return jsonResponse({ success: true, id: p.id }, 201);
-    } catch (err) {
-        return jsonResponse({ error: 'Insert failed', details: err.message }, 500);
-    }
+    const product = validateProduct(await readJson(request, MAX_PRODUCT_BODY));
+    const id = slugId(product.name);
+    await saveProduct(env, id, product, { create: true });
+    return json({ success: true, id }, 201);
 }
 
 export async function onRequestPut({ request, env }) {
-    if (!verifyAdmin(request, env)) {
-        return jsonResponse(
-            { error: 'Unauthorized: Invalid administrative credentials.' },
-            401
-        );
-    }
+    await requireAdmin(request, env);
+    const body = await readJson(request, MAX_PRODUCT_BODY);
+    const id = cleanText(body.id, 100);
+    if (!id) throw new HttpError(400, 'Product ID required.');
 
-    try {
-        await ensureVariationsColumn(env);
-        const body = await request.json();
-        const { id, stockOnly, stock } = body;
+    const exists = await env.DB.prepare('SELECT 1 FROM products WHERE id = ? AND deleted_at IS NULL')
+        .bind(id)
+        .first();
+    if (!exists) throw new HttpError(404, 'Product not found.');
 
-        if (!id) {
-            return jsonResponse({ error: 'Product ID required.' }, 400);
+    if (body.stockOnly) {
+        let stock = null;
+        if (body.stock !== null && body.stock !== undefined && body.stock !== '') {
+            const n = parseInt(body.stock, 10);
+            if (Number.isNaN(n) || n < 0) throw new HttpError(400, 'Stock must be zero or more.');
+            stock = Math.min(1_000_000, n);
         }
-
-        if (stockOnly) {
-            const sanitizedStock = parseStockValue(stock);
-            await env.DB.prepare(
-                'UPDATE products SET stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-            )
-                .bind(sanitizedStock, id)
-                .run();
-
-            return jsonResponse({ success: true, id, stock: sanitizedStock });
-        }
-
-        const numericPrice = parseFloat(body.price);
-        const stockVal = parseStockValue(body.stock);
-        const prevPriceVal = parsePreviousPrice(body.previousPrice);
-        const imagesArray =
-            Array.isArray(body.images) && body.images.length > 0
-                ? body.images.slice(0, 10)
-                : body.image
-                    ? [body.image]
-                    : [];
-        const primaryImage = imagesArray[0] || body.image || '';
-        const variationsObj =
-            body.variations && typeof body.variations === 'object'
-                ? body.variations
-                : {};
-
-        await env.DB.prepare(
-            `UPDATE products SET
-        name = ?, price = ?, previous_price = ?, description = ?, category = ?,
-        subcategory = ?, badge = ?, stock = ?, is_popular = ?, is_trending = ?,
-        delivery = ?, colors_json = ?, image = ?, images_json = ?,
-        dimensions_json = ?, features_json = ?, variations_json = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?`
-        )
-            .bind(
-                String(body.name || '').slice(0, 120),
-                numericPrice,
-                prevPriceVal,
-                String(body.description || '').slice(0, 2000),
-                String(body.category || '').slice(0, 60),
-                String(body.subcategory || '').slice(0, 60),
-                String(body.badge || '').slice(0, 40),
-                stockVal,
-                body.isPopular ? 1 : 0,
-                body.isTrending ? 1 : 0,
-                String(body.delivery || '').slice(0, 60),
-                JSON.stringify(Array.isArray(body.colors) ? body.colors : []),
-                primaryImage,
-                JSON.stringify(imagesArray),
-                JSON.stringify(Array.isArray(body.dimensions) ? body.dimensions : []),
-                JSON.stringify(Array.isArray(body.features) ? body.features : []),
-                JSON.stringify(variationsObj),
-                id
-            )
+        await env.DB.prepare('UPDATE products SET stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .bind(stock, id)
             .run();
-
-        return jsonResponse({ success: true, id });
-    } catch (err) {
-        return jsonResponse({ error: 'Update failed', details: err.message }, 500);
+        return json({ success: true, id, stock });
     }
+
+    await saveProduct(env, id, validateProduct(body), { create: false });
+    return json({ success: true, id });
 }
 
 export async function onRequestDelete({ request, env }) {
-    if (!verifyAdmin(request, env)) {
-        return jsonResponse(
-            { error: 'Unauthorized: Invalid administrative credentials.' },
-            401
-        );
-    }
-
-    try {
-        const url = new URL(request.url);
-        const id = url.searchParams.get('id');
-        if (!id) return jsonResponse({ error: 'Missing id query parameter.' }, 400);
-
-        await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
-        return jsonResponse({ success: true, deleted: id });
-    } catch (err) {
-        return jsonResponse({ error: 'Delete failed', details: err.message }, 500);
-    }
+    await requireAdmin(request, env);
+    const id = cleanText(new URL(request.url).searchParams.get('id'), 100);
+    if (!id) throw new HttpError(400, 'Missing id query parameter.');
+    await softDeleteProduct(env, id);
+    return json({ success: true, deleted: id });
 }

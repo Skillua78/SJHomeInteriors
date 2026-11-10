@@ -1,0 +1,9 @@
+# Local secrets for `npm run dev:cf` (wrangler). Copy to .dev.vars - never commit that file.
+JWT_SECRET=replace-with-at-least-32-random-characters-000000
+# Legacy fallback: with no ADMIN_PASSWORD_HASH set, this value is the admin password.
+ADMIN_API_KEY=choose-a-local-admin-password
+# ADMIN_PASSWORD_HASH=pbkdf2$100000$<saltHex>$<hashHex>   (npm run hash-password)
+# GOOGLE_CLIENT_ID=
+# Stripe TEST keys only:
+# STRIPE_SECRET_KEY=sk_test_...
+# STRIPE_WEBHOOK_SECRET=whsec_...

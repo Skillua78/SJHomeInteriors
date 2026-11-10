@@ -61,3 +61,12 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   phone TEXT DEFAULT '',
   password_hash TEXT,
+  salt TEXT,
+  google_id TEXT,
+  role TEXT NOT NULL DEFAULT 'customer',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- This file is the original base schema. Everything added since (normalised
+-- product options, media, payments, rate limits, indexes) is in /migrations and
+-- is also applied automatically by the API on first run (server/schema.js).

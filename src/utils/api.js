@@ -1,164 +1,105 @@
 /**
- * Frontend client adapter for Cloudflare Pages Functions / D1 API
+ * Browser client for the Cloudflare Pages Functions API.
+ *
+ * Authentication is an HttpOnly session cookie set by the server, so there is
+ * nothing secret to store or attach here. Every call either resolves with the
+ * parsed JSON body or throws an ApiError carrying the server's message.
  */
 
-function getAdminHeaders() {
-    const secret = localStorage.getItem('sj_admin_api_key') || '';
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secret}`,
-    };
+export class ApiError extends Error {
+    constructor(message, status, data = {}) {
+        super(message);
+        this.status = status;
+        this.data = data;
+        this.code = data.code;
+    }
+}
+
+/** True when the API itself is unreachable (e.g. `vite dev` without Functions). */
+export function isApiUnavailable(err) {
+    return err instanceof ApiError && err.status === 0;
+}
+
+async function request(path, { method = 'GET', body, fresh = false } = {}) {
+    let res;
+    try {
+        res = await fetch(path, {
+            method,
+            credentials: 'same-origin',
+            cache: fresh ? 'reload' : 'default',
+            headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+    } catch {
+        throw new ApiError('Could not reach the server. Please check your connection.', 0);
+    }
+
+    const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
+    if (!isJson) {
+        // A static host answers /api/* with the SPA shell; treat that as "no API".
+        throw new ApiError('The shop API is not available.', res.ok ? 0 : res.status);
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        throw new ApiError(data.error || 'Something went wrong. Please try again.', res.status, data);
+    }
+    return data;
+}
+
+function query(params) {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params || {})) {
+        if (value !== undefined && value !== null && value !== '' && value !== 'All') {
+            search.set(key, String(value));
+        }
+    }
+    const text = search.toString();
+    return text ? `?${text}` : '';
 }
 
 export const api = {
-    // SITE SETTINGS
-    async getSettings() {
-        try {
-            const res = await fetch('/api/settings');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        } catch {
-            return null;
-        }
-    },
+    // Session
+    me: () => request('/api/auth'),
+    register: (name, email, phone, password) =>
+        request('/api/auth?action=register', { method: 'POST', body: { name, email, phone, password } }),
+    login: (email, password) =>
+        request('/api/auth?action=login', { method: 'POST', body: { email, password } }),
+    googleAuth: (credential) =>
+        request('/api/auth?action=google', { method: 'POST', body: { credential } }),
+    logout: () => request('/api/auth?action=logout', { method: 'POST', body: {} }),
 
-    async updateSettings(settings) {
-        const res = await fetch('/api/settings', {
-            method: 'PUT',
-            headers: getAdminHeaders(),
-            body: JSON.stringify(settings),
-        });
-        return res.json();
-    },
+    // Settings
+    getSettings: () => request('/api/settings'),
+    updateSettings: (settings) => request('/api/settings', { method: 'PUT', body: settings }),
 
-    // AUTHENTICATION
-    async register(name, email, phone, password) {
-        const res = await fetch('/api/auth?action=register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone, password }),
-        });
-        return res.json();
-    },
+    // Catalogue
+    listProducts: (params, { fresh } = {}) => request(`/api/products${query(params)}`, { fresh }),
+    getProduct: (id, { fresh } = {}) => request(`/api/products/${encodeURIComponent(id)}`, { fresh }),
+    getFacets: ({ fresh } = {}) => request('/api/catalog', { fresh }),
 
-    async login(email, password) {
-        const res = await fetch('/api/auth?action=login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        return res.json();
-    },
+    // Catalogue administration
+    addProduct: (product) => request('/api/products', { method: 'POST', body: product }),
+    updateProduct: (product) => request('/api/products', { method: 'PUT', body: product }),
+    updateStock: (id, stock) =>
+        request('/api/products', { method: 'PUT', body: { id, stockOnly: true, stock } }),
+    deleteProduct: (id) => request(`/api/products${query({ id })}`, { method: 'DELETE' }),
+    restoreProduct: (id) =>
+        request(`/api/products${query({ action: 'restore', id })}`, { method: 'POST', body: {} }),
 
-    async googleAuth(credential) {
-        const res = await fetch('/api/auth?action=google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credential }),
-        });
-        return res.json();
-    },
+    // Reviews
+    getReviews: () => request('/api/reviews', { fresh: true }),
+    submitReview: (review) => request('/api/reviews', { method: 'POST', body: review }),
+    setReviewVerified: (id, verified) =>
+        request('/api/reviews', { method: 'PUT', body: { id, action: 'toggle-verify', verified } }),
+    respondToReview: (id, adminResponse) =>
+        request('/api/reviews', { method: 'PUT', body: { id, action: 'respond', adminResponse } }),
+    deleteReview: (id) => request(`/api/reviews${query({ id })}`, { method: 'DELETE' }),
 
-    // PRODUCTS
-    async getProducts() {
-        try {
-            const res = await fetch('/api/products');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        } catch (err) {
-            console.warn('API unavailable, falling back to cached catalog:', err);
-            return null;
-        }
-    },
-
-    async addProduct(product) {
-        const res = await fetch('/api/products', {
-            method: 'POST',
-            headers: getAdminHeaders(),
-            body: JSON.stringify(product),
-        });
-        return res.json();
-    },
-
-    async updateProduct(product) {
-        const res = await fetch('/api/products', {
-            method: 'PUT',
-            headers: getAdminHeaders(),
-            body: JSON.stringify(product),
-        });
-        return res.json();
-    },
-
-    async updateStock(id, newStock) {
-        const res = await fetch('/api/products', {
-            method: 'PUT',
-            headers: getAdminHeaders(),
-            body: JSON.stringify({ id, stockOnly: true, stock: newStock }),
-        });
-        return res.json();
-    },
-
-    async deleteProduct(id) {
-        const res = await fetch(`/api/products?id=${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-            headers: getAdminHeaders(),
-        });
-        return res.json();
-    },
-
-    // REVIEWS
-    async getReviews() {
-        try {
-            const res = await fetch('/api/reviews', { headers: getAdminHeaders() });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        } catch {
-            return null;
-        }
-    },
-
-    async submitReview(review) {
-        const res = await fetch('/api/reviews', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(review),
-        });
-        return res.json();
-    },
-
-    async toggleVerifyReview(id, currentVerified) {
-        const res = await fetch('/api/reviews', {
-            method: 'PUT',
-            headers: getAdminHeaders(),
-            body: JSON.stringify({ id, action: 'toggle-verify', verified: !currentVerified }),
-        });
-        return res.json();
-    },
-
-    async respondToReview(id, adminResponse) {
-        const res = await fetch('/api/reviews', {
-            method: 'PUT',
-            headers: getAdminHeaders(),
-            body: JSON.stringify({ id, action: 'respond', adminResponse }),
-        });
-        return res.json();
-    },
-
-    async deleteReview(id) {
-        const res = await fetch(`/api/reviews?id=${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-            headers: getAdminHeaders(),
-        });
-        return res.json();
-    },
-
-    // ORDERS
-    async submitOrder(orderSnapshot) {
-        const res = await fetch('/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderSnapshot),
-        });
-        return res.json();
-    },
+    // Checkout & orders
+    checkout: (order) => request('/api/checkout', { method: 'POST', body: order }),
+    getCheckoutStatus: (sessionId) =>
+        request(`/api/checkout${query({ session_id: sessionId })}`, { fresh: true }),
+    listOrders: (params) => request(`/api/orders${query(params)}`, { fresh: true }),
+    updateOrderStatus: (id, status) => request('/api/orders', { method: 'PUT', body: { id, status } }),
 };

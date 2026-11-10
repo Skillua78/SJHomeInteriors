@@ -5,8 +5,11 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
+        "dev:cf": "vite build && wrangler pages dev dist --d1 DB --compatibility-date 2024-11-01",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test": "vitest run",
+        "hash-password": "node scripts/hash-password.mjs"
     },
     "dependencies": {
         "lucide-react": "^0.468.0",
@@ -17,6 +20,8 @@
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.3.4",
         "tailwindcss": "^4.0.0",
-        "vite": "^6.0.5"
+        "vite": "^6.0.5",
+        "vitest": "^5.1.0",
+        "wrangler": "^4.159.0"
     }
 }

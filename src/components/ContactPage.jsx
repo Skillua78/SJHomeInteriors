@@ -11,6 +11,7 @@ import {
     ExternalLink,
 } from 'lucide-react';
 import { formatWhatsAppHref } from './Footer';
+import { validateSafeHttpsUrl } from '../utils/security';
 
 export default function ContactPage({ siteSettings }) {
     const [submitted, setSubmitted] = useState(false);
@@ -27,7 +28,7 @@ export default function ContactPage({ siteSettings }) {
     const address = siteSettings?.address || 'High Street, Maltby, Rotherham, S66 8JE';
     const openingHours =
         siteSettings?.openingHours || 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM';
-    const facebookUrl = siteSettings?.facebookUrl?.trim() || '';
+    const facebookUrl = validateSafeHttpsUrl(siteSettings?.facebookUrl);
     const whatsappHref = formatWhatsAppHref(siteSettings?.whatsappNumber);
 
     const handleSubmit = (e) => {
