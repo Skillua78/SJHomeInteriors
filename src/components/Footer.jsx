@@ -44,7 +44,7 @@ export default function Footer({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-stone-800">
                     {/* Column 1: Brand & Social Links */}
                     <div className="space-y-4">
-                        <Logo variant="light" />
+                        <Logo variant="light" wrap />
                         <p className="text-xs text-stone-400 leading-relaxed">
                             Curated luxury sofas, ottoman beds, sintered stone dining tables, and timeless home
                             interiors from our High Street, Maltby showroom.

@@ -46,9 +46,10 @@ Take a backup first: `npx wrangler d1 export <database-name> --remote --output=b
 
 ## 4. Delivery & assembly charges
 
-- Standard fee: Admin → Settings → Delivery & assembly (default £50 per item).
+- Standard fee: Admin → Settings → Delivery & assembly (default £50 per order).
 - Per product: Admin → Products → Essentials → "Delivery & assembly (£)". Blank = standard, 0 = free.
-- Charged per unit at checkout; never charged for showroom collection.
+- Charged once per order: extra items do not add to it. If items have different fees the order
+  pays the highest one. Never charged for showroom collection.
 
 ## 5. Local development
 

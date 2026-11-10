@@ -181,10 +181,8 @@ export default function ProductCard({
                     <p className="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5 text-[#9A7B56] shrink-0" aria-hidden="true" />
                         <span>
-                            {product.deliveryFee > 0
-                                ? `Delivery & assembly ${formatGBP(product.deliveryFee)}`
-                                : 'Delivery & assembly included'}
-                            {product.delivery ? ` · ${product.delivery}` : ''}
+                            Estimated delivery &amp; assembly
+                            {product.delivery ? `: ${product.delivery}` : ''}
                         </span>
                     </p>
 

@@ -1,6 +1,6 @@
 import { Phone, Mail, MapPin } from 'lucide-react';
 
-export default function AnnouncementBar({ onNavigate, siteSettings }) {
+export default function AnnouncementBar({ onNavigate, siteSettings, ready = true }) {
     const phone = siteSettings?.phone || '07830 141250';
     const email = siteSettings?.email || 'info@sjhomeinteriors.co.uk';
     const text =
@@ -9,7 +9,7 @@ export default function AnnouncementBar({ onNavigate, siteSettings }) {
 
     return (
         <div className="bg-[#1C1B18] text-stone-300 text-[11px] py-2 px-4 border-b border-stone-800">
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className={`max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 ${ready ? '' : 'invisible'}`}>
                 <p className="font-medium text-amber-200/90 truncate">{text}</p>
                 <div className="flex items-center space-x-4 shrink-0">
                     {phone && (

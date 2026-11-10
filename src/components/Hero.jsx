@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowRight, MapPin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { validateSafeImageUrl } from '../utils/security';
 
-export default function Hero({ onNavigate, siteSettings }) {
+export default function Hero({ onNavigate, siteSettings, ready = true }) {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const rawSlides =
@@ -38,7 +38,12 @@ export default function Hero({ onNavigate, siteSettings }) {
     return (
         <section className="relative overflow-hidden bg-[#1C1B18] text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div
+                    aria-busy={!ready}
+                    className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center transition-opacity duration-300 ${
+                        ready ? 'opacity-100' : 'opacity-0'
+                    }`}
+                >
                     {/* Left Column: Editable Main Page Text */}
                     <div className="lg:col-span-6 space-y-6 text-left">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-[#D4B895] text-xs font-semibold tracking-wide">

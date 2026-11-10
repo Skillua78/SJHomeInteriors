@@ -25,7 +25,7 @@ export const DEFAULT_SITE_SETTINGS = {
     catalogTitle: 'Explore Our Furniture',
     showAssemblyHighlight: true,
     assemblyTitle: 'Two-Person Delivery & Assembly',
-    assemblySubtitle: 'From £50 per item',
+    assemblySubtitle: 'One charge per order',
     defaultDeliveryFee: 50,
     customCategories: {},
     removedCategories: [],
@@ -105,8 +105,9 @@ export async function loadSettings(env) {
     merged.facebookUrl = httpsUrl(merged.facebookUrl);
 
     // Delivery & assembly used to be advertised as free; it is now a paid service.
-    if (/free/i.test(String(merged.assemblySubtitle || ''))) {
-        merged.assemblySubtitle = `From £${Number(merged.defaultDeliveryFee) || 50} per item`;
+    // (and it is one charge per order, not per item).
+    if (/free|per item/i.test(String(merged.assemblySubtitle || ''))) {
+        merged.assemblySubtitle = DEFAULT_SITE_SETTINGS.assemblySubtitle;
     }
 
     // Legacy: slideshow pictures stored inline as data-URLs -> move to media rows once.

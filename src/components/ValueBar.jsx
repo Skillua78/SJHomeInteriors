@@ -1,11 +1,9 @@
 import { Truck, ShieldCheck, Store, PoundSterling } from 'lucide-react';
 
-export default function ValueBar({ siteSettings }) {
+export default function ValueBar({ siteSettings, ready = true }) {
     const showAssembly = siteSettings?.showAssemblyHighlight !== false;
     const assemblyTitle = siteSettings?.assemblyTitle || 'Two-Person Delivery & Assembly';
-    const assemblySubtitle =
-        siteSettings?.assemblySubtitle ||
-        `Standard charge £${Number(siteSettings?.defaultDeliveryFee ?? 50)} per item`;
+    const assemblySubtitle = siteSettings?.assemblySubtitle || 'One charge per order';
 
     const items = [
         { icon: PoundSterling, title: 'Affordable Direct Prices', sub: 'No High-Street Markups' },
@@ -18,7 +16,7 @@ export default function ValueBar({ siteSettings }) {
 
     return (
         <section aria-label="Why shop with us" className="bg-white border-b border-stone-200/80">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 ${ready ? '' : 'invisible'}`}>
                 <ul
                     className={`grid grid-cols-1 sm:grid-cols-2 ${
                         items.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'

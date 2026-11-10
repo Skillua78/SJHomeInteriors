@@ -1,10 +1,13 @@
-export default function Logo({ variant = 'dark', className = '' }) {
+/**
+ * @param wrap allow the wordmark onto two lines (narrow columns such as the footer)
+ */
+export default function Logo({ variant = 'dark', className = '', wrap = false }) {
     const isLight = variant === 'light';
     const primaryText = isLight ? 'text-white' : 'text-[#1C1B18]';
     const strokeColor = isLight ? '#FAF8F5' : '#1C1B18';
 
     return (
-        <div className={`inline-flex items-center gap-3 select-none ${className}`}>
+        <div className={`inline-flex items-center gap-2.5 sm:gap-3 select-none max-w-full ${className}`}>
             {/* Architectural Monogram Emblem */}
             <svg
                 width="44"
@@ -65,7 +68,9 @@ export default function Logo({ variant = 'dark', className = '' }) {
             {/* Brand Wordmark */}
             <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-base sm:text-2xl font-bold tracking-tight leading-none whitespace-nowrap ${primaryText}`}
+                    className={`font-serif text-sm min-[400px]:text-base sm:text-2xl font-bold tracking-tight leading-none ${
+                        wrap ? '' : 'whitespace-nowrap truncate'
+                    } ${primaryText}`}
                 >
                     SJ HOME INTERIORS
                 </span>

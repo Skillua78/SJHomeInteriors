@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { api, isApiUnavailable } from './utils/api';
 import { useCatalog } from './hooks/useCatalog';
 import { useCart } from './hooks/useCart';
+import { DEFAULT_SETTINGS, readCachedSettings, cacheSettings } from './data/defaultSettings';
 import AnnouncementBar from './components/AnnouncementBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -23,36 +24,6 @@ import Footer from './components/Footer';
 
 // The admin dashboard is only downloaded when an administrator opens it.
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
-
-// Shown until /api/settings responds (and when running without the API).
-const DEFAULT_SETTINGS = {
-    phone: '07830 141250',
-    email: 'info@sjhomeinteriors.co.uk',
-    address: 'High Street, Maltby, Rotherham, S66 8JE',
-    openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
-    facebookUrl: '',
-    whatsappNumber: '',
-    announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
-    heroBadge: 'Maltby Showroom • Quality Furniture, Affordable Prices',
-    heroTitle: 'Quality Sofas, Beds & Dining at Prices You’ll Love',
-    heroSubtitle:
-        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
-    heroImages: [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=85',
-    ],
-    catalogSubtitle: 'Showroom & Online Collection',
-    catalogTitle: 'Explore Our Furniture',
-    showAssemblyHighlight: true,
-    assemblyTitle: 'Two-Person Delivery & Assembly',
-    assemblySubtitle: 'Standard charge £50 per item',
-    defaultDeliveryFee: 50,
-    customCategories: {},
-    customColors: {},
-    paymentEnabled: true,
-    paymentOptions: { card: false, klarna: false, cod: true, showroom: true, bacs: false },
-};
 
 /** Read (and then remove) the query string Stripe Checkout sends the customer back with. */
 function readCheckoutReturn() {
@@ -84,7 +55,11 @@ export default function App() {
     const [adminEditTarget, setAdminEditTarget] = useState(null);
     const [activeLegalDoc, setActiveLegalDoc] = useState(null);
 
-    const [siteSettings, setSiteSettings] = useState(DEFAULT_SETTINGS);
+    // Start from what this browser saw last time. On a first visit the editable home page
+    // text stays hidden until the real settings arrive, so it never flashes the defaults.
+    const [cachedSettings] = useState(readCachedSettings);
+    const [siteSettings, setSiteSettings] = useState({ ...DEFAULT_SETTINGS, ...(cachedSettings || {}) });
+    const [settingsReady, setSettingsReady] = useState(Boolean(cachedSettings));
     const [currentUser, setCurrentUser] = useState(null);
     const [reviews, setReviews] = useState([]);
     const [reviewStats, setReviewStats] = useState(null);
@@ -117,10 +92,15 @@ export default function App() {
             .then((data) => active && setCurrentUser(data.user))
             .catch(() => {});
         api.getSettings()
-            .then((data) => active && setSiteSettings((prev) => ({ ...prev, ...data })))
+            .then((data) => {
+                if (!active) return;
+                setSiteSettings({ ...DEFAULT_SETTINGS, ...data });
+                cacheSettings(data);
+            })
             .catch((err) => {
                 if (!isApiUnavailable(err)) console.warn('Settings unavailable:', err.message);
-            });
+            })
+            .finally(() => active && setSettingsReady(true));
         loadReviews();
         return () => {
             active = false;
@@ -202,7 +182,8 @@ export default function App() {
     /** Saves settings and adopts the server's validated copy. Throws on failure. */
     const handleSaveSiteSettings = useCallback(async (next) => {
         const { settings } = await api.updateSettings(next);
-        setSiteSettings((prev) => ({ ...prev, ...settings }));
+        setSiteSettings({ ...DEFAULT_SETTINGS, ...settings });
+        cacheSettings(settings);
     }, []);
 
     /* ----- reviews ----- */
@@ -245,7 +226,7 @@ export default function App() {
                 Skip to content
             </a>
 
-            <AnnouncementBar onNavigate={navigate} siteSettings={siteSettings} />
+            <AnnouncementBar onNavigate={navigate} siteSettings={siteSettings} ready={settingsReady} />
 
             <Navbar
                 currentPage={currentPage}
@@ -263,8 +244,8 @@ export default function App() {
             <main id="main" className="flex-1">
                 {currentPage === 'home' && (
                     <>
-                        <Hero onNavigate={navigate} siteSettings={siteSettings} />
-                        <ValueBar siteSettings={siteSettings} />
+                        <Hero onNavigate={navigate} siteSettings={siteSettings} ready={settingsReady} />
+                        <ValueBar siteSettings={siteSettings} ready={settingsReady} />
                         <CategoryGrid
                             categories={catalog.facets.categories}
                             onSelectCategory={(cat) => {
@@ -275,7 +256,7 @@ export default function App() {
 
                         <section
                             id="catalog"
-                            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 scroll-mt-24"
+                            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 scroll-mt-32"
                         >
                             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-stone-200">
                                 <div>
