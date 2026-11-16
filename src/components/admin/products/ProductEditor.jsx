@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { FileText, Image as ImageIcon, Layers, Ruler, Loader2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, Layers, Ruler, Loader2, Sparkles } from 'lucide-react';
 import { emptyForm, formToPayload, productToForm } from './productFormModel';
 import { usePresetLibrary } from './usePresetLibrary';
 import EssentialsStep from './EssentialsStep';
 import PhotosStep from './PhotosStep';
 import VariationsStep from './VariationsStep';
 import DimensionsStep from './DimensionsStep';
+import AiImportModal from './AiImportModal';
 
 const STEPS = [
     { id: 'basics', label: 'Essentials', icon: FileText },
@@ -33,11 +34,14 @@ export default function ProductEditor({
     const [editing, setEditing] = useState(null); // the product being edited, or null when adding
     const [step, setStep] = useState('basics');
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
     const [saving, setSaving] = useState(false);
     const [manageMode, setManageMode] = useState(false);
+    const [showAiImport, setShowAiImport] = useState(false);
 
     useEffect(() => {
         setError('');
+        setNotice('');
         setStep('basics');
         if (target?.product) {
             setForm(productToForm(target.product, { duplicate: target.duplicate }));
@@ -68,6 +72,7 @@ export default function ProductEditor({
 
         setSaving(true);
         setError('');
+        setNotice('');
         try {
             await onSave(result.payload, editing);
             onDone();
@@ -79,104 +84,163 @@ export default function ProductEditor({
     };
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="bg-[#FAF8F5] p-4 sm:p-5 rounded-3xl border border-stone-200 flex flex-col gap-4"
-        >
-            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-stone-200 pb-3">
-                <div className="min-w-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#9A7B56]">
-                        {editing ? 'Editing' : target?.duplicate ? 'New copy' : 'New product'}
-                    </span>
-                    <h3 className="font-serif text-xl font-bold text-[#1C1B18] truncate">
-                        {form.name || 'Add a furniture item'}
-                    </h3>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        aria-pressed={manageMode}
-                        onClick={() => setManageMode(!manageMode)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-pointer transition ${
-                            manageMode
-                                ? 'bg-red-600 text-white border-red-600'
-                                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
-                        }`}
-                    >
-                        {manageMode ? 'Done removing presets' : 'Remove saved presets'}
-                    </button>
-                    {dirty && (
-                        <button
-                            type="button"
-                            onClick={onDone}
-                            className="px-3 py-1.5 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-800 text-[11px] font-bold cursor-pointer"
-                        >
-                            {editing ? 'Cancel edit' : 'Clear'}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {error && (
-                <div role="alert" className="text-sm text-red-800 bg-red-50 p-3 rounded-xl border border-red-200">
-                    {error}
-                </div>
-            )}
-
-            <div role="tablist" aria-label="Product form steps" className="grid grid-cols-4 gap-1 bg-white p-1 rounded-2xl border border-stone-200">
-                {STEPS.map((item, idx) => {
-                    const Icon = item.icon;
-                    const active = step === item.id;
-                    return (
-                        <button
-                            key={item.id}
-                            type="button"
-                            role="tab"
-                            aria-selected={active}
-                            onClick={() => setStep(item.id)}
-                            className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${
-                                active ? 'bg-[#1C1B18] text-white' : 'text-stone-600 hover:bg-stone-100'
-                            }`}
-                        >
-                            <Icon className="w-3.5 h-3.5 shrink-0 hidden sm:block" aria-hidden="true" />
-                            <span className="truncate">
-                                {idx + 1}. {item.label}
-                                {item.id === 'photos' && form.images.length > 0 ? ` (${form.images.length})` : ''}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-
-            {step === 'basics' && (
-                <EssentialsStep
-                    form={form}
-                    update={update}
-                    library={library}
-                    manageMode={manageMode}
-                    defaultDeliveryFee={defaultDeliveryFee}
-                />
-            )}
-            {step === 'photos' && <PhotosStep form={form} update={update} onError={setError} />}
-            {step === 'variations' && (
-                <VariationsStep
-                    form={form}
-                    update={update}
-                    library={library}
-                    customColors={siteSettings?.customColors}
-                    manageMode={manageMode}
-                />
-            )}
-            {step === 'dimensions' && <DimensionsStep form={form} update={update} />}
-
-            <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold transition cursor-pointer shadow-md flex items-center justify-center gap-2 mt-auto"
+        <>
+            <form
+                onSubmit={handleSubmit}
+                className="bg-[#FAF8F5] p-4 sm:p-5 rounded-3xl border border-stone-200 flex flex-col gap-4"
             >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
-                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add product'}
-            </button>
-        </form>
+                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-stone-200 pb-3">
+                    <div className="min-w-0">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#9A7B56]">
+                            {editing ? 'Editing' : target?.duplicate ? 'New copy' : 'New product'}
+                        </span>
+                        <h3 className="font-serif text-xl font-bold text-[#1C1B18] truncate">
+                            {form.name || 'Add a furniture item'}
+                        </h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowAiImport(true)}
+                            className="px-3 py-1.5 rounded-full bg-[#9A7B56] hover:bg-[#866947] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
+                        >
+                            <Sparkles className="w-3.5 h-3.5" /> AI / JSON Import
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={manageMode}
+                            onClick={() => setManageMode(!manageMode)}
+                            className={`px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-pointer transition ${manageMode
+                                    ? 'bg-red-600 text-white border-red-600'
+                                    : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
+                                }`}
+                        >
+                            {manageMode ? 'Done removing presets' : 'Remove saved presets'}
+                        </button>
+                        {dirty && (
+                            <button
+                                type="button"
+                                onClick={onDone}
+                                className="px-3 py-1.5 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-800 text-[11px] font-bold cursor-pointer"
+                            >
+                                {editing ? 'Cancel edit' : 'Clear'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {error && (
+                    <div
+                        role="alert"
+                        className="text-sm text-red-800 bg-red-50 p-3 rounded-xl border border-red-200"
+                    >
+                        {error}
+                    </div>
+                )}
+
+                {notice && (
+                    <div
+                        role="status"
+                        className="text-xs font-medium text-emerald-900 bg-emerald-50 p-3 rounded-xl border border-emerald-200"
+                    >
+                        {notice}
+                    </div>
+                )}
+
+                <div
+                    role="tablist"
+                    aria-label="Product form steps"
+                    className="grid grid-cols-4 gap-1 bg-white p-1 rounded-2xl border border-stone-200"
+                >
+                    {STEPS.map((item, idx) => {
+                        const Icon = item.icon;
+                        const active = step === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => setStep(item.id)}
+                                className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${active
+                                        ? 'bg-[#1C1B18] text-white'
+                                        : 'text-stone-600 hover:bg-stone-100'
+                                    }`}
+                            >
+                                <Icon
+                                    className="w-3.5 h-3.5 shrink-0 hidden sm:block"
+                                    aria-hidden="true"
+                                />
+                                <span className="truncate">
+                                    {idx + 1}. {item.label}
+                                    {item.id === 'photos' && form.images.length > 0
+                                        ? ` (${form.images.length})`
+                                        : ''}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {step === 'basics' && (
+                    <EssentialsStep
+                        form={form}
+                        update={update}
+                        library={library}
+                        manageMode={manageMode}
+                        defaultDeliveryFee={defaultDeliveryFee}
+                    />
+                )}
+                {step === 'photos' && <PhotosStep form={form} update={update} onError={setError} />}
+                {step === 'variations' && (
+                    <VariationsStep
+                        form={form}
+                        update={update}
+                        library={library}
+                        customColors={siteSettings?.customColors}
+                        manageMode={manageMode}
+                    />
+                )}
+                {step === 'dimensions' && <DimensionsStep form={form} update={update} />}
+
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold transition cursor-pointer shadow-md flex items-center justify-center gap-2 mt-auto"
+                >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+                    {saving ? 'Saving…' : editing ? 'Save changes' : 'Add product'}
+                </button>
+            </form>
+
+            <AiImportModal
+                isOpen={showAiImport}
+                onClose={() => setShowAiImport(false)}
+                onLoadSingleIntoEditor={(importedProduct) => {
+                    setError('');
+                    setForm(productToForm(importedProduct, { duplicate: false }));
+                    setEditing(null);
+                    setStep('basics');
+                    setNotice(
+                        `Loaded "${importedProduct.name}" with a default placeholder image — review the tabs or swap the photo in Step 2, then click Add product!`
+                    );
+                }}
+                onBulkCreateProducts={async (importedList) => {
+                    setError('');
+                    for (const item of importedList) {
+                        const formState = productToForm(item, { duplicate: false });
+                        const converted = formToPayload(formState, null);
+                        if (!converted.ok) {
+                            throw new Error(`Invalid item "${item.name}": ${converted.error}`);
+                        }
+                        await onSave(converted.payload, null);
+                    }
+                    onDone();
+                    setNotice(
+                        `Successfully imported ${importedList.length} product(s) with default images! Click Edit on any item in the list to update its photo.`
+                    );
+                }}
+            />
+        </>
     );
 }
