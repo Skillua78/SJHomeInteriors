@@ -35,14 +35,14 @@ export default function Hero({ onNavigate, siteSettings, ready = true }) {
     const subtitleText =
         siteSettings?.heroSubtitle ||
         'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.';
+
     return (
         <section className="relative overflow-hidden bg-[#1C1B18] text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
                 <div
                     aria-busy={!ready}
-                    className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center transition-opacity duration-300 ${
-                        ready ? 'opacity-100' : 'opacity-0'
-                    }`}
+                    className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'
+                        }`}
                 >
                     {/* Left Column: Editable Main Page Text */}
                     <div className="lg:col-span-6 space-y-6 text-left">
@@ -83,56 +83,69 @@ export default function Hero({ onNavigate, siteSettings, ready = true }) {
                     {/* Right Column: Interactive Showroom & Furniture Slideshow */}
                     <div className="lg:col-span-6">
                         <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-stone-900 group select-none">
-                            <img
-                                src={slides[currentSlide % slides.length]}
-                                alt={`SJ Home Interiors Showcase ${currentSlide + 1}`}
-                                className="w-full h-full object-cover transition-all duration-700"
-                            />
+                            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/15 aspect-[16/11] bg-stone-900">
+                                {slides.map((imgUrl, idx) => {
+                                    // FIXED: Using currentSlide instead of activeSlide
+                                    const isActive = idx === currentSlide % slides.length;
+                                    const panClass = idx % 2 === 0 ? 'animate-pan-right' : 'animate-pan-left';
 
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                                    return (
+                                        <img
+                                            key={imgUrl + idx}
+                                            src={imgUrl}
+                                            alt={`SJ Home Interiors Maltby Showroom view ${idx + 1}`}
+                                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${isActive ? `opacity-100 z-10 ${panClass}` : 'opacity-0 z-0'
+                                                }`}
+                                        />
+                                    );
+                                })}
 
-                            {slides.length > 1 && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-                                        }
-                                        aria-label="Previous slideshow image"
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer"
-                                    >
-                                        <ChevronLeft className="w-5 h-5" />
-                                    </button>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-                                        aria-label="Next slideshow image"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer"
-                                    >
-                                        <ChevronRight className="w-5 h-5" />
-                                    </button>
+                                {slides.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+                                            }
+                                            aria-label="Previous slideshow image"
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer z-20"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
 
-                                    {/* Slide Dots */}
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-xs px-3 py-1.5 rounded-full">
-                                        {slides.map((_, idx) => (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => setCurrentSlide(idx)}
-                                                aria-label={`Go to slide ${idx + 1}`}
-                                                className={`h-2 rounded-full transition-all cursor-pointer ${idx === currentSlide % slides.length
-                                                    ? 'w-6 bg-[#D4B895]'
-                                                    : 'w-2 bg-white/50 hover:bg-white/80'
-                                                    }`}
-                                            />
-                                        ))}
-                                    </div>
-                                </>
-                            )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
+                                            aria-label="Next slideshow image"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer z-20"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+
+                                        {/* Slide Dots */}
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-xs px-3 py-1.5 rounded-full z-20">
+                                            {slides.map((_, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setCurrentSlide(idx)}
+                                                    aria-label={`Go to slide ${idx + 1}`}
+                                                    className={`h-2 rounded-full transition-all cursor-pointer ${idx === currentSlide % slides.length
+                                                        ? 'w-6 bg-[#D4B895]'
+                                                        : 'w-2 bg-white/50 hover:bg-white/80'
+                                                        }`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
+                {/* FIXED: Added missing closing div for max-w-7xl */}
             </div>
         </section>
     );

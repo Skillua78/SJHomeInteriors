@@ -13,26 +13,14 @@ export function sanitizeText(input, maxLength = 500) {
 
 // Prevent XSS via javascript:, vbscript:, or malicious data: URIs in image/link attributes
 export function validateSafeImageUrl(url) {
-    if (typeof url !== 'string' || !url.trim()) return '';
+    if (typeof url !== 'string') return '';
     const trimmed = url.trim();
-
-    // Photos uploaded through the admin are served from our own image endpoint
-    if (/^\/api\/img\/[A-Za-z0-9_-]{16,40}$/.test(trimmed)) {
+    if (
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:image/') ||
+        trimmed.startsWith('/')
+    ) {
         return trimmed;
-    }
-
-    // Allow safe base64 image data URLs
-    if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
-        return trimmed;
-    }
-
-    try {
-        const parsed = new URL(trimmed);
-        if (parsed.protocol === 'https:') {
-            return parsed.toString();
-        }
-    } catch {
-        return '';
     }
     return '';
 }

@@ -17,9 +17,14 @@ export const DEFAULT_SITE_SETTINGS = {
     heroSubtitle:
         'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
     heroImages: [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=85',
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=85',
+        '/showroom/20261114_145410.jpg',
+        '/showroom/20261114_164355.jpg',
+        '/showroom/20261114_145511.jpg',
+        '/showroom/20261114_145431.jpg',
+        '/showroom/20261114_164343.jpg',
+        '/showroom/20261114_145509.jpg',
+        '/showroom/20261114_145415.jpg',
+        '/showroom/20261114_145143.jpg',
     ],
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
