@@ -7,7 +7,7 @@ import {
     priceSelection,
     toPence,
     fromPence,
-    resolveDeliveryFeePence,
+    resolveAssemblyFeePence,
 } from '../../shared/pricing.js';
 
 export const MAX_QTY_PER_LINE = 20;
@@ -46,7 +46,7 @@ export function buildCartLine(product, selections = {}) {
             selections: priced.selections,
             label: priced.label,
             unitPrice: fromPence(priced.unitPence),
-            deliveryFee: Number(product.deliveryFee) || 0,
+            assemblyFee: Number(product.assemblyFee) || 0,
             qty: 1,
         },
     };
@@ -71,20 +71,31 @@ export function changeQty(cart, key, delta) {
         .filter((item) => item.qty > 0);
 }
 
-/** Totals in pounds for display. One delivery & assembly charge per order (the highest item fee). */
-export function cartTotals(cart, deliveryMethod = 'delivery') {
+/** What adding assembly to this basket would cost: one charge, the highest item fee. */
+export function assemblyOffer(cart) {
+    let pence = 0;
+    for (const item of cart) pence = Math.max(pence, toPence(item.assemblyFee));
+    return fromPence(pence);
+}
+
+/**
+ * Totals in pounds for display.
+ * @param delivery  delivery charge in pounds for this order (the server works it out from
+ *                  the postcode; 0 for collection or inside the free-delivery radius)
+ * @param assembly  true when the customer has added the optional assembly service
+ */
+export function cartTotals(cart, { delivery = 0, assembly = false } = {}) {
     let subtotalPence = 0;
-    let deliveryPence = 0;
-    for (const item of cart) {
-        subtotalPence += toPence(item.unitPrice) * item.qty;
-        deliveryPence = Math.max(deliveryPence, toPence(item.deliveryFee));
-    }
-    if (deliveryMethod !== 'delivery') deliveryPence = 0;
+    for (const item of cart) subtotalPence += toPence(item.unitPrice) * item.qty;
+    const deliveryPence = toPence(delivery);
+    const assemblyPence = assembly ? toPence(assemblyOffer(cart)) : 0;
+    const totalPence = subtotalPence + deliveryPence + assemblyPence;
     return {
         subtotal: fromPence(subtotalPence),
         delivery: fromPence(deliveryPence),
-        total: fromPence(subtotalPence + deliveryPence),
-        totalPence: subtotalPence + deliveryPence,
+        assembly: fromPence(assemblyPence),
+        total: fromPence(totalPence),
+        totalPence,
     };
 }
 
@@ -94,7 +105,7 @@ export function applyQuote(cart, quoteLines) {
         const match = (quoteLines || []).find(
             (q) => q.id === item.id && JSON.stringify(q.selections) === JSON.stringify(item.selections)
         );
-        return match ? { ...item, unitPrice: match.unitPrice, deliveryFee: match.deliveryFee } : item;
+        return match ? { ...item, unitPrice: match.unitPrice, assemblyFee: match.assemblyFee } : item;
     });
 }
 
@@ -144,11 +155,11 @@ function summarise(product, defaultFeePounds) {
         sizeCount: (v.sizes || []).length,
         hasOptions: optionsFromVariations(v).length > 0,
         dimSummary: dimSummary || product.dimensions?.[0] || '',
-        deliveryFee: fromPence(
-            resolveDeliveryFeePence(
-                product.deliveryFeeOverride === undefined || product.deliveryFeeOverride === null
+        assemblyFee: fromPence(
+            resolveAssemblyFeePence(
+                product.assemblyFeeOverride === undefined || product.assemblyFeeOverride === null
                     ? null
-                    : toPence(product.deliveryFeeOverride),
+                    : toPence(product.assemblyFeeOverride),
                 toPence(defaultFeePounds)
             )
         ),

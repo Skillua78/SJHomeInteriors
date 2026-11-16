@@ -85,7 +85,7 @@ describe('product validation', () => {
     it('normalises options into rows with pence adjustments', () => {
         const p = validateProduct({
             ...base,
-            deliveryFeeOverride: '75',
+            assemblyFeeOverride: '75',
             variations: {
                 fabrics: ['Wool', 'Teddy', 'Wool'],
                 sizes: ['King'],
@@ -94,7 +94,7 @@ describe('product validation', () => {
             },
         });
         expect(p.name).toBe('Sofa');
-        expect(p.deliveryFeePence).toBe(7500);
+        expect(p.assemblyFeePence).toBe(7500);
         expect(p.options).toEqual([
             { grp: 'fabric', name: 'Wool', deltaPence: 0, position: 0 },
             { grp: 'fabric', name: 'Teddy', deltaPence: 5000, position: 1 },
@@ -105,8 +105,8 @@ describe('product validation', () => {
     });
 
     it('treats a blank delivery fee as "use the default" and 0 as free', () => {
-        expect(validateProduct({ ...base, deliveryFeeOverride: '' }).deliveryFeePence).toBeNull();
-        expect(validateProduct({ ...base, deliveryFeeOverride: 0 }).deliveryFeePence).toBe(0);
+        expect(validateProduct({ ...base, assemblyFeeOverride: '' }).assemblyFeePence).toBeNull();
+        expect(validateProduct({ ...base, assemblyFeeOverride: 0 }).assemblyFeePence).toBe(0);
     });
 
     it('rejects missing titles, bad prices and missing categories', () => {

@@ -107,6 +107,28 @@ export default function App() {
         };
     }, [loadReviews]);
 
+    // Admin notification tally (new orders, unread messages, reviews awaiting moderation).
+    const [notifications, setNotifications] = useState(null);
+    const refreshNotifications = useCallback(async () => {
+        try {
+            setNotifications(await api.getNotifications());
+        } catch {
+            // Not signed in as admin any more, or offline: keep the last known tally.
+        }
+    }, []);
+
+    useEffect(() => {
+        if (currentUser?.role !== 'admin') {
+            setNotifications(null);
+            return undefined;
+        }
+        refreshNotifications();
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') refreshNotifications();
+        }, 60000);
+        return () => clearInterval(timer);
+    }, [currentUser, refreshNotifications]);
+
     // Admins also see unpublished reviews, so reload when the signed-in user changes.
     useEffect(() => {
         if (currentUser) loadReviews();
@@ -204,6 +226,7 @@ export default function App() {
             window.alert(err.message);
         }
         loadReviews();
+        refreshNotifications();
     };
 
     const handleToggleVerifyReview = (id) => {
@@ -239,6 +262,7 @@ export default function App() {
                 onOpenStockManager={openAdmin}
                 currentUser={currentUser}
                 availableCategories={categoryNames}
+                notificationCount={notifications?.total || 0}
             />
 
             <main id="main" className="flex-1">
@@ -529,6 +553,8 @@ export default function App() {
                 onSaveSiteSettings={handleSaveSiteSettings}
                 facets={catalog.facets}
                 onCatalogChanged={catalog.refresh}
+                notifications={notifications}
+                onRefreshNotifications={refreshNotifications}
                 reviews={reviews}
                 onToggleVerifyReview={handleToggleVerifyReview}
                 onRespondToReview={(id, text) => reviewAction(() => api.respondToReview(id, text))}

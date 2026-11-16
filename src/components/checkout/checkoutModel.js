@@ -47,6 +47,10 @@ export function availableMethods(paymentOptions, deliveryMethod) {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 
+export function isUkPostcode(value) {
+    return UK_POSTCODE.test(String(value || '').trim());
+}
+
 /** Returns { field, message } for the first problem, or null when the form is complete. */
 export function validateCheckoutForm(form, deliveryMethod) {
     if (form.fullName.trim().length < 2) {
@@ -86,6 +90,7 @@ export function buildCheckoutRequest(form, cart, deliveryMethod, totalPence) {
         paymentMethod: form.paymentMethod,
         agreedTerms: form.agreedTerms,
         expectedTotalPence: totalPence,
+        assembly: deliveryMethod === 'delivery' && Boolean(form.assembly),
         customer: {
             fullName: form.fullName.trim(),
             email: form.email.trim(),

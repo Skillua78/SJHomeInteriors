@@ -71,7 +71,7 @@ async function stripeRequest(env, method, path, params, idempotencyKey) {
  * @param method 'card' | 'klarna'
  * @param lines  [{ name, label, unitPence, qty }]
  */
-export function createCheckoutSession(env, { order, lines, deliveryPence, method, origin }) {
+export function createCheckoutSession(env, { order, lines, deliveryPence, assemblyPence = 0, method, origin }) {
     const lineItems = lines.map((line) => ({
         quantity: line.qty,
         price_data: {
@@ -92,7 +92,18 @@ export function createCheckoutSession(env, { order, lines, deliveryPence, method
             price_data: {
                 currency: 'gbp',
                 unit_amount: deliveryPence,
-                product_data: { name: 'Two-person delivery & assembly' },
+                product_data: { name: 'Home delivery' },
+            },
+        });
+    }
+
+    if (assemblyPence > 0) {
+        lineItems.push({
+            quantity: 1,
+            price_data: {
+                currency: 'gbp',
+                unit_amount: assemblyPence,
+                product_data: { name: 'Assembly service' },
             },
         });
     }

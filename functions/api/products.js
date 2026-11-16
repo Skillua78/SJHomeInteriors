@@ -7,7 +7,7 @@
  */
 import { HttpError, json, readJson, cleanText, intParam } from '../../server/http.js';
 import { requireAdmin } from '../../server/auth.js';
-import { loadSettings, deliveryFeePence } from '../../server/settings.js';
+import { loadSettings, assemblyFeePence } from '../../server/settings.js';
 import {
     listProducts,
     migrateLegacyProducts,
@@ -38,7 +38,7 @@ export async function onRequestGet({ request, env }) {
             limit: intParam(q.get('limit'), 24, 1, 60),
             offset: intParam(q.get('offset'), 0, 0, 100000),
         },
-        deliveryFeePence(settings)
+        assemblyFeePence(settings)
     );
     return json(result, 200, { 'Cache-Control': 'public, max-age=20' });
 }

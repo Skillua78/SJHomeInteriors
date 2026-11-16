@@ -19,7 +19,7 @@ const bed = {
     category: 'Beds',
     name: 'Ottoman Bed',
     price: 499.99,
-    deliveryFee: 50,
+    assemblyFee: 50,
     image: 'https://example.com/bed.jpg',
     variations: {
         fabrics: ['Wool', 'Teddy'],
@@ -33,7 +33,7 @@ describe('basket', () => {
         const { ok, line } = buildCartLine(bed, { color: 'Grey', fabric: 'Teddy', size: 'King' });
         expect(ok).toBe(true);
         expect(line.unitPrice).toBe(630.49);
-        expect(line.deliveryFee).toBe(50);
+        expect(line.assemblyFee).toBe(50);
         expect(line.selections).toEqual({ color: 'Grey', fabric: 'Teddy', size: 'King' });
     });
 
@@ -51,16 +51,21 @@ describe('basket', () => {
         expect(changeQty(cart, b.key, -1)).toHaveLength(1);
     });
 
-    it('totals items plus one delivery charge per order, free for collection', () => {
+    it('totals items, with delivery and assembly only when they apply', () => {
         const line = { ...buildCartLine(bed, { fabric: 'Teddy', size: 'King' }).line, qty: 2 };
-        expect(cartTotals([line], 'delivery')).toMatchObject({ subtotal: 1260.98, delivery: 50, total: 1310.98, totalPence: 131098 });
-        expect(cartTotals([line], 'collection').total).toBe(1260.98);
+        expect(cartTotals([line])).toMatchObject({ subtotal: 1260.98, delivery: 0, assembly: 0, total: 1260.98 });
+        expect(cartTotals([line], { delivery: 50 }).total).toBe(1310.98);
+        expect(cartTotals([line], { delivery: 50, assembly: true })).toMatchObject({
+            assembly: 50,
+            total: 1360.98,
+            totalPence: 136098,
+        });
     });
 
     it('adopts server prices and drops corrupt stored lines', () => {
         const line = buildCartLine(bed, { fabric: 'Teddy', size: 'King' }).line;
-        const repriced = applyQuote([line], [{ id: 'bed-1', selections: line.selections, unitPrice: 700, deliveryFee: 60 }]);
-        expect(repriced[0]).toMatchObject({ unitPrice: 700, deliveryFee: 60 });
+        const repriced = applyQuote([line], [{ id: 'bed-1', selections: line.selections, unitPrice: 700, assemblyFee: 60 }]);
+        expect(repriced[0]).toMatchObject({ unitPrice: 700, assemblyFee: 60 });
         expect(sanitiseStoredCart([line, { id: 1 }, null, { ...line, qty: -2 }, { ...line, qty: 999 }]).map((l) => l.qty)).toEqual([1, 20]);
         expect(sanitiseStoredCart('nope')).toEqual([]);
     });
@@ -75,7 +80,7 @@ describe('offline catalogue fallback', () => {
     it('filters, sorts and pages like the API', () => {
         expect(localListProducts(products, { category: 'Beds', sort: 'high' }).items.map((p) => p.id)).toEqual(['c', 'b']);
         expect(localListProducts(products, { category: 'Popular' }).total).toBe(1);
-        expect(localListProducts(products, { q: 'gamma' }).items[0].deliveryFee).toBe(50);
+        expect(localListProducts(products, { q: 'gamma' }).items[0].assemblyFee).toBe(50);
         expect(localListProducts(products, { limit: 2 }).nextOffset).toBe(2);
     });
 });
@@ -84,7 +89,7 @@ describe('product form model', () => {
     it('requires a title, price and category', () => {
         expect(formToPayload(emptyForm())).toMatchObject({ ok: false, section: 'basics' });
         expect(formToPayload({ ...emptyForm(), name: 'X', price: '10' })).toMatchObject({ ok: false });
-        expect(formToPayload({ ...emptyForm(), name: 'X', price: '10', category: 'Sofas', deliveryFee: 'abc' }).ok).toBe(false);
+        expect(formToPayload({ ...emptyForm(), name: 'X', price: '10', category: 'Sofas', assemblyFee: 'abc' }).ok).toBe(false);
     });
 
     it('builds a payload, pruning adjustments for options that were removed', () => {
@@ -93,7 +98,7 @@ describe('product form model', () => {
             name: 'Sofa',
             price: '899.99',
             category: 'Sofas',
-            deliveryFee: '75',
+            assemblyFee: '75',
             stock: '',
             fabrics: ['Teddy'],
             priceDeltas: { fabrics: { Teddy: 50, Wool: 20 }, sizes: { King: 80 }, mattresses: {}, liftOptions: {} },
@@ -101,15 +106,15 @@ describe('product form model', () => {
         };
         const { ok, payload } = formToPayload(form, 'sofa-1');
         expect(ok).toBe(true);
-        expect(payload).toMatchObject({ id: 'sofa-1', price: 899.99, deliveryFeeOverride: 75, stock: null });
+        expect(payload).toMatchObject({ id: 'sofa-1', price: 899.99, assemblyFeeOverride: 75, stock: null });
         expect(payload.variations.priceDeltas).toEqual({ fabrics: { Teddy: 50 }, sizes: {}, mattresses: {}, liftOptions: {} });
         expect(payload.features).toEqual(['Solid frame', 'Deep seats']);
     });
 
     it('round-trips a product through the form (used by undo)', () => {
-        const product = { id: 'bed-1', ...bed, deliveryFeeOverride: null, stock: 3, colors: ['Grey'], images: [bed.image], features: ['Sturdy'] };
+        const product = { id: 'bed-1', ...bed, assemblyFeeOverride: null, stock: 3, colors: ['Grey'], images: [bed.image], features: ['Sturdy'] };
         const payload = productToPayload(product);
-        expect(payload).toMatchObject({ id: 'bed-1', name: 'Ottoman Bed', price: 499.99, deliveryFeeOverride: null, stock: 3 });
+        expect(payload).toMatchObject({ id: 'bed-1', name: 'Ottoman Bed', price: 499.99, assemblyFeeOverride: null, stock: 3 });
         expect(payload.variations.priceDeltas.sizes).toEqual({ King: 80.5 });
         expect(productToForm(product, { duplicate: true }).name).toBe('Ottoman Bed (Copy)');
     });

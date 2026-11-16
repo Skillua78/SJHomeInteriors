@@ -10,13 +10,15 @@ import { HttpError, cleanText, randomCode } from './http.js';
 import { loadOptions } from './products.js';
 import {
     priceSelection,
-    computeTotals,
-    resolveDeliveryFeePence,
+    resolveAssemblyFeePence,
     fromPence,
 } from '../shared/pricing.js';
 
 export const ONLINE_METHODS = ['card', 'klarna'];
 export const OFFLINE_METHODS = ['cod', 'showroom', 'bacs'];
+// An order only needs the shop's attention once it is real: paid online, or placed as pay-later.
+export const NEW_ORDER_FILTER = `admin_seen = 0 AND payment_status IN ('paid', 'unpaid')`;
+
 export const ORDER_STATUSES = [
     'AWAITING_PAYMENT',
     'PENDING_DISPATCH',
@@ -89,8 +91,8 @@ function normaliseItems(rawItems) {
     });
 }
 
-/** Re-price a basket from the database. Returns { lines, totals }. */
-export async function quoteBasket(env, rawItems, deliveryMethod, defaultFeePence) {
+/** Re-price a basket from the database. Returns the priced lines. */
+export async function quoteBasket(env, rawItems, defaultFeePence) {
     const items = normaliseItems(rawItems);
     const ids = [...new Set(items.map((i) => i.id))];
 
@@ -131,11 +133,11 @@ export async function quoteBasket(env, rawItems, deliveryMethod, defaultFeePence
             selections: priced.selections,
             label: priced.label,
             unitPence: priced.unitPence,
-            deliveryUnitPence: resolveDeliveryFeePence(product.delivery_fee_pence, defaultFeePence),
+            assemblyUnitPence: resolveAssemblyFeePence(product.delivery_fee_pence, defaultFeePence),
         };
     });
 
-    return { lines, totals: computeTotals(lines, deliveryMethod) };
+    return lines;
 }
 
 function stockStatements(env, lines, guardSql = '', guardBinds = []) {
@@ -151,7 +153,10 @@ function stockStatements(env, lines, guardSql = '', guardBinds = []) {
 }
 
 /** Persist a new order. Pay-later orders reserve stock in the same transaction. */
-export async function createOrder(env, { customer, deliveryMethod, paymentMethod, lines, totals, userId }) {
+export async function createOrder(
+    env,
+    { customer, deliveryMethod, paymentMethod, lines, totals, userId, distanceMiles = null }
+) {
     const online = ONLINE_METHODS.includes(paymentMethod);
     const id = `SJH-${randomCode(8)}`;
 
@@ -159,8 +164,9 @@ export async function createOrder(env, { customer, deliveryMethod, paymentMethod
         `INSERT INTO orders (
            id, customer_name, customer_email, customer_phone, delivery_address, city, postcode,
            delivery_method, items_json, total, status, user_id, subtotal_pence, delivery_pence,
-           total_pence, payment_method, payment_status, stock_committed, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           total_pence, payment_method, payment_status, stock_committed, updated_at,
+           assembly_pence, distance_miles, admin_seen
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
     ).bind(
         id,
         customer.fullName,
@@ -180,7 +186,9 @@ export async function createOrder(env, { customer, deliveryMethod, paymentMethod
         paymentMethod,
         online ? 'pending' : 'unpaid',
         online ? 0 : 1,
-        new Date().toISOString()
+        new Date().toISOString(),
+        totals.assemblyPence || 0,
+        distanceMiles
     );
 
     await env.DB.batch(online ? [insert] : [insert, ...stockStatements(env, lines)]);
@@ -261,6 +269,8 @@ export function publicOrder(order) {
         phone: order.customer_phone,
         subtotal: fromPence(order.subtotal_pence),
         delivery: fromPence(order.delivery_pence),
+        assembly: fromPence(order.assembly_pence),
+        distanceMiles: order.distance_miles ?? null,
         total: order.total_pence === null ? Number(order.total) : fromPence(order.total_pence),
         items: lines.map((l) => ({
             name: l.name,

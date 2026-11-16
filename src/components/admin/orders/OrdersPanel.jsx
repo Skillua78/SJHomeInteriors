@@ -29,7 +29,7 @@ const PAYMENT_TONE = {
 };
 
 /** Orders placed through the checkout, newest first. */
-export default function OrdersPanel() {
+export default function OrdersPanel({ onSeen }) {
     const [status, setStatus] = useState('All');
     const [orders, setOrders] = useState([]);
     const [nextOffset, setNextOffset] = useState(null);
@@ -43,6 +43,12 @@ export default function OrdersPanel() {
             const page = await api.listOrders({ status, limit: 25, offset });
             setOrders((prev) => (offset === 0 ? page.items : [...prev, ...page.items]));
             setNextOffset(page.nextOffset);
+            // Having been shown, new orders stop counting towards the notification tally
+            // (they keep their "New" badge on screen until the list is next refreshed).
+            if (page.items.some((o) => o.isNew)) {
+                await api.markOrdersSeen();
+                onSeen?.();
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -111,6 +117,11 @@ export default function OrdersPanel() {
                 <article key={order.id} className="p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
+                            {order.isNew && (
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-[#1C1B18] text-[10px] font-bold uppercase">
+                                    New
+                                </span>
+                            )}
                             <strong className="font-mono text-sm text-[#1C1B18]">{order.id}</strong>
                             <span
                                 className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
@@ -169,9 +180,22 @@ export default function OrdersPanel() {
                                 </li>
                             ))}
                             <li className="flex justify-between gap-3 text-stone-500">
-                                <span>Delivery &amp; assembly</span>
-                                <span>{formatGBP(order.delivery)}</span>
+                                <span>
+                                    {order.deliveryMethod === 'delivery' ? 'Delivery' : 'Collection'}
+                                    {order.distanceMiles !== null && order.distanceMiles !== undefined
+                                        ? ` (${order.distanceMiles} miles)`
+                                        : order.deliveryMethod === 'delivery'
+                                            ? ' (distance not checked)'
+                                            : ''}
+                                </span>
+                                <span>{order.delivery > 0 ? formatGBP(order.delivery) : 'Free'}</span>
                             </li>
+                            {order.assembly > 0 && (
+                                <li className="flex justify-between gap-3 font-semibold text-[#1C1B18]">
+                                    <span>Assembly requested</span>
+                                    <span>{formatGBP(order.assembly)}</span>
+                                </li>
+                            )}
                         </ul>
                     </div>
                 </article>

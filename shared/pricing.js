@@ -28,8 +28,8 @@ export function formatGBP(pounds) {
     })}`;
 }
 
-/** Delivery & assembly fee for one unit: the product's own fee, else the site default. */
-export function resolveDeliveryFeePence(productFeePence, defaultFeePence) {
+/** Assembly fee for a product: its own fee when set (0 = none), else the site default. */
+export function resolveAssemblyFeePence(productFeePence, defaultFeePence) {
     if (productFeePence !== null && productFeePence !== undefined && productFeePence !== '') {
         const n = Number(productFeePence);
         if (Number.isFinite(n) && n >= 0) return Math.round(n);
@@ -84,19 +84,35 @@ export function priceSelection(basePence, options, selections = {}) {
 }
 
 /**
- * Basket totals. Delivery & assembly is charged ONCE per order - adding more
- * items does not add more delivery. Each product can carry its own fee, so the
- * order pays the highest fee among its items. Waived for showroom collection.
- * @param lines [{ unitPence, deliveryUnitPence, qty }]
+ * Assembly is one optional charge per order. Products can carry their own
+ * assembly fee, so an order that includes assembly pays the highest fee among
+ * its items (more items do not multiply it).
  */
-export function computeTotals(lines, deliveryMethod = 'delivery') {
+export function orderAssemblyPence(lines) {
+    let pence = 0;
+    for (const line of lines) pence = Math.max(pence, Math.round(line.assemblyUnitPence || 0));
+    return pence;
+}
+
+/**
+ * Basket totals.
+ * @param lines [{ unitPence, assemblyUnitPence, qty }]
+ * @param deliveryPence  delivery charge for this order (0 when collecting, or when the
+ *                       address is inside the free-delivery radius)
+ * @param assembly       true when the customer added the optional assembly service
+ */
+export function computeTotals(lines, { deliveryPence = 0, assembly = false } = {}) {
     let subtotalPence = 0;
-    let deliveryPence = 0;
     for (const line of lines) {
         const qty = Math.max(1, Math.floor(Number(line.qty) || 1));
         subtotalPence += Math.round(line.unitPence) * qty;
-        deliveryPence = Math.max(deliveryPence, Math.round(line.deliveryUnitPence || 0));
     }
-    if (deliveryMethod !== 'delivery') deliveryPence = 0;
-    return { subtotalPence, deliveryPence, totalPence: subtotalPence + deliveryPence };
+    const delivery = Math.max(0, Math.round(deliveryPence) || 0);
+    const assemblyPence = assembly ? orderAssemblyPence(lines) : 0;
+    return {
+        subtotalPence,
+        deliveryPence: delivery,
+        assemblyPence,
+        totalPence: subtotalPence + delivery + assemblyPence,
+    };
 }

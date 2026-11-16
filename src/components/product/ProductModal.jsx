@@ -217,12 +217,18 @@ export default function ProductModal({
                             <Truck className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
                             <span>
                                 <strong className="text-[#1C1B18]">
-                                    Estimated delivery &amp; assembly
-                                    {product.delivery ? `: ${product.delivery}` : ''}
+                                    {product.delivery
+                                        ? `Estimated delivery: ${product.delivery}`
+                                        : 'Home delivery or showroom collection'}
                                 </strong>
                                 <span className="block text-xs text-stone-500 mt-0.5">
-                                    One delivery &amp; assembly charge per order, shown in your basket.
-                                    Collect from our Maltby showroom at no charge.
+                                    Free delivery within {Number(siteSettings?.freeDeliveryMiles ?? 10)} miles of
+                                    our Maltby showroom
+                                    {Number(siteSettings?.defaultDeliveryFee ?? 50) > 0
+                                        ? `, ${formatGBP(siteSettings?.defaultDeliveryFee ?? 50)} beyond`
+                                        : ''}
+                                    . Assembly can be added at checkout
+                                    {product.assemblyFee > 0 ? ` (${formatGBP(product.assemblyFee)})` : ''}.
                                 </span>
                             </span>
                         </div>
@@ -362,7 +368,7 @@ export default function ProductModal({
                     <div className="min-w-0">
                         <p className="text-xl font-bold text-[#1C1B18] leading-tight">{formatGBP(unitPrice)}</p>
                         <p className="text-xs text-stone-500 truncate">
-                            Delivery &amp; assembly added once per order
+                            Free local delivery · assembly optional
                         </p>
                     </div>
                     <div className="flex-1 flex flex-col items-end">

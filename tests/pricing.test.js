@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     priceSelection,
     computeTotals,
-    resolveDeliveryFeePence,
+    resolveAssemblyFeePence,
     toPence,
     fromPence,
 } from '../shared/pricing.js';
@@ -40,23 +40,25 @@ describe('priceSelection', () => {
 
 describe('delivery & assembly', () => {
     it('uses the product fee when set (including 0) and the default otherwise', () => {
-        expect(resolveDeliveryFeePence(7500, 5000)).toBe(7500);
-        expect(resolveDeliveryFeePence(0, 5000)).toBe(0);
-        expect(resolveDeliveryFeePence(null, 5000)).toBe(5000);
-        expect(resolveDeliveryFeePence(undefined, undefined)).toBe(5000);
+        expect(resolveAssemblyFeePence(7500, 5000)).toBe(7500);
+        expect(resolveAssemblyFeePence(0, 5000)).toBe(0);
+        expect(resolveAssemblyFeePence(null, 5000)).toBe(5000);
+        expect(resolveAssemblyFeePence(undefined, undefined)).toBe(5000);
     });
 
-    it('charges once per order (the highest item fee) and waives it for collection', () => {
+    it('charges assembly once per order (the highest item fee), only when chosen', () => {
         const lines = [
-            { unitPence: 94999, deliveryUnitPence: 7500, qty: 2 },
-            { unitPence: 8900, deliveryUnitPence: 5000, qty: 1 },
+            { unitPence: 94999, assemblyUnitPence: 7500, qty: 2 },
+            { unitPence: 8900, assemblyUnitPence: 5000, qty: 1 },
         ];
-        expect(computeTotals(lines, 'delivery')).toEqual({
+        expect(computeTotals(lines)).toEqual({
             subtotalPence: 198898,
-            deliveryPence: 7500,
-            totalPence: 206398,
+            deliveryPence: 0,
+            assemblyPence: 0,
+            totalPence: 198898,
         });
-        expect(computeTotals(lines, 'collection').deliveryPence).toBe(0);
+        expect(computeTotals(lines, { assembly: true }).assemblyPence).toBe(7500);
+        expect(computeTotals(lines, { deliveryPence: 5000, assembly: true }).totalPence).toBe(211398);
     });
 });
 

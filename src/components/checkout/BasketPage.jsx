@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ShoppingBag, Info } from 'lucide-react';
 import { api } from '../../utils/api';
-import { cartTotals } from '../../utils/catalogModel';
+import { assemblyOffer, cartTotals } from '../../utils/catalogModel';
 import BasketLines from './BasketLines';
 import OrderSummary from './OrderSummary';
 import CheckoutForm from './CheckoutForm';
 import MaintenanceNotice from './MaintenanceNotice';
 import OrderConfirmation from './OrderConfirmation';
-import { availableMethods, buildCheckoutRequest, validateCheckoutForm } from './checkoutModel';
+import {
+    availableMethods,
+    buildCheckoutRequest,
+    isUkPostcode,
+    validateCheckoutForm,
+} from './checkoutModel';
+
+const NO_QUOTE = { status: 'idle', postcode: '', delivery: 0, miles: null, checked: true };
 
 export default function BasketPage({
     cart,
@@ -32,11 +39,14 @@ export default function BasketPage({
         city: '',
         postcode: '',
         paymentMethod: '',
+        assembly: false,
         agreedTerms: false,
     }));
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [confirmedOrder, setConfirmedOrder] = useState(null);
+    // The delivery charge depends on how far the address is from the showroom; the server works it out.
+    const [quote, setQuote] = useState(NO_QUOTE);
 
     const paymentEnabled = siteSettings?.paymentEnabled !== false;
     const methods = useMemo(
@@ -51,10 +61,60 @@ export default function BasketPage({
         }
     }, [methods, form.paymentMethod]);
 
-    const totals = useMemo(() => {
-        const current = cartTotals(cart, deliveryMethod);
-        return { ...current, deliveryIfChosen: cartTotals(cart, 'delivery').delivery };
-    }, [cart, deliveryMethod]);
+    const postcode = form.postcode.trim().toUpperCase();
+    const postcodeReady = deliveryMethod === 'delivery' && isUkPostcode(postcode);
+    const basketKey = cart.map((item) => `${item.key}x${item.qty}`).join(',');
+
+    // Ask the server for the delivery charge once a full postcode has been typed.
+    useEffect(() => {
+        if (!postcodeReady || cart.length === 0) {
+            setQuote(NO_QUOTE);
+            return undefined;
+        }
+        let cancelled = false;
+        setQuote((prev) => ({ ...prev, status: 'loading', postcode }));
+        const timer = setTimeout(async () => {
+            try {
+                const result = await api.quoteBasket({
+                    deliveryMethod: 'delivery',
+                    postcode,
+                    items: cart.map((item) => ({
+                        id: item.id,
+                        qty: item.qty,
+                        selections: item.selections,
+                    })),
+                });
+                if (cancelled) return;
+                onRepriceCart(result.lines);
+                setQuote({
+                    status: 'ok',
+                    postcode,
+                    delivery: result.delivery,
+                    miles: result.distanceMiles,
+                    checked: result.distanceChecked,
+                });
+            } catch (err) {
+                if (!cancelled) {
+                    setQuote({ ...NO_QUOTE, status: 'error', postcode, message: err.message });
+                }
+            }
+        }, 450);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+        // basketKey stands in for the cart contents; re-pricing the cart must not re-trigger this.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [postcode, postcodeReady, basketKey]);
+
+    const assemblyPrice = assemblyOffer(cart);
+    const wantsAssembly = deliveryMethod === 'delivery' && form.assembly && assemblyPrice > 0;
+    const deliveryCharge = deliveryMethod === 'delivery' && quote.status === 'ok' ? quote.delivery : 0;
+
+    const totals = useMemo(
+        () => cartTotals(cart, { delivery: deliveryCharge, assembly: wantsAssembly }),
+        [cart, deliveryCharge, wantsAssembly]
+    );
     const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
     const setField = (field, value) => {
@@ -89,8 +149,17 @@ export default function BasketPage({
             onOrderPlaced?.();
             window.scrollTo({ top: 0 });
         } catch (err) {
-            if (err.code === 'PRICE_CHANGED' && err.data?.quote) {
-                onRepriceCart(err.data.quote.lines);
+            const fresh = err.code === 'PRICE_CHANGED' ? err.data?.quote : null;
+            if (fresh) {
+                // Show the server's figures (item prices, delivery for this postcode) before charging.
+                onRepriceCart(fresh.lines);
+                setQuote({
+                    status: 'ok',
+                    postcode,
+                    delivery: fresh.delivery,
+                    miles: fresh.distanceMiles,
+                    checked: fresh.distanceChecked,
+                });
             }
             setError({ field: null, message: err.message });
         } finally {
@@ -107,6 +176,13 @@ export default function BasketPage({
             />
         );
     }
+
+    const deliveryInfo = {
+        freeMiles: Number(siteSettings?.freeDeliveryMiles ?? 10),
+        charge: Number(siteSettings?.defaultDeliveryFee ?? 50),
+        quote,
+        postcodeReady,
+    };
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -155,6 +231,8 @@ export default function BasketPage({
                                 setField={setField}
                                 deliveryMethod={deliveryMethod}
                                 onDeliveryMethodChange={setDeliveryMethod}
+                                deliveryInfo={deliveryInfo}
+                                assemblyPrice={assemblyPrice}
                                 methods={methods}
                                 totals={totals}
                                 error={error}
@@ -168,10 +246,12 @@ export default function BasketPage({
                         )}
                     </div>
 
-                    <div className="lg:col-span-5">
+                    <div className="lg:col-span-5 lg:sticky lg:top-32">
                         <OrderSummary
                             totals={totals}
                             deliveryMethod={deliveryMethod}
+                            deliveryInfo={deliveryInfo}
+                            assemblyAdded={wantsAssembly}
                             itemCount={itemCount}
                         />
                     </div>

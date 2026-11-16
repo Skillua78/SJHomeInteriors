@@ -2,10 +2,11 @@
  * /api/orders (administrators only - customers place orders via /api/checkout)
  *   GET  ?limit=&offset=&status=   newest first
  *   PUT  { id, status }            update fulfilment status
+ *   PUT  { action: 'mark-seen' }   clear the "new order" notifications
  */
 import { HttpError, json, readJson, cleanText, intParam } from '../../server/http.js';
 import { requireAdmin } from '../../server/auth.js';
-import { ORDER_STATUSES, publicOrder } from '../../server/orders.js';
+import { ORDER_STATUSES, NEW_ORDER_FILTER, publicOrder } from '../../server/orders.js';
 
 export async function onRequestGet({ request, env }) {
     await requireAdmin(request, env);
@@ -30,6 +31,7 @@ export async function onRequestGet({ request, env }) {
             email: o.customer_email,
             address: [o.delivery_address, o.city, o.postcode].filter(Boolean).join(', '),
             createdAt: o.created_at,
+            isNew: !o.admin_seen && ['paid', 'unpaid'].includes(o.payment_status),
         })),
         nextOffset: rows.length > limit ? offset + limit : null,
     });
@@ -38,6 +40,12 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPut({ request, env }) {
     await requireAdmin(request, env);
     const body = await readJson(request);
+
+    if (body.action === 'mark-seen') {
+        await env.DB.prepare(`UPDATE orders SET admin_seen = 1 WHERE ${NEW_ORDER_FILTER}`).run();
+        return json({ success: true });
+    }
+
     const id = cleanText(body.id, 40);
     const status = cleanText(body.status, 30);
     if (!id || !ORDER_STATUSES.includes(status)) throw new HttpError(400, 'Invalid order update.');

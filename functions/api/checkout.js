@@ -1,14 +1,17 @@
 /**
  * /api/checkout
- *   POST  place an order. Card / Klarna orders return a Stripe Checkout URL;
- *         pay-later orders (on delivery, in showroom, bank transfer) are
- *         confirmed immediately.
- *   GET   ?session_id=cs_...  order status after returning from Stripe.
+ *   POST ?action=quote  price a basket (items, delivery by distance, optional assembly)
+ *                       without placing an order
+ *   POST                place an order. Card / Klarna orders return a Stripe Checkout URL;
+ *                       pay-later orders (on delivery, in showroom, bank transfer) are
+ *                       confirmed immediately.
+ *   GET  ?session_id=cs_...  order status after returning from Stripe.
  */
 import { HttpError, json, readJson, cleanText, clientIp } from '../../server/http.js';
 import { getSession } from '../../server/auth.js';
 import { rateLimit } from '../../server/rateLimit.js';
-import { loadSettings, deliveryFeePence, paymentOptions } from '../../server/settings.js';
+import { loadSettings, assemblyFeePence, paymentOptions } from '../../server/settings.js';
+import { deliveryCharge } from '../../server/delivery.js';
 import { createCheckoutSession, retrieveCheckoutSession } from '../../server/stripe.js';
 import {
     ONLINE_METHODS,
@@ -21,18 +24,71 @@ import {
     markOrderUnpaid,
     publicOrder,
 } from '../../server/orders.js';
-import { fromPence } from '../../shared/pricing.js';
+import { computeTotals, orderAssemblyPence, fromPence } from '../../shared/pricing.js';
+
+const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+
+/**
+ * Everything the browser may not decide for itself: item prices, whether this
+ * address is charged for delivery, and what assembly costs.
+ */
+async function priceOrder(env, settings, { items, deliveryMethod, postcode, assembly }) {
+    const lines = await quoteBasket(env, items, assemblyFeePence(settings));
+
+    let delivery = { pence: 0, miles: null, checked: true };
+    if (deliveryMethod === 'delivery' && postcode) {
+        delivery = await deliveryCharge(settings, postcode);
+    }
+
+    // Assembly happens in the customer's home, so it is only offered with delivery.
+    const wantsAssembly = deliveryMethod === 'delivery' && assembly === true;
+    const totals = computeTotals(lines, { deliveryPence: delivery.pence, assembly: wantsAssembly });
+    return { lines, totals, delivery, assemblyOfferPence: orderAssemblyPence(lines) };
+}
+
+function quoteResponse({ lines, totals, delivery, assemblyOfferPence }) {
+    return {
+        lines: lines.map((l) => ({
+            id: l.id,
+            selections: l.selections,
+            unitPrice: fromPence(l.unitPence),
+            assemblyFee: fromPence(l.assemblyUnitPence),
+        })),
+        subtotal: fromPence(totals.subtotalPence),
+        delivery: fromPence(totals.deliveryPence),
+        assembly: fromPence(totals.assemblyPence),
+        total: fromPence(totals.totalPence),
+        totalPence: totals.totalPence,
+        assemblyOffer: fromPence(assemblyOfferPence),
+        distanceMiles: delivery.miles,
+        distanceChecked: delivery.checked,
+    };
+}
 
 export async function onRequestPost({ request, env }) {
-    await rateLimit(env, `checkout:${clientIp(request)}`, 12, 600);
-    const body = await readJson(request, 32 * 1024);
+    const ip = clientIp(request);
+    const isQuote = new URL(request.url).searchParams.get('action') === 'quote';
+    await rateLimit(env, `${isQuote ? 'quote' : 'checkout'}:${ip}`, isQuote ? 60 : 12, 600);
 
+    const body = await readJson(request, 32 * 1024);
     const settings = await loadSettings(env);
+    const deliveryMethod = body.deliveryMethod === 'collection' ? 'collection' : 'delivery';
+
+    if (isQuote) {
+        const postcode = cleanText(body.postcode, 10);
+        const priced = await priceOrder(env, settings, {
+            items: body.items,
+            deliveryMethod,
+            postcode: UK_POSTCODE.test(postcode) ? postcode : '',
+            assembly: body.assembly === true,
+        });
+        return json(quoteResponse(priced));
+    }
+
     if (settings.paymentEnabled === false) {
         throw new HttpError(503, 'Online ordering is paused for maintenance. Please contact the showroom.');
     }
 
-    const deliveryMethod = body.deliveryMethod === 'collection' ? 'collection' : 'delivery';
     const paymentMethod = cleanText(body.paymentMethod, 12);
     const available = paymentOptions(env, settings);
     if (!available[paymentMethod]) {
@@ -46,21 +102,19 @@ export async function onRequestPost({ request, env }) {
     }
 
     const customer = validateCustomer(body.customer, deliveryMethod);
-    const { lines, totals } = await quoteBasket(env, body.items, deliveryMethod, deliveryFeePence(settings));
+    const priced = await priceOrder(env, settings, {
+        items: body.items,
+        deliveryMethod,
+        postcode: customer.postcode,
+        assembly: body.assembly === true,
+    });
+    const { lines, totals, delivery } = priced;
 
-    // If prices changed since the basket was displayed, show the new figures before charging.
+    // If the total differs from what the basket displayed, show the new figures before charging.
     if (Number.isFinite(Number(body.expectedTotalPence)) && Number(body.expectedTotalPence) !== totals.totalPence) {
-        throw new HttpError(409, 'Some prices have been updated. Please review your new total and confirm.', {
+        throw new HttpError(409, 'Your total has been updated. Please review it and confirm.', {
             code: 'PRICE_CHANGED',
-            quote: {
-                lines: lines.map((l) => ({
-                    id: l.id,
-                    selections: l.selections,
-                    unitPrice: fromPence(l.unitPence),
-                    deliveryFee: fromPence(l.deliveryUnitPence),
-                })),
-                total: fromPence(totals.totalPence),
-            },
+            quote: quoteResponse(priced),
         });
     }
     if (totals.totalPence <= 0) throw new HttpError(400, 'This order has nothing to pay for.');
@@ -72,6 +126,7 @@ export async function onRequestPost({ request, env }) {
         paymentMethod,
         lines,
         totals,
+        distanceMiles: deliveryMethod === 'delivery' ? delivery.miles : null,
         userId: session?.role === 'customer' ? session.id : null,
     });
 
@@ -86,6 +141,7 @@ export async function onRequestPost({ request, env }) {
             order: { id: orderId, email: customer.email },
             lines,
             deliveryPence: totals.deliveryPence,
+            assemblyPence: totals.assemblyPence,
             method: paymentMethod,
             origin: new URL(request.url).origin,
         });

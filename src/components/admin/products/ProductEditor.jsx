@@ -56,7 +56,7 @@ export default function ProductEditor({
         setForm((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }));
 
     const library = usePresetLibrary({ siteSettings, saveSettings, facets, form });
-    const defaultDeliveryFee = Number(siteSettings?.defaultDeliveryFee ?? 50);
+    const defaultAssemblyFee = Number(siteSettings?.assemblyFee ?? 50);
     const dirty = Boolean(editing || form.name || form.images.length);
 
     const handleSubmit = async (e) => {
@@ -188,7 +188,7 @@ export default function ProductEditor({
                         update={update}
                         library={library}
                         manageMode={manageMode}
-                        defaultDeliveryFee={defaultDeliveryFee}
+                        defaultAssemblyFee={defaultAssemblyFee}
                     />
                 )}
                 {step === 'photos' && <PhotosStep form={form} update={update} onError={setError} />}
@@ -216,28 +216,41 @@ export default function ProductEditor({
             <AiImportModal
                 isOpen={showAiImport}
                 onClose={() => setShowAiImport(false)}
-                onLoadSingleIntoEditor={(importedProduct) => {
+                library={library}
+                onLoadIntoEditor={async (product, additions) => {
+                    // Save any new category / colours first so the form's pickers include them.
+                    await library.registerImported(additions);
                     setError('');
-                    setForm(productToForm(importedProduct, { duplicate: false }));
+                    setForm(productToForm(product));
                     setEditing(null);
                     setStep('basics');
                     setNotice(
-                        `Loaded "${importedProduct.name}" with a default placeholder image — review the tabs or swap the photo in Step 2, then click Add product!`
+                        `Loaded “${product.name}”. Check each step, add photos, then press Add product.`
                     );
                 }}
-                onBulkCreateProducts={async (importedList) => {
+                onSaveAll={async (products, additions) => {
+                    await library.registerImported(additions);
                     setError('');
-                    for (const item of importedList) {
-                        const formState = productToForm(item, { duplicate: false });
-                        const converted = formToPayload(formState, null);
+                    let saved = 0;
+                    for (const product of products) {
+                        const converted = formToPayload(productToForm(product), null);
                         if (!converted.ok) {
-                            throw new Error(`Invalid item "${item.name}": ${converted.error}`);
+                            throw new Error(
+                                `Imported ${saved} of ${products.length}. Stopped at “${product.name}”: ${converted.error}`
+                            );
                         }
-                        await onSave(converted.payload, null);
+                        try {
+                            // eslint-disable-next-line no-await-in-loop
+                            await onSave(converted.payload, null);
+                        } catch (err) {
+                            throw new Error(
+                                `Imported ${saved} of ${products.length}. Stopped at “${product.name}”: ${err.message}`
+                            );
+                        }
+                        saved += 1;
                     }
-                    onDone();
                     setNotice(
-                        `Successfully imported ${importedList.length} product(s) with default images! Click Edit on any item in the list to update its photo.`
+                        `Imported ${saved} ${saved === 1 ? 'product' : 'products'}. Use Edit in the list to add photos.`
                     );
                 }}
             />

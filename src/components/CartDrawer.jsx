@@ -23,7 +23,7 @@ export default function CartDrawer({
 
     if (!isOpen) return null;
 
-    const totals = cartTotals(cart, 'delivery');
+    const totals = cartTotals(cart);
 
     return (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Your basket">
@@ -107,20 +107,13 @@ export default function CartDrawer({
                 <div className="px-5 py-4 border-t border-stone-200 space-y-3 bg-white">
                     {cart.length > 0 && (
                         <dl className="space-y-1.5 text-sm">
-                            <div className="flex justify-between">
-                                <dt className="text-stone-600">Items</dt>
-                                <dd className="font-semibold">{formatGBP(totals.subtotal)}</dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-stone-600">Delivery &amp; assembly</dt>
-                                <dd className="font-semibold">{formatGBP(totals.delivery)}</dd>
-                            </div>
-                            <div className="flex justify-between text-lg font-bold pt-1.5 border-t border-stone-200">
-                                <dt>Total</dt>
-                                <dd>{formatGBP(totals.total)}</dd>
+                            <div className="flex justify-between text-lg font-bold">
+                                <dt>Subtotal</dt>
+                                <dd>{formatGBP(totals.subtotal)}</dd>
                             </div>
                             <p className="text-[11px] text-stone-500">
-                                No delivery charge if you collect from our Maltby showroom.
+                                Free local delivery or showroom collection. Delivery further afield and
+                                optional assembly are shown at checkout.
                             </p>
                         </dl>
                     )}

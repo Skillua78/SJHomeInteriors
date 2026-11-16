@@ -15,14 +15,25 @@ export function sanitizeText(input, maxLength = 500) {
 export function validateSafeImageUrl(url) {
     if (typeof url !== 'string') return '';
     const trimmed = url.trim();
-    if (
-        trimmed.startsWith('https://') ||
-        trimmed.startsWith('data:image/') ||
-        trimmed.startsWith('/')
-    ) {
+    if (!trimmed) return '';
+
+    // Images served by this site: uploads (/api/img/...) and files shipped with it (/showroom/...).
+    // A single leading slash only - "//host" would point at another website.
+    if (/^\/(?!\/)[A-Za-z0-9_\-./]+$/.test(trimmed) && !trimmed.includes('..')) {
         return trimmed;
     }
-    return '';
+
+    // Freshly chosen uploads (raster formats only - SVG can carry scripts).
+    if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    try {
+        const parsed = new URL(trimmed);
+        return parsed.protocol === 'https:' ? parsed.toString() : '';
+    } catch {
+        return '';
+    }
 }
 
 // Validate uploaded image files (MIME allowlist + size cap)

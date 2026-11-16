@@ -84,12 +84,18 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                     ))}
                     <div className="flex justify-between pt-2 border-t border-stone-200 text-stone-700">
                         <span>
-                            {order.deliveryMethod === 'delivery'
-                                ? 'Delivery & assembly'
-                                : 'Showroom collection'}
+                            {order.deliveryMethod === 'delivery' ? 'Home delivery' : 'Showroom collection'}
                         </span>
-                        <span className="font-semibold">{formatGBP(order.delivery)}</span>
+                        <span className="font-semibold">
+                            {order.delivery > 0 ? formatGBP(order.delivery) : 'Free'}
+                        </span>
                     </div>
+                    {order.assembly > 0 && (
+                        <div className="flex justify-between text-stone-700">
+                            <span>Assembly service</span>
+                            <span className="font-semibold">{formatGBP(order.assembly)}</span>
+                        </div>
+                    )}
                     <div className="flex justify-between font-bold text-[#1C1B18] text-base">
                         <span>{failed ? 'Order total' : paidOnline && !pending ? 'Total paid' : 'Total'}</span>
                         <span>{formatGBP(order.total)}</span>

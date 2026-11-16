@@ -98,8 +98,19 @@ export const api = {
 
     // Checkout & orders
     checkout: (order) => request('/api/checkout', { method: 'POST', body: order }),
+    quoteBasket: (basket) => request('/api/checkout?action=quote', { method: 'POST', body: basket }),
     getCheckoutStatus: (sessionId) =>
         request(`/api/checkout${query({ session_id: sessionId })}`, { fresh: true }),
     listOrders: (params) => request(`/api/orders${query(params)}`, { fresh: true }),
     updateOrderStatus: (id, status) => request('/api/orders', { method: 'PUT', body: { id, status } }),
+    markOrdersSeen: () => request('/api/orders', { method: 'PUT', body: { action: 'mark-seen' } }),
+
+    // Messages & admin notifications
+    sendMessage: (message) => request('/api/messages', { method: 'POST', body: message }),
+    listMessages: (params) => request(`/api/messages${query(params)}`, { fresh: true }),
+    setMessageRead: (id, read) => request('/api/messages', { method: 'PUT', body: { id, read } }),
+    markAllMessagesRead: () =>
+        request('/api/messages', { method: 'PUT', body: { action: 'mark-all-read' } }),
+    deleteMessage: (id) => request(`/api/messages${query({ id })}`, { method: 'DELETE' }),
+    getNotifications: () => request('/api/notifications', { fresh: true }),
 };

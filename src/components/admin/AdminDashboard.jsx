@@ -7,6 +7,7 @@ import {
     MessageSquare,
     ShieldAlert,
     ClipboardList,
+    Inbox,
     CheckCircle2,
     AlertCircle,
 } from 'lucide-react';
@@ -17,11 +18,13 @@ import InventoryList from './products/InventoryList';
 import SettingsPanel from './settings/SettingsPanel';
 import ReviewsPanel from './reviews/ReviewsPanel';
 import OrdersPanel from './orders/OrdersPanel';
+import MessagesPanel from './messages/MessagesPanel';
 import { CATEGORY_TAXONOMY } from '../../data/products';
 
 const TABS = [
     { id: 'inventory', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ClipboardList },
+    { id: 'messages', label: 'Messages', icon: Inbox },
     { id: 'reviews', label: 'Reviews', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -44,6 +47,8 @@ export default function AdminDashboard({
     onDeleteReview,
     initialEditProduct,
     onClearInitialEdit,
+    notifications,
+    onRefreshNotifications,
 }) {
     const [tab, setTab] = useState('inventory');
     const [target, setTarget] = useState(null); // { product, duplicate } loaded into the editor
@@ -92,7 +97,11 @@ export default function AdminDashboard({
     const categoryNames = Array.from(
         new Set([...Object.keys(CATEGORY_TAXONOMY), ...(facets?.categories || []).map((c) => c.name)])
     );
-    const pendingReviews = reviews.filter((r) => !r.verified).length;
+    const tabCounts = {
+        orders: notifications?.orders || 0,
+        messages: notifications?.messages || 0,
+        reviews: reviews.filter((r) => !r.verified).length,
+    };
 
     return (
         <div
@@ -129,9 +138,10 @@ export default function AdminDashboard({
                                     >
                                         <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                                         {item.label}
-                                        {item.id === 'reviews' && pendingReviews > 0 && (
+                                        {tabCounts[item.id] > 0 && (
                                             <span className="ml-0.5 px-1.5 rounded-full bg-amber-500 text-[#1C1B18] text-[10px] font-bold">
-                                                {pendingReviews}
+                                                <span className="sr-only">new: </span>
+                                                {tabCounts[item.id]}
                                             </span>
                                         )}
                                     </button>
@@ -215,7 +225,8 @@ export default function AdminDashboard({
                             />
                         </div>
                     )}
-                    {tab === 'orders' && <OrdersPanel />}
+                    {tab === 'orders' && <OrdersPanel onSeen={onRefreshNotifications} />}
+                    {tab === 'messages' && <MessagesPanel onChanged={onRefreshNotifications} />}
                     {tab === 'reviews' && (
                         <ReviewsPanel
                             reviews={reviews}

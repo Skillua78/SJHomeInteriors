@@ -30,8 +30,13 @@ export const DEFAULT_SITE_SETTINGS = {
     catalogTitle: 'Explore Our Furniture',
     showAssemblyHighlight: true,
     assemblyTitle: 'Two-Person Delivery & Assembly',
-    assemblySubtitle: 'One charge per order',
+    assemblySubtitle: 'Free local delivery · assembly available',
+    // Delivery: free within freeDeliveryMiles of storePostcode, otherwise defaultDeliveryFee.
     defaultDeliveryFee: 50,
+    freeDeliveryMiles: 10,
+    storePostcode: 'S66 8JE',
+    // Assembly: optional extra the customer can add at checkout (per order).
+    assemblyFee: 50,
     customCategories: {},
     removedCategories: [],
     customColors: {},
@@ -109,9 +114,8 @@ export async function loadSettings(env) {
     // Values saved before validation existed are re-checked on the way out.
     merged.facebookUrl = httpsUrl(merged.facebookUrl);
 
-    // Delivery & assembly used to be advertised as free; it is now a paid service.
-    // (and it is one charge per order, not per item).
-    if (/free|per item/i.test(String(merged.assemblySubtitle || ''))) {
+    // Wording from earlier charging rules no longer applies.
+    if (/included free|per item|per order/i.test(String(merged.assemblySubtitle || ''))) {
         merged.assemblySubtitle = DEFAULT_SITE_SETTINGS.assemblySubtitle;
     }
 
@@ -130,9 +134,15 @@ export async function loadSettings(env) {
     return merged;
 }
 
-export function deliveryFeePence(settings) {
-    const pounds = Number(settings?.defaultDeliveryFee);
+/** Default assembly fee (pence) for products without their own. */
+export function assemblyFeePence(settings) {
+    const pounds = Number(settings?.assemblyFee);
     return Number.isFinite(pounds) && pounds >= 0 ? Math.round(pounds * 100) : 5000;
+}
+
+function money(value, fallback, max = 2000) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 && n <= max ? Math.round(n * 100) / 100 : fallback;
 }
 
 /** Validate an admin settings payload. Returns { settings, statements }. */
@@ -200,10 +210,11 @@ export async function sanitizeSettings(env, body) {
         showAssemblyHighlight: bool(body.showAssemblyHighlight, true),
         assemblyTitle: text(body, 'assemblyTitle', 80),
         assemblySubtitle: text(body, 'assemblySubtitle', 80),
-        defaultDeliveryFee:
-            Number.isFinite(fee) && fee >= 0 && fee <= 2000
-                ? Math.round(fee * 100) / 100
-                : DEFAULT_SITE_SETTINGS.defaultDeliveryFee,
+        defaultDeliveryFee: money(fee, DEFAULT_SITE_SETTINGS.defaultDeliveryFee),
+        freeDeliveryMiles: money(body.freeDeliveryMiles, DEFAULT_SITE_SETTINGS.freeDeliveryMiles, 1000),
+        storePostcode:
+            cleanText(body.storePostcode, 10).toUpperCase() || DEFAULT_SITE_SETTINGS.storePostcode,
+        assemblyFee: money(body.assemblyFee, DEFAULT_SITE_SETTINGS.assemblyFee),
         customCategories,
         removedCategories: stringList(body.removedCategories, 100, 40),
         customColors,

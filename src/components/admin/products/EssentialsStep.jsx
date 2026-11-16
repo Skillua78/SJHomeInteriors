@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { inputClass, labelClass, primaryButtonClass } from '../adminUi';
 
 /** Step 1: title, category, pricing, delivery & assembly fee, description. */
-export default function EssentialsStep({ form, update, library, manageMode, defaultDeliveryFee }) {
+export default function EssentialsStep({ form, update, library, manageMode, defaultAssemblyFee }) {
     const [newCategory, setNewCategory] = useState(null); // null = picker shown
     const [newSubcategory, setNewSubcategory] = useState(null);
 
@@ -184,16 +184,16 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                 </div>
                 <div>
                     <label htmlFor="pf-delivery-fee" className={labelClass}>
-                        Delivery &amp; assembly (£)
+                        Assembly fee (£)
                     </label>
                     <input
                         id="pf-delivery-fee"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={form.deliveryFee}
-                        onChange={(e) => update({ deliveryFee: e.target.value })}
-                        placeholder={`Standard £${defaultDeliveryFee}`}
+                        value={form.assemblyFee}
+                        onChange={(e) => update({ assemblyFee: e.target.value })}
+                        placeholder={`Standard £${defaultAssemblyFee}`}
                         aria-describedby="pf-delivery-fee-hint"
                         className={inputClass}
                     />
@@ -214,9 +214,10 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                 </div>
             </div>
             <p id="pf-delivery-fee-hint" className="text-[11px] text-stone-500 -mt-2">
-                Delivery &amp; assembly is charged once per order (the highest fee among the items in the
-                basket). Leave blank to use the standard £{defaultDeliveryFee}; enter 0 if this item adds
-                no charge. Collection is always free.
+                Assembly is an optional extra the customer can add at checkout: one charge per order (the
+                highest fee among the items in the basket). Leave blank to use the standard £
+                {defaultAssemblyFee}; enter 0 if this item needs no assembly. Delivery is charged
+                separately, by distance.
             </p>
 
             <div>

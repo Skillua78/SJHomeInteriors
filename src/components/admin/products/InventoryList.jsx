@@ -189,7 +189,7 @@ export default function InventoryList({
                                     </p>
                                     <p className="text-sm font-bold text-[#1C1B18] truncate">{p.name}</p>
                                     <p className="text-xs text-stone-500">
-                                        {formatGBP(p.price)} · delivery {formatGBP(p.deliveryFee)}
+                                        {formatGBP(p.price)} · assembly {formatGBP(p.assemblyFee)}
                                     </p>
                                 </div>
                             </div>

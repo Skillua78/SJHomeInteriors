@@ -7,7 +7,7 @@
  * /migrations for anyone who prefers to apply it with wrangler.
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const TABLES = [
     `CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -99,6 +99,18 @@ const TABLES = [
        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
      )`,
 
+    `CREATE TABLE IF NOT EXISTS messages (
+       id TEXT PRIMARY KEY,
+       kind TEXT NOT NULL DEFAULT 'contact',
+       name TEXT NOT NULL DEFAULT '',
+       email TEXT NOT NULL DEFAULT '',
+       phone TEXT NOT NULL DEFAULT '',
+       subject TEXT NOT NULL DEFAULT '',
+       body TEXT NOT NULL,
+       is_read INTEGER NOT NULL DEFAULT 0,
+       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+     )`,
+
     `CREATE TABLE IF NOT EXISTS rate_limits (
        key TEXT PRIMARY KEY,
        window_start INTEGER NOT NULL,
@@ -132,6 +144,10 @@ const COLUMNS = {
         stripe_session_id: 'TEXT DEFAULT NULL',
         stripe_payment_intent: 'TEXT DEFAULT NULL',
         stock_committed: 'INTEGER NOT NULL DEFAULT 1',
+        assembly_pence: 'INTEGER NOT NULL DEFAULT 0',
+        distance_miles: 'REAL DEFAULT NULL',
+        // Existing orders count as already seen; new ones are inserted with 0.
+        admin_seen: 'INTEGER NOT NULL DEFAULT 1',
         updated_at: 'TEXT DEFAULT NULL',
     },
 };
@@ -149,6 +165,9 @@ const INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_reviews_public ON reviews(created_at DESC) WHERE verified = 1`,
     `CREATE INDEX IF NOT EXISTS idx_reviews_created ON reviews(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_orders_unseen ON orders(admin_seen) WHERE admin_seen = 0`,
+    `CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(is_read) WHERE is_read = 0`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders(stripe_session_id) WHERE stripe_session_id IS NOT NULL`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users(google_id) WHERE google_id IS NOT NULL`,
 ];

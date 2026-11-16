@@ -3,7 +3,7 @@ import { Truck, ShieldCheck, Store, PoundSterling } from 'lucide-react';
 export default function ValueBar({ siteSettings, ready = true }) {
     const showAssembly = siteSettings?.showAssemblyHighlight !== false;
     const assemblyTitle = siteSettings?.assemblyTitle || 'Two-Person Delivery & Assembly';
-    const assemblySubtitle = siteSettings?.assemblySubtitle || 'One charge per order';
+    const assemblySubtitle = siteSettings?.assemblySubtitle || 'Free local delivery · assembly available';
 
     const items = [
         { icon: PoundSterling, title: 'Affordable Direct Prices', sub: 'No High-Street Markups' },

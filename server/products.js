@@ -12,7 +12,7 @@
  */
 import { HttpError, cleanText } from './http.js';
 import { planImages, orphanOwnerMedia, reviveOwnerMedia } from './media.js';
-import { OPTION_GROUPS, toPence, fromPence, resolveDeliveryFeePence } from '../shared/pricing.js';
+import { OPTION_GROUPS, toPence, fromPence, resolveAssemblyFeePence } from '../shared/pricing.js';
 
 const SUMMARY_COLUMNS = `id, name, price, previous_price, substr(description, 1, 240) AS description,
     category, subcategory, badge, stock, is_popular, is_trending, delivery, colors_json,
@@ -59,7 +59,7 @@ export function mapSummary(row, defaultFeePence) {
         sizeCount: Number(row.size_count) || 0,
         hasOptions: Number(row.option_count) > 0,
         dimSummary: row.dim_summary || '',
-        deliveryFee: fromPence(resolveDeliveryFeePence(row.delivery_fee_pence, defaultFeePence)),
+        assemblyFee: fromPence(resolveAssemblyFeePence(row.delivery_fee_pence, defaultFeePence)),
     };
 }
 
@@ -231,7 +231,7 @@ export async function getProduct(env, id, defaultFeePence) {
         images: images.length ? images : summary.image ? [summary.image] : [],
         dimensions: parseJson(row.dimensions_json, []),
         features: parseJson(row.features_json, []),
-        deliveryFeeOverride:
+        assemblyFeeOverride:
             row.delivery_fee_pence === null ? null : fromPence(row.delivery_fee_pence),
         variations,
     };
@@ -342,7 +342,7 @@ export function validateProduct(body) {
         dimensions[0] ||
         '';
 
-    const deliveryFee = optionalMoney(body.deliveryFeeOverride, 2000);
+    const assemblyFee = optionalMoney(body.assemblyFeeOverride, 2000);
 
     return {
         name,
@@ -359,7 +359,7 @@ export function validateProduct(body) {
         colors: stringArray(body.colors, 60, 60),
         dimensions,
         features: stringArray(body.features, 30, 160),
-        deliveryFeePence: deliveryFee === null ? null : toPence(deliveryFee),
+        assemblyFeePence: assemblyFee === null ? null : toPence(assemblyFee),
         options,
         extras,
         dimSummary: dimSummary.slice(0, 200),
@@ -407,7 +407,7 @@ export async function saveProduct(env, id, p, { create }) {
         JSON.stringify(p.dimensions),
         JSON.stringify(p.features),
         JSON.stringify(p.extras),
-        p.deliveryFeePence,
+        p.assemblyFeePence,
         p.options.filter((o) => o.grp === 'fabric').length,
         p.options.filter((o) => o.grp === 'size').length,
         p.options.length,

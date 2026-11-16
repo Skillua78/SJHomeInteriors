@@ -13,6 +13,7 @@ export default function Navbar({
     onOpenStockManager,
     currentUser,
     availableCategories = [],
+    notificationCount = 0,
 }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const isAdmin = currentUser?.role === 'admin';
@@ -81,11 +82,20 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={onOpenStockManager}
-                            aria-label="Open admin dashboard"
-                            className="h-10 rounded-full bg-amber-700 hover:bg-amber-800 text-white transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
+                            aria-label={
+                                notificationCount > 0
+                                    ? `Open admin dashboard, ${notificationCount} new notifications`
+                                    : 'Open admin dashboard'
+                            }
+                            className="relative h-10 rounded-full bg-amber-700 hover:bg-amber-800 text-white transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
                         >
                             <ShieldAlert className="w-4 h-4" aria-hidden="true" />
                             <span className="hidden sm:inline">Admin</span>
+                            {notificationCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-[#FAF8F5]">
+                                    {notificationCount > 99 ? '99+' : notificationCount}
+                                </span>
+                            )}
                         </button>
                     )}
 

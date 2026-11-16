@@ -12,9 +12,12 @@ import {
 } from 'lucide-react';
 import { formatWhatsAppHref } from './Footer';
 import { validateSafeHttpsUrl } from '../utils/security';
+import { api } from '../utils/api';
 
 export default function ContactPage({ siteSettings }) {
     const [submitted, setSubmitted] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [sendError, setSendError] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -31,9 +34,22 @@ export default function ContactPage({ siteSettings }) {
     const facebookUrl = validateSafeHttpsUrl(siteSettings?.facebookUrl);
     const whatsappHref = formatWhatsAppHref(siteSettings?.whatsappNumber);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
+        if (sending) return;
+        setSending(true);
+        setSendError('');
+        try {
+            await api.sendMessage({ kind: 'contact', ...formData });
+            setSubmitted(true);
+            setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+        } catch (err) {
+            setSendError(
+                `${err.message} You can also call us on ${phone} or email ${email}.`
+            );
+        } finally {
+            setSending(false);
+        }
     };
 
     return (
@@ -180,6 +196,14 @@ export default function ContactPage({ siteSettings }) {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
+                            {sendError && (
+                                <p
+                                    role="alert"
+                                    className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800"
+                                >
+                                    {sendError}
+                                </p>
+                            )}
                             <h2 className="font-serif text-2xl font-bold text-[#1C1B18] mb-2">
                                 Send a Showroom Enquiry
                             </h2>

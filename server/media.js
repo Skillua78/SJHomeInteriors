@@ -11,6 +11,8 @@ import { randomId } from './http.js';
 
 const DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
 const MEDIA_REF = /^\/api\/img\/([A-Za-z0-9_-]{16,40})$/;
+// A static image deployed with the site, e.g. /showroom/20261114_145410.jpg
+const LOCAL_IMAGE = /^\/(?!\/)[A-Za-z0-9_\-./]{1,200}\.(?:jpe?g|png|webp)$/i;
 const MAX_BASE64_CHARS = 1_900_000; // D1 caps a row at 2 MB
 const DAY = 86400;
 
@@ -107,6 +109,7 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
 
         const https = safeHttpsUrl(value);
         if (https) urls.push(https);
+        else if (LOCAL_IMAGE.test(value) && !value.includes('..')) urls.push(value);
     }
 
     const now = Math.floor(Date.now() / 1000);

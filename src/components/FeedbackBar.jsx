@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MessageSquare, CheckCircle2, X } from 'lucide-react';
+import { api } from '../utils/api';
 
 export default function FeedbackBar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -7,9 +8,22 @@ export default function FeedbackBar() {
     const [feedbackText, setFeedbackText] = useState('');
     const [experienceRating, setExperienceRating] = useState('Great');
 
-    const handleSubmit = (e) => {
+    const [sendError, setSendError] = useState('');
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!feedbackText.trim()) return;
+        setSendError('');
+        try {
+            await api.sendMessage({
+                kind: 'feedback',
+                subject: experienceRating,
+                message: feedbackText.trim(),
+            });
+        } catch (err) {
+            setSendError(err.message);
+            return;
+        }
         setSubmitted(true);
         setTimeout(() => {
             setIsOpen(false);
@@ -81,6 +95,11 @@ export default function FeedbackBar() {
                                 placeholder="Tell us what you think about our website or what furniture you'd like to see..."
                                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs"
                             />
+                            {sendError && (
+                                <p role="alert" className="text-xs text-red-700">
+                                    {sendError}
+                                </p>
+                            )}
                             <button
                                 type="submit"
                                 className="px-6 py-2.5 rounded-full bg-[#9A7B56] text-white text-xs font-semibold cursor-pointer"

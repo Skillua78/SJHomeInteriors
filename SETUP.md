@@ -46,10 +46,25 @@ Take a backup first: `npx wrangler d1 export <database-name> --remote --output=b
 
 ## 4. Delivery & assembly charges
 
-- Standard fee: Admin → Settings → Delivery & assembly (default £50 per order).
-- Per product: Admin → Products → Essentials → "Delivery & assembly (£)". Blank = standard, 0 = free.
-- Charged once per order: extra items do not add to it. If items have different fees the order
-  pays the highest one. Never charged for showroom collection.
+All set in Admin → Settings → Delivery & assembly.
+
+- **Delivery** is free within a radius of the showroom (default 10 miles) and a flat charge beyond
+  it (default £50). Showroom collection is always free.
+- Distance is the straight-line distance from the showroom postcode to the customer's postcode,
+  looked up with postcodes.io (a free UK postcode service; only the postcode is sent). If that
+  service is unreachable the order is not charged for delivery and shows "distance not checked"
+  in Admin → Orders so you can confirm by phone.
+- **Assembly** is optional: the customer ticks "Add assembly" at checkout. One charge per order
+  (default £50). A product can have its own assembly fee (Products → Essentials → "Assembly fee");
+  an order pays the highest fee among its items, and 0 means that product needs no assembly.
+
+## 4b. Messages and notifications
+
+- The contact form and the "Leave feedback" bar save to Admin → Messages.
+- The Admin button shows a count of new orders, unread messages and reviews awaiting moderation;
+  each dashboard tab shows its own count. Opening Orders clears the new-order count.
+- These are on-site notifications only. Nothing is emailed to you yet; that needs an email
+  sending service to be chosen and connected.
 
 ## 5. Local development
 

@@ -128,15 +128,47 @@ function DeliverySettings({ form, set }) {
     return (
         <section className={cardClass}>
             <h3 className={sectionTitleClass}>Delivery &amp; assembly</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <TextField
+                    id="st-free-miles"
+                    label="Free delivery within (miles)"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={form.freeDeliveryMiles ?? 10}
+                    onChange={(v) => set({ freeDeliveryMiles: v })}
+                />
+                <TextField
+                    id="st-fee"
+                    label="Delivery charge beyond that (£)"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.defaultDeliveryFee ?? 50}
+                    onChange={(v) => set({ defaultDeliveryFee: v })}
+                />
+                <TextField
+                    id="st-store-postcode"
+                    label="Measured from postcode"
+                    maxLength={10}
+                    value={form.storePostcode ?? 'S66 8JE'}
+                    onChange={(v) => set({ storePostcode: v })}
+                />
+            </div>
+            <p className="text-[11px] text-stone-500 -mt-2">
+                Distance is measured in a straight line from this postcode to the customer's postcode at
+                checkout. Orders inside the radius, and showroom collections, are never charged for
+                delivery. Set the charge to 0 to make all delivery free.
+            </p>
             <TextField
-                id="st-fee"
-                label="Standard delivery & assembly fee per order (£)"
+                id="st-assembly-fee"
+                label="Standard assembly fee (£)"
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.defaultDeliveryFee ?? 50}
-                onChange={(v) => set({ defaultDeliveryFee: v })}
-                hint="Charged once per order, however many items are in it. A product can have its own fee (set in its Essentials step); an order pays the highest fee among its items. Showroom collection is never charged."
+                value={form.assemblyFee ?? 50}
+                onChange={(v) => set({ assemblyFee: v })}
+                hint="Assembly is optional: the customer ticks a box at checkout to add it, one charge per order. A product can have its own assembly fee (Essentials step); 0 on a product means it needs no assembly."
             />
             <Toggle
                 label="Show the delivery & assembly tile on the home page"

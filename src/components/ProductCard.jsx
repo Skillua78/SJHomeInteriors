@@ -181,8 +181,7 @@ export default function ProductCard({
                     <p className="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5 text-[#9A7B56] shrink-0" aria-hidden="true" />
                         <span>
-                            Estimated delivery &amp; assembly
-                            {product.delivery ? `: ${product.delivery}` : ''}
+                            {product.delivery ? `Estimated delivery: ${product.delivery}` : 'Free local delivery'}
                         </span>
                     </p>
 

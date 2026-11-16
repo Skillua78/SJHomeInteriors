@@ -14,7 +14,7 @@ export function emptyForm() {
         name: '',
         price: '',
         previousPrice: '',
-        deliveryFee: '',
+        assemblyFee: '',
         description: '',
         category: '',
         subcategory: '',
@@ -60,7 +60,7 @@ export function productToForm(product, { duplicate = false } = {}) {
         name: duplicate ? `${product.name} (Copy)` : product.name || '',
         price: text(product.price),
         previousPrice: text(product.previousPrice),
-        deliveryFee: text(product.deliveryFeeOverride),
+        assemblyFee: text(product.assemblyFeeOverride),
         description: product.description || '',
         category: product.category || '',
         subcategory: product.subcategory || '',
@@ -106,12 +106,12 @@ export function formToPayload(form, editingId = null) {
         return { ok: false, section: 'basics', error: 'Please choose a furniture category.' };
     }
 
-    const feeText = text(form.deliveryFee).trim();
+    const feeText = text(form.assemblyFee).trim();
     if (feeText !== '' && (Number.isNaN(parseFloat(feeText)) || parseFloat(feeText) < 0)) {
         return {
             ok: false,
             section: 'basics',
-            error: 'Delivery & assembly fee must be a number (0 for no charge) or left blank for the standard fee.',
+            error: 'Assembly fee must be a number (0 for none) or left blank for the standard fee.',
         };
     }
 
@@ -150,7 +150,7 @@ export function formToPayload(form, editingId = null) {
         name,
         price,
         previousPrice: optionalNumber(form.previousPrice) || null,
-        deliveryFeeOverride: optionalNumber(form.deliveryFee),
+        assemblyFeeOverride: optionalNumber(form.assemblyFee),
         description: sanitizeText(form.description, 4000),
         category: form.category,
         subcategory: form.subcategory || '',

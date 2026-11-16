@@ -150,7 +150,40 @@ export function usePresetLibrary({ siteSettings, saveSettings, facets, form }) {
         }).then(() => name);
     };
 
+    /**
+     * Add everything an import introduced in one save:
+     *   categories { name: [subcategories] }, colours { name: hex | null }
+     * Unknown colours without a hex get a best-guess swatch from their name.
+     */
+    const registerImported = ({ categories = {}, colours = {} }) => {
+        const categoryNames = Object.keys(categories);
+        const colourNames = Object.keys(colours);
+        if (categoryNames.length === 0 && colourNames.length === 0) return Promise.resolve();
+
+        const customCategories = { ...(settings.customCategories || {}) };
+        for (const name of categoryNames) {
+            customCategories[name] = unique([
+                ...(taxonomy[name] || []),
+                ...(customCategories[name] || []),
+                ...categories[name],
+            ]);
+        }
+        const customColors = { ...(settings.customColors || {}) };
+        for (const name of colourNames) {
+            customColors[name] = colours[name] || resolveColorHex(name, settings.customColors);
+        }
+
+        return saveSettings({
+            ...settings,
+            customCategories,
+            removedCategories: (settings.removedCategories || []).filter((c) => !categoryNames.includes(c)),
+            customColors,
+            removedColors: (settings.removedColors || []).filter((c) => !colourNames.includes(c)),
+        });
+    };
+
     return {
+        registerImported,
         taxonomy,
         categoryNames: Object.keys(taxonomy),
         colorNames,

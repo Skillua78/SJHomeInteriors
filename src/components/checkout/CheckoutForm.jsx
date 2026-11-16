@@ -1,7 +1,8 @@
-import { Truck, Store, Loader2, Lock, AlertCircle } from 'lucide-react';
+import { Truck, Store, Loader2, Lock, AlertCircle, Wrench } from 'lucide-react';
 import Field from '../ui/Field';
 import PaymentMethodPicker from './PaymentMethodPicker';
 import { PAYMENT_METHODS } from './checkoutModel';
+import { deliveryLine } from './OrderSummary';
 import { formatGBP } from '../../../shared/pricing.js';
 
 function StepHeading({ number, children }) {
@@ -20,6 +21,8 @@ export default function CheckoutForm({
     setField,
     deliveryMethod,
     onDeliveryMethodChange,
+    deliveryInfo,
+    assemblyPrice,
     methods,
     totals,
     error,
@@ -33,14 +36,18 @@ export default function CheckoutForm({
         ? `Continue to secure payment · ${formatGBP(totals.total)}`
         : `Place order · ${formatGBP(totals.total)}`;
 
+    const homeDelivery = deliveryLine('delivery', deliveryInfo);
     const deliveryChoices = [
         {
             id: 'delivery',
             icon: Truck,
-            title: 'Home delivery & assembly',
-            detail: totals.deliveryIfChosen > 0 ? formatGBP(totals.deliveryIfChosen) : 'No charge',
+            title: 'Home delivery',
+            detail:
+                homeDelivery.value === 'Enter postcode'
+                    ? `Free within ${deliveryInfo.freeMiles} miles, ${formatGBP(deliveryInfo.charge)} beyond`
+                    : homeDelivery.value,
         },
-        { id: 'collection', icon: Store, title: 'Collect from Maltby showroom', detail: 'No charge' },
+        { id: 'collection', icon: Store, title: 'Collect from Maltby showroom', detail: 'Free' },
     ];
 
     return (
@@ -80,6 +87,36 @@ export default function CheckoutForm({
                         );
                     })}
                 </div>
+
+                {deliveryMethod === 'delivery' && assemblyPrice > 0 && (
+                    <label
+                        className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
+                            form.assembly
+                                ? 'border-[#1C1B18] bg-[#FAF8F5] ring-1 ring-[#1C1B18]'
+                                : 'border-stone-300 bg-white hover:border-[#9A7B56]'
+                        }`}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={form.assembly}
+                            onChange={(e) => setField('assembly', e.target.checked)}
+                            className="mt-1 w-4 h-4 accent-[#1C1B18]"
+                        />
+                        <span className="flex-1">
+                            <span className="flex items-center justify-between gap-3 text-sm font-semibold text-[#1C1B18]">
+                                <span className="flex items-center gap-2">
+                                    <Wrench className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+                                    Add assembly
+                                </span>
+                                <span>+ {formatGBP(assemblyPrice)}</span>
+                            </span>
+                            <span className="block text-xs text-stone-600 mt-0.5">
+                                Optional. Our team builds your furniture in your room of choice. One
+                                charge for the whole order.
+                            </span>
+                        </span>
+                    </label>
+                )}
             </section>
 
             <section className="space-y-3">
@@ -150,6 +187,7 @@ export default function CheckoutForm({
                                 value={form.postcode}
                                 onChange={(e) => setField('postcode', e.target.value)}
                                 error={error?.field === 'postcode'}
+                                hint={homeDelivery.note && !homeDelivery.problem ? homeDelivery.note : undefined}
                             />
                         </div>
                     </>
