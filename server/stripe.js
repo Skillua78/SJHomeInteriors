@@ -40,7 +40,9 @@ async function stripeRequest(env, method, path, params, idempotencyKey) {
         res = await fetch(`${env.STRIPE_API_BASE || API}${path}`, init);
     } catch (err) {
         console.error('Stripe network error:', err);
-        throw new HttpError(502, 'Could not reach the payment provider. Please try again.');
+        // Not a 502: Cloudflare swaps gateway-error responses for its own HTML error page,
+        // which hides this message from the customer.
+        throw new HttpError(424, 'Could not reach the payment provider. Please try again.');
     }
 
     const data = await res.json().catch(() => ({}));
@@ -50,11 +52,15 @@ async function stripeRequest(env, method, path, params, idempotencyKey) {
         const safe = ['card_error', 'invalid_request_error'].includes(data?.error?.type)
             ? data.error.message
             : null;
+        // Key problems are the shop's to fix, so say so plainly (without any key detail).
+        const keyProblem = res.status === 401 || res.status === 403;
         throw new HttpError(
-            502,
+            422,
             safe
                 ? `The payment provider declined this request: ${safe}`
-                : 'The payment provider could not start this payment. Please try another method.'
+                : keyProblem
+                    ? 'Card payment is not set up correctly yet (the Stripe key was rejected). Please choose another way to pay or contact the showroom.'
+                    : 'The payment provider could not start this payment. Please try another method.'
         );
     }
     return data;
