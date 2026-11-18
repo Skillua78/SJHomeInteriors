@@ -3,7 +3,7 @@
  */
 export default function Logo({ variant = 'dark', className = '', wrap = false }) {
     const isLight = variant === 'light';
-    const primaryText = isLight ? 'text-white' : 'text-[#1C1B18]';
+    const primaryText = isLight ? 'text-white' : 'text-ink';
     const strokeColor = isLight ? '#FAF8F5' : '#1C1B18';
 
     return (
@@ -68,13 +68,13 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
             {/* Brand Wordmark */}
             <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-sm min-[400px]:text-base sm:text-2xl font-bold tracking-tight leading-none ${
-                        wrap ? '' : 'whitespace-nowrap truncate'
+                    className={`font-serif text-[15px] min-[400px]:text-base sm:text-2xl font-bold tracking-tight leading-[1.05] sm:leading-none ${
+                        wrap ? '' : 'sm:whitespace-nowrap sm:truncate'
                     } ${primaryText}`}
                 >
                     SJ HOME INTERIORS
                 </span>
-                <span className="hidden sm:block text-[9px] uppercase tracking-[0.26em] text-[#9A7B56] font-semibold mt-1 whitespace-nowrap">
+                <span className="hidden sm:block text-[9px] uppercase tracking-[0.26em] text-bronze-deep font-semibold mt-1 whitespace-nowrap">
                     Maltby Showroom &bull; Est. UK
                 </span>
             </div>

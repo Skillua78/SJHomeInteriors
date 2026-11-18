@@ -16,26 +16,26 @@ export default function ValueBar({ siteSettings, ready = true }) {
 
     return (
         <section aria-label="Why shop with us" className="bg-white border-b border-stone-200/80">
-            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 ${ready ? '' : 'invisible'}`}>
+            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 ${ready ? '' : 'invisible'}`}>
                 <ul
-                    className={`grid grid-cols-1 sm:grid-cols-2 ${
+                    className={`grid grid-cols-2 ${
                         items.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
-                    } gap-3`}
+                    } gap-2.5 sm:gap-3`}
                 >
                     {items.map((item) => {
                         const Icon = item.icon;
                         return (
                             <li
                                 key={item.title}
-                                className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/60"
+                                className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3.5 p-3 sm:p-3.5 rounded-2xl bg-cream border border-stone-200/60"
                             >
-                                <div className="p-2.5 rounded-xl bg-[#1C1B18] text-[#D4B895] shrink-0">
+                                <div className="p-2 sm:p-2.5 rounded-xl bg-ink text-gold shrink-0">
                                     <Icon className="w-5 h-5" aria-hidden="true" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-[#1C1B18] leading-snug">{item.title}</p>
+                                    <p className="text-[13px] sm:text-sm font-bold text-ink leading-snug">{item.title}</p>
                                     {item.sub && (
-                                        <p className="text-xs font-medium text-[#7D6242] mt-0.5">{item.sub}</p>
+                                        <p className="text-xs font-medium text-bronze-deep mt-0.5">{item.sub}</p>
                                     )}
                                 </div>
                             </li>

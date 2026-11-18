@@ -90,10 +90,10 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
             >
                 <div className="flex items-start justify-between gap-4 border-b border-stone-200 pb-4">
                     <div>
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-[#9A7B56] flex items-center gap-1">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-bronze-deep flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> Quick import
                         </span>
-                        <h3 className="font-serif text-2xl font-bold text-[#1C1B18] mt-0.5">
+                        <h3 className="font-serif text-2xl font-bold text-ink mt-0.5">
                             Import products with AI or a JSON file
                         </h3>
                     </div>
@@ -107,9 +107,9 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                     </button>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-cream border border-stone-200 flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <h4 className="font-sans text-sm font-bold text-[#1C1B18]">1. Copy the AI prompt</h4>
+                        <h4 className="font-sans text-sm font-bold text-ink">1. Copy the AI prompt</h4>
                         <p className="text-xs text-stone-600 mt-0.5">
                             Paste it into ChatGPT, Claude or Gemini with your supplier notes. It already
                             lists your current categories and colours, and tells the AI how to add new
@@ -119,7 +119,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                     <button
                         type="button"
                         onClick={copyPrompt}
-                        className="px-3.5 py-2.5 rounded-xl bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shrink-0"
+                        className="px-3.5 py-2.5 rounded-xl bg-ink hover:bg-bronze-strong text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shrink-0"
                     >
                         {copied ? (
                             <Check className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
@@ -132,12 +132,12 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
 
                 <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <label htmlFor="import-json" className="text-sm font-bold text-[#1C1B18] flex items-center gap-1.5">
-                            <FileJson className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+                        <label htmlFor="import-json" className="text-sm font-bold text-ink flex items-center gap-1.5">
+                            <FileJson className="w-4 h-4 text-bronze" aria-hidden="true" />
                             2. Paste the AI's answer, or upload a .json file
                         </label>
-                        <label className="px-3.5 py-2 rounded-xl bg-[#FAF8F5] border border-stone-300 hover:border-[#9A7B56] text-xs font-semibold text-[#1C1B18] flex items-center gap-1.5 cursor-pointer transition">
-                            <Upload className="w-3.5 h-3.5 text-[#9A7B56]" aria-hidden="true" /> Upload .json
+                        <label className="px-3.5 py-2 rounded-xl bg-cream border border-stone-300 hover:border-bronze text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer transition">
+                            <Upload className="w-3.5 h-3.5 text-bronze" aria-hidden="true" /> Upload .json
                             <input type="file" accept=".json,application/json" onChange={readFile} className="hidden" />
                         </label>
                     </div>
@@ -151,7 +151,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                             setError('');
                         }}
                         placeholder="Paste the JSON here…"
-                        className="w-full p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-300 font-mono text-xs text-stone-800 focus:outline-none focus:border-[#9A7B56]"
+                        className="w-full p-3.5 rounded-2xl bg-cream border border-stone-300 font-mono text-xs text-stone-800 focus:outline-none focus:border-bronze"
                     />
 
                     {preview?.ok && (
@@ -191,16 +191,16 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                         type="button"
                         onClick={() => run((r) => onLoadIntoEditor(r.products[0], r.additions))}
                         disabled={busy || !preview?.ok}
-                        className="py-3 px-4 rounded-2xl bg-[#FAF8F5] hover:bg-stone-200/70 border border-stone-300 text-[#1C1B18] text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="py-3 px-4 rounded-2xl bg-cream hover:bg-stone-200/70 border border-stone-300 text-ink text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <PlusCircle className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+                        <PlusCircle className="w-4 h-4 text-bronze" aria-hidden="true" />
                         Review {preview?.ok && preview.products.length > 1 ? 'the first one ' : ''}in the form
                     </button>
                     <button
                         type="button"
                         onClick={() => run((r) => onSaveAll(r.products, r.additions))}
                         disabled={busy || !preview?.ok}
-                        className="py-3 px-4 rounded-2xl bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-md disabled:bg-stone-400 disabled:cursor-not-allowed"
+                        className="py-3 px-4 rounded-2xl bg-ink hover:bg-bronze-strong text-white text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-md disabled:bg-stone-400 disabled:cursor-not-allowed"
                     >
                         {busy ? (
                             <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />

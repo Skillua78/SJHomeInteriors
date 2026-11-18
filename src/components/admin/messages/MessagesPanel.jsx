@@ -69,7 +69,7 @@ export default function MessagesPanel({ onChanged }) {
                         <button
                             type="button"
                             onClick={markAllRead}
-                            className="px-3.5 py-2 rounded-xl border border-stone-300 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer"
+                            className="px-3.5 py-2 rounded-xl border border-stone-300 hover:border-bronze text-xs font-semibold cursor-pointer"
                         >
                             Mark all as read
                         </button>
@@ -78,7 +78,7 @@ export default function MessagesPanel({ onChanged }) {
                         type="button"
                         onClick={() => load(0)}
                         aria-label="Refresh messages"
-                        className="p-2.5 rounded-xl border border-stone-300 hover:border-[#9A7B56] cursor-pointer"
+                        className="p-2.5 rounded-xl border border-stone-300 hover:border-bronze cursor-pointer"
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
@@ -92,7 +92,7 @@ export default function MessagesPanel({ onChanged }) {
             )}
 
             {!loading && messages.length === 0 && !error && (
-                <p className="p-8 text-center text-sm text-stone-500 bg-[#FAF8F5] rounded-2xl border border-dashed border-stone-300">
+                <p className="p-8 text-center text-sm text-stone-500 bg-cream rounded-2xl border border-dashed border-stone-300">
                     No messages yet. Enquiries from the contact page and website feedback appear here.
                 </p>
             )}
@@ -101,14 +101,14 @@ export default function MessagesPanel({ onChanged }) {
                 <article
                     key={m.id}
                     className={`p-4 rounded-2xl border space-y-2.5 ${
-                        m.read ? 'bg-[#FAF8F5] border-stone-200' : 'bg-amber-50 border-amber-300'
+                        m.read ? 'bg-cream border-stone-200' : 'bg-amber-50 border-amber-300'
                     }`}
                 >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                            <p className="text-sm font-bold text-[#1C1B18] flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-bold text-ink flex flex-wrap items-center gap-2">
                                 {!m.read && (
-                                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-[#1C1B18] text-[10px] font-bold uppercase">
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-ink text-[10px] font-bold uppercase">
                                         New
                                     </span>
                                 )}
@@ -141,7 +141,7 @@ export default function MessagesPanel({ onChanged }) {
                             <button
                                 type="button"
                                 onClick={() => setRead(m, !m.read)}
-                                className="px-3 py-1.5 rounded-full bg-white border border-stone-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:border-[#9A7B56]"
+                                className="px-3 py-1.5 rounded-full bg-white border border-stone-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:border-bronze"
                             >
                                 {m.read ? (
                                     <Mail className="w-3.5 h-3.5" aria-hidden="true" />
@@ -160,7 +160,7 @@ export default function MessagesPanel({ onChanged }) {
                             </button>
                         </div>
                     </div>
-                    {m.subject && <p className="text-sm font-semibold text-[#1C1B18]">{m.subject}</p>}
+                    {m.subject && <p className="text-sm font-semibold text-ink">{m.subject}</p>}
                     <p className="text-sm text-stone-700 whitespace-pre-line bg-white p-3 rounded-xl border border-stone-200">
                         {m.message}
                     </p>
@@ -176,7 +176,7 @@ export default function MessagesPanel({ onChanged }) {
                 <button
                     type="button"
                     onClick={() => load(nextOffset)}
-                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-[#9A7B56] text-sm font-semibold cursor-pointer"
+                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-bronze text-sm font-semibold cursor-pointer"
                 >
                     Load more
                 </button>

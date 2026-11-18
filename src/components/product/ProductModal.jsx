@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Check, Package, Edit3, Truck, Loader2 } from 'lucide-react';
+import { X, Check, Package, Edit3, Truck, Loader2, ShieldCheck, RotateCcw, Store } from 'lucide-react';
 import { validateSafeImageUrl } from '../../utils/security';
 import { resolveColorHex } from '../../utils/colors';
 import { optionsFromVariations } from '../../utils/catalogModel';
@@ -9,6 +9,8 @@ import ProductGallery from './ProductGallery';
 import OptionGroup from './OptionGroup';
 import FabricSwatchChart from './FabricSwatchChart';
 import DimensionsBox from './DimensionsBox';
+import PaymentBadges from '../ui/PaymentBadges';
+import { useDialog, useTransitionState } from '../../hooks/useDialog';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
@@ -27,7 +29,15 @@ export default function ProductModal({
     onEditProduct,
     siteSettings,
 }) {
-    const summary = modalData?.product || null;
+    // Keep showing the last product while the closing animation plays.
+    const isOpen = Boolean(modalData?.product);
+    const { mounted, state } = useTransitionState(isOpen, 300);
+    const panelRef = useDialog(isOpen, onClose);
+    const [lastData, setLastData] = useState(modalData);
+    if (modalData && modalData !== lastData) setLastData(modalData);
+    const data = modalData || (mounted ? lastData : null);
+
+    const summary = data?.product || null;
     const [detail, setDetail] = useState(null);
     const [loadError, setLoadError] = useState('');
     const [selections, setSelections] = useState({});
@@ -41,7 +51,7 @@ export default function ProductModal({
         setLoadError('');
         setAddError('');
         setExpanded(false);
-        setSelections({ color: modalData.initialColor || summary.colors?.[0] || '' });
+        setSelections({ color: data.initialColor || summary.colors?.[0] || '' });
 
         fetchProductDetail(summary.id)
             .then((full) => {
@@ -53,7 +63,7 @@ export default function ProductModal({
                 const v = full.variations || {};
                 setDetail(full);
                 setSelections({
-                    color: modalData.initialColor || full.colors?.[0] || '',
+                    color: data.initialColor || full.colors?.[0] || '',
                     fabric: v.fabrics?.[0] || '',
                     size: v.sizes?.[0] || '',
                     mattress: v.mattresses?.[0] || '',
@@ -67,21 +77,8 @@ export default function ProductModal({
         return () => {
             cancelled = true;
         };
-    }, [summary, modalData?.initialColor]);
-
-    useEffect(() => {
-        if (!summary) return undefined;
-        const onKey = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', onKey);
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => {
-            window.removeEventListener('keydown', onKey);
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [summary, onClose]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [summary, data?.initialColor]);
 
     // Only use loaded detail while it belongs to the product being shown; otherwise the
     // view would keep rendering (and refuse to close) from the previous product's data.
@@ -90,7 +87,7 @@ export default function ProductModal({
     const variations = activeDetail?.variations || EMPTY_VARIATIONS;
 
     const priced = useMemo(() => {
-        if (!product) return null;
+        if (!mounted || !product) return null;
         return priceSelection(toPence(product.price), optionsFromVariations(variations), selections);
     }, [product, variations, selections]);
 
@@ -133,16 +130,22 @@ export default function ProductModal({
     };
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={product.name}
-            onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
-        >
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-5xl w-full h-[94dvh] sm:h-auto sm:max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
+                data-state={state}
+                onClick={onClose}
+                aria-hidden="true"
+                className="overlay-fade absolute inset-0 bg-ink/70 backdrop-blur-xs"
+            />
+            <div
+                ref={panelRef}
+                data-dialog-panel
+                data-state={state}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="product-modal-title"
+                tabIndex={-1}
+                className="dialog-pop relative bg-white rounded-t-3xl sm:rounded-3xl max-w-5xl w-full h-[94dvh] sm:h-auto sm:max-h-[92vh] flex flex-col overflow-hidden shadow-2xl outline-none"
             >
                 <div className="absolute top-3 right-3 z-30 flex gap-2">
                     {isAdmin && onEditProduct && (
@@ -152,7 +155,7 @@ export default function ProductModal({
                                 onClose();
                                 onEditProduct(product);
                             }}
-                            className="px-3.5 h-10 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg cursor-pointer transition"
+                            className="px-4 h-11 rounded-full bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg transition"
                         >
                             <Edit3 className="w-3.5 h-3.5" aria-hidden="true" /> Edit
                         </button>
@@ -160,10 +163,10 @@ export default function ProductModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Close"
-                        className="w-10 h-10 rounded-full bg-[#1C1B18]/90 hover:bg-[#9A7B56] text-white flex items-center justify-center shadow-lg cursor-pointer transition"
+                        aria-label="Close product details"
+                        className="press w-11 h-11 rounded-full bg-ink/90 hover:bg-bronze-strong text-white flex items-center justify-center shadow-lg"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                 </div>
 
@@ -179,24 +182,29 @@ export default function ProductModal({
 
                     <div className="md:overflow-y-auto custom-scrollbar p-5 sm:p-7 md:pt-14 space-y-5">
                         <div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-[#9A7B56]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-bronze-deep">
                                 {product.category}
                                 {product.subcategory ? ` · ${product.subcategory}` : ''}
                             </span>
-                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1C1B18] mt-1 pr-12 md:pr-0 leading-tight">
+                            <h2
+                                id="product-modal-title"
+                                className="font-serif text-[1.75rem] sm:text-4xl font-bold text-ink mt-1 pr-12 md:pr-0 leading-[1.1]"
+                            >
                                 {product.name}
                             </h2>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                            <span className="text-3xl font-bold text-[#1C1B18]">{formatGBP(unitPrice)}</span>
+                            <span className="text-3xl sm:text-4xl font-bold text-ink tabular-nums tracking-tight">
+                                {formatGBP(unitPrice)}
+                            </span>
                             {wasPrice && (
                                 <>
-                                    <span className="text-base text-stone-400 line-through">
+                                    <span className="text-base text-stone-500 line-through tabular-nums">
                                         <span className="sr-only">Was </span>
                                         {formatGBP(wasPrice)}
                                     </span>
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
+                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-800 border border-red-200">
                                         Save {formatGBP(wasPrice - unitPrice)}
                                     </span>
                                 </>
@@ -213,10 +221,10 @@ export default function ProductModal({
                             )}
                         </div>
 
-                        <div className="px-4 py-3 rounded-xl bg-[#FAF8F5] border border-stone-200 text-sm text-stone-700 flex items-start gap-2.5">
-                            <Truck className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div className="px-4 py-3 rounded-xl bg-cream border border-stone-200 text-sm text-stone-700 flex items-start gap-2.5">
+                            <Truck className="w-4 h-4 text-bronze shrink-0 mt-0.5" aria-hidden="true" />
                             <span>
-                                <strong className="text-[#1C1B18]">
+                                <strong className="text-ink">
                                     {product.delivery
                                         ? `Estimated delivery: ${product.delivery}`
                                         : 'Home delivery or showroom collection'}
@@ -242,7 +250,7 @@ export default function ProductModal({
                         {product.colors?.length > 0 && (
                             <fieldset>
                                 <legend className="text-sm font-semibold text-stone-700 mb-2">
-                                    Colour: <span className="text-[#7D6242]">{selections.color}</span>
+                                    Colour: <span className="text-bronze-deep">{selections.color}</span>
                                 </legend>
                                 <div className="flex flex-wrap gap-2">
                                     {product.colors.map((color) => (
@@ -251,10 +259,10 @@ export default function ProductModal({
                                             type="button"
                                             aria-pressed={selections.color === color}
                                             onClick={() => setSelection('color', color)}
-                                            className={`pl-2 pr-3.5 py-2 rounded-full text-sm border flex items-center gap-2 cursor-pointer transition ${
+                                            className={`min-h-11 pl-2.5 pr-4 rounded-full text-sm border flex items-center gap-2 transition ${
                                                 selections.color === color
-                                                    ? 'border-[#1C1B18] bg-[#1C1B18] text-white font-semibold'
-                                                    : 'border-stone-300 bg-white text-stone-700 hover:border-[#9A7B56]'
+                                                    ? 'border-ink bg-ink text-white font-semibold'
+                                                    : 'border-stone-300 bg-white text-stone-700 hover:border-bronze'
                                             }`}
                                         >
                                             <span
@@ -320,7 +328,7 @@ export default function ProductModal({
 
                         {description && (
                             <div>
-                                <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-[#1C1B18] mb-1.5">
+                                <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-ink mb-1.5">
                                     About this piece
                                 </h3>
                                 <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line">
@@ -331,7 +339,7 @@ export default function ProductModal({
                                         type="button"
                                         onClick={() => setExpanded(!expanded)}
                                         aria-expanded={expanded}
-                                        className="mt-1.5 text-sm font-semibold text-[#7D6242] hover:underline cursor-pointer"
+                                        className="mt-1 min-h-11 text-sm font-semibold text-bronze-deep hover:underline underline-offset-4"
                                     >
                                         {expanded ? 'Show less' : 'Read full description'}
                                     </button>
@@ -347,31 +355,50 @@ export default function ProductModal({
 
                         {activeDetail?.features?.length > 0 && (
                             <div>
-                                <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-[#1C1B18] mb-2">
+                                <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-ink mb-2">
                                     Key features
                                 </h3>
                                 <ul className="space-y-1.5 text-sm text-stone-700">
                                     {activeDetail.features.map((feature, i) => (
                                         <li key={i} className="flex items-start gap-2">
-                                            <Check className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
+                                            <Check className="w-4 h-4 text-bronze shrink-0 mt-0.5" aria-hidden="true" />
                                             <span>{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         )}
+
+                        {/* Reassurance before the buy decision */}
+                        <div className="rounded-2xl border border-stone-200 p-4 space-y-3">
+                            <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-stone-700">
+                                <li className="flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
+                                    Secure checkout
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <RotateCcw className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
+                                    14-day returns online
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <Store className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
+                                    See it in our Maltby showroom
+                                </li>
+                            </ul>
+                            <PaymentBadges paymentOptions={siteSettings?.paymentOptions} />
+                        </div>
                     </div>
                 </div>
 
                 {/* Always-visible purchase bar */}
-                <div className="shrink-0 border-t border-stone-200 bg-white px-5 sm:px-7 py-3.5 flex items-center gap-4">
+                <div className="shrink-0 border-t border-stone-200 bg-white px-4 sm:px-7 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-4 shadow-[0_-8px_24px_-16px_rgba(28,27,24,0.35)]">
                     <div className="min-w-0">
-                        <p className="text-xl font-bold text-[#1C1B18] leading-tight">{formatGBP(unitPrice)}</p>
+                        <p className="text-xl font-bold text-ink leading-tight tabular-nums">{formatGBP(unitPrice)}</p>
                         <p className="text-xs text-stone-500 truncate">
                             Free local delivery · assembly optional
                         </p>
                     </div>
-                    <div className="flex-1 flex flex-col items-end">
+                    <div className="flex-1 shrink-0 flex flex-col items-end">
                         {addError && (
                             <p role="alert" className="text-xs text-red-700 mb-1 text-right">
                                 {addError}
@@ -381,7 +408,7 @@ export default function ProductModal({
                             type="button"
                             onClick={handleAdd}
                             disabled={waitingForOptions || Boolean(loadError)}
-                            className="w-full sm:w-auto sm:min-w-[240px] py-3.5 px-8 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-300 text-white font-semibold text-sm transition cursor-pointer disabled:cursor-not-allowed"
+                            className="press w-full sm:w-auto sm:min-w-[260px] min-h-14 px-6 sm:px-8 whitespace-nowrap rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-300 text-white font-semibold text-base shadow-md"
                         >
                             {available ? 'Add to basket' : 'Pre-order'}
                         </button>

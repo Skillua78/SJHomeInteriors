@@ -60,7 +60,7 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                             <button
                                 type="button"
                                 onClick={() => setNewCategory(newCategory === null ? '' : null)}
-                                className="text-[11px] font-bold text-[#7D6242] hover:underline cursor-pointer"
+                                className="text-[11px] font-bold text-bronze-deep hover:underline cursor-pointer"
                             >
                                 {newCategory === null ? '+ New category' : 'Cancel'}
                             </button>
@@ -109,7 +109,7 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                             <button
                                 type="button"
                                 onClick={() => setNewSubcategory(newSubcategory === null ? '' : null)}
-                                className="text-[11px] font-bold text-[#7D6242] hover:underline cursor-pointer"
+                                className="text-[11px] font-bold text-bronze-deep hover:underline cursor-pointer"
                             >
                                 {newSubcategory === null ? '+ New subcategory' : 'Cancel'}
                             </button>
@@ -272,7 +272,7 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                         type="checkbox"
                         checked={form.isPopular}
                         onChange={(e) => update({ isPopular: e.target.checked })}
-                        className="w-4 h-4 accent-[#1C1B18]"
+                        className="w-4 h-4 accent-ink"
                     />
                     Popular
                 </label>
@@ -281,7 +281,7 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                         type="checkbox"
                         checked={form.isTrending}
                         onChange={(e) => update({ isTrending: e.target.checked })}
-                        className="w-4 h-4 accent-[#1C1B18]"
+                        className="w-4 h-4 accent-ink"
                     />
                     Trending
                 </label>

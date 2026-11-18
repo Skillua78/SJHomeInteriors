@@ -85,11 +85,11 @@ export default function AuthPage({
         return (
             <div className="max-w-xl mx-auto px-4 py-16">
                 <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-lg text-center space-y-5">
-                    <div className="w-16 h-16 rounded-full bg-[#FAF8F5] border border-stone-200 text-[#9A7B56] flex items-center justify-center mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-cream border border-stone-200 text-bronze flex items-center justify-center mx-auto">
                         {isAdmin ? <ShieldAlert className="w-8 h-8 text-amber-700" /> : <User className="w-8 h-8" />}
                     </div>
                     <div>
-                        <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
+                        <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                             {isAdmin ? 'Showroom Administration' : 'SJ Home Interiors Customer'}
                         </span>
                         <h1 className="font-serif text-3xl font-bold mt-1">
@@ -98,7 +98,7 @@ export default function AuthPage({
                         <p className="text-xs text-stone-500 mt-1">{currentUser.email}</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-left text-xs space-y-2">
+                    <div className="p-4 rounded-2xl bg-cream border border-stone-200 text-left text-xs space-y-2">
                         <div className="flex justify-between">
                             <span className="text-stone-500">Account Type:</span>
                             <span className="font-semibold text-emerald-700 flex items-center gap-1 uppercase">
@@ -120,7 +120,7 @@ export default function AuthPage({
                         <button
                             type="button"
                             onClick={onBackToShop}
-                            className="flex-1 py-3.5 rounded-full bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer transition hover:bg-stone-800"
+                            className="flex-1 py-3.5 rounded-full bg-ink text-white text-xs font-semibold cursor-pointer transition hover:bg-stone-800"
                         >
                             Browse Catalog
                         </button>
@@ -141,11 +141,11 @@ export default function AuthPage({
         <div className="max-w-md mx-auto px-4 py-16">
             <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-xl">
                 {/* Mode Switcher: Only Sign In and Register */}
-                <div className="grid grid-cols-2 p-1 rounded-full bg-[#FAF8F5] border border-stone-200 mb-6">
+                <div className="grid grid-cols-2 p-1 rounded-full bg-cream border border-stone-200 mb-6">
                     <button
                         type="button"
                         onClick={() => { setMode('login'); setError(''); }}
-                        className={`py-2 rounded-full text-xs font-semibold transition cursor-pointer ${mode === 'login' ? 'bg-[#1C1B18] text-white' : 'text-stone-600'
+                        className={`py-2 rounded-full text-xs font-semibold transition cursor-pointer ${mode === 'login' ? 'bg-ink text-white' : 'text-stone-600'
                             }`}
                     >
                         Sign In
@@ -153,7 +153,7 @@ export default function AuthPage({
                     <button
                         type="button"
                         onClick={() => { setMode('register'); setError(''); }}
-                        className={`py-2 rounded-full text-xs font-semibold transition cursor-pointer ${mode === 'register' ? 'bg-[#1C1B18] text-white' : 'text-stone-600'
+                        className={`py-2 rounded-full text-xs font-semibold transition cursor-pointer ${mode === 'register' ? 'bg-ink text-white' : 'text-stone-600'
                             }`}
                     >
                         Register
@@ -205,7 +205,7 @@ export default function AuthPage({
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="e.g. David Miller"
-                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-bronze focus:ring-2 focus:ring-bronze/20"
                                 />
                                 <User className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                             </div>
@@ -225,7 +225,7 @@ export default function AuthPage({
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="you@example.co.uk"
-                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
+                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-bronze focus:ring-2 focus:ring-bronze/20"
                             />
                             <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                         </div>
@@ -244,7 +244,7 @@ export default function AuthPage({
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     placeholder="Your mobile number"
-                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-bronze focus:ring-2 focus:ring-bronze/20"
                                 />
                                 <Phone className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                             </div>
@@ -266,7 +266,7 @@ export default function AuthPage({
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••••"
-                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20"
+                                className="w-full pl-9 pr-4 py-3 rounded-xl border border-stone-300 text-base sm:text-sm focus:outline-none focus:border-bronze focus:ring-2 focus:ring-bronze/20"
                             />
                             <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" aria-hidden="true" />
                         </div>
@@ -275,7 +275,7 @@ export default function AuthPage({
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer mt-2 disabled:bg-stone-300 flex items-center justify-center gap-2"
+                        className="w-full py-4 rounded-full bg-ink hover:bg-bronze-strong text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer mt-2 disabled:bg-stone-300 flex items-center justify-center gap-2"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         {mode === 'login' ? 'Sign In' : 'Create Customer Account'}

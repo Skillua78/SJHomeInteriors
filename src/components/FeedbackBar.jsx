@@ -33,20 +33,20 @@ export default function FeedbackBar() {
     };
 
     return (
-        <div className="bg-[#F0ECE1] border-t border-stone-300/80 py-6 px-4 mt-16">
+        <div className="bg-sand border-t border-stone-300/80 py-6 px-4 mt-16">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-full bg-white text-[#9A7B56] shadow-2xs">
+                    <div className="p-2.5 rounded-full bg-white text-bronze-deep shadow-2xs">
                         <MessageSquare className="w-4 h-4" />
                     </div>
-                    <p className="text-xs sm:text-sm font-semibold text-[#1C1B18]">
+                    <p className="text-xs sm:text-sm font-semibold text-ink">
                         Your comments help us improve our website
                     </p>
                 </div>
 
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="px-5 py-2.5 rounded-full bg-white hover:bg-[#1C1B18] hover:text-white text-[#1C1B18] border border-stone-300 text-xs font-semibold transition cursor-pointer shadow-2xs"
+                    className="press min-h-11 px-6 rounded-full bg-white hover:bg-ink hover:text-white text-ink border border-stone-300 text-sm font-semibold shadow-2xs"
                 >
                     Leave feedback
                 </button>
@@ -78,8 +78,8 @@ export default function FeedbackBar() {
                                             type="button"
                                             onClick={() => setExperienceRating(tag)}
                                             className={`px-3 py-1 rounded-full text-[11px] font-medium border cursor-pointer ${experienceRating === tag
-                                                    ? 'bg-[#1C1B18] text-white border-[#1C1B18]'
-                                                    : 'bg-[#FAF8F5] text-stone-600 border-stone-200'
+                                                    ? 'bg-ink text-white border-ink'
+                                                    : 'bg-cream text-stone-600 border-stone-200'
                                                 }`}
                                         >
                                             {tag}
@@ -102,7 +102,7 @@ export default function FeedbackBar() {
                             )}
                             <button
                                 type="submit"
-                                className="px-6 py-2.5 rounded-full bg-[#9A7B56] text-white text-xs font-semibold cursor-pointer"
+                                className="px-6 py-2.5 rounded-full bg-bronze-strong text-white text-xs font-semibold cursor-pointer"
                             >
                                 Submit Feedback
                             </button>

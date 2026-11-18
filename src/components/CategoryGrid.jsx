@@ -30,10 +30,10 @@ export default function CategoryGrid({ categories = [], onSelectCategory }) {
     return (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 border-b border-stone-200/80">
             <div className="mb-6 sm:mb-8">
-                <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
+                <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                     Browse by department
                 </span>
-                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#1C1B18] mt-1">
+                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-ink mt-1">
                     Shop our collections
                 </h2>
             </div>
@@ -73,7 +73,7 @@ export default function CategoryGrid({ categories = [], onSelectCategory }) {
                                     {cat.count} {cat.count === 1 ? 'item' : 'items'}
                                 </span>
                             </div>
-                            <span className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center group-hover:bg-[#9A7B56] transition">
+                            <span className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center group-hover:bg-bronze-strong transition">
                                 <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
                             </span>
                         </div>

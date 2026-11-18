@@ -94,7 +94,7 @@ export default function OrdersPanel({ onSeen }) {
                         type="button"
                         onClick={() => load(0)}
                         aria-label="Refresh orders"
-                        className="p-2.5 rounded-xl border border-stone-300 hover:border-[#9A7B56] cursor-pointer"
+                        className="p-2.5 rounded-xl border border-stone-300 hover:border-bronze cursor-pointer"
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
@@ -108,21 +108,21 @@ export default function OrdersPanel({ onSeen }) {
             )}
 
             {!loading && orders.length === 0 && !error && (
-                <p className="p-8 text-center text-sm text-stone-500 bg-[#FAF8F5] rounded-2xl border border-dashed border-stone-300">
+                <p className="p-8 text-center text-sm text-stone-500 bg-cream rounded-2xl border border-dashed border-stone-300">
                     No orders here yet.
                 </p>
             )}
 
             {orders.map((order) => (
-                <article key={order.id} className="p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3">
+                <article key={order.id} className="p-4 rounded-2xl bg-cream border border-stone-200 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                             {order.isNew && (
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-[#1C1B18] text-[10px] font-bold uppercase">
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-ink text-[10px] font-bold uppercase">
                                     New
                                 </span>
                             )}
-                            <strong className="font-mono text-sm text-[#1C1B18]">{order.id}</strong>
+                            <strong className="font-mono text-sm text-ink">{order.id}</strong>
                             <span
                                 className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
                                     PAYMENT_TONE[order.paymentStatus] || PAYMENT_TONE.unpaid
@@ -152,7 +152,7 @@ export default function OrdersPanel({ onSeen }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         <div className="text-stone-700">
-                            <p className="font-semibold text-[#1C1B18]">{order.customerName}</p>
+                            <p className="font-semibold text-ink">{order.customerName}</p>
                             <p>
                                 <a href={`tel:${order.phone.replace(/\s+/g, '')}`} className="underline">
                                     {order.phone}
@@ -191,7 +191,7 @@ export default function OrdersPanel({ onSeen }) {
                                 <span>{order.delivery > 0 ? formatGBP(order.delivery) : 'Free'}</span>
                             </li>
                             {order.assembly > 0 && (
-                                <li className="flex justify-between gap-3 font-semibold text-[#1C1B18]">
+                                <li className="flex justify-between gap-3 font-semibold text-ink">
                                     <span>Assembly requested</span>
                                     <span>{formatGBP(order.assembly)}</span>
                                 </li>
@@ -210,7 +210,7 @@ export default function OrdersPanel({ onSeen }) {
                 <button
                     type="button"
                     onClick={() => load(nextOffset)}
-                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-[#9A7B56] text-sm font-semibold cursor-pointer"
+                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-bronze text-sm font-semibold cursor-pointer"
                 >
                     Load more
                 </button>

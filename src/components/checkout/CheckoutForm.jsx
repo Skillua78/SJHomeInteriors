@@ -7,8 +7,8 @@ import { formatGBP } from '../../../shared/pricing.js';
 
 function StepHeading({ number, children }) {
     return (
-        <h2 className="flex items-center gap-2.5 font-sans text-base font-bold text-[#1C1B18]">
-            <span className="w-6 h-6 rounded-full bg-[#1C1B18] text-white text-xs font-bold flex items-center justify-center">
+        <h2 className="flex items-center gap-2.5 font-sans text-base font-bold text-ink">
+            <span className="w-6 h-6 rounded-full bg-ink text-white text-xs font-bold flex items-center justify-center">
                 {number}
             </span>
             {children}
@@ -70,13 +70,13 @@ export default function CheckoutForm({
                                 onClick={() => onDeliveryMethodChange(choice.id)}
                                 className={`p-4 rounded-2xl border text-left transition cursor-pointer flex items-start gap-3 ${
                                     selected
-                                        ? 'border-[#1C1B18] bg-[#FAF8F5] ring-1 ring-[#1C1B18]'
-                                        : 'border-stone-300 bg-white hover:border-[#9A7B56]'
+                                        ? 'border-ink bg-cream ring-1 ring-ink'
+                                        : 'border-stone-300 bg-white hover:border-bronze'
                                 }`}
                             >
-                                <Icon className="w-5 h-5 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
+                                <Icon className="w-5 h-5 text-bronze shrink-0 mt-0.5" aria-hidden="true" />
                                 <span>
-                                    <span className="block text-sm font-semibold text-[#1C1B18]">
+                                    <span className="block text-sm font-semibold text-ink">
                                         {choice.title}
                                     </span>
                                     <span className="block text-xs text-stone-600 mt-0.5">
@@ -92,20 +92,20 @@ export default function CheckoutForm({
                     <label
                         className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
                             form.assembly
-                                ? 'border-[#1C1B18] bg-[#FAF8F5] ring-1 ring-[#1C1B18]'
-                                : 'border-stone-300 bg-white hover:border-[#9A7B56]'
+                                ? 'border-ink bg-cream ring-1 ring-ink'
+                                : 'border-stone-300 bg-white hover:border-bronze'
                         }`}
                     >
                         <input
                             type="checkbox"
                             checked={form.assembly}
                             onChange={(e) => setField('assembly', e.target.checked)}
-                            className="mt-1 w-4 h-4 accent-[#1C1B18]"
+                            className="mt-1 w-4 h-4 accent-ink"
                         />
                         <span className="flex-1">
-                            <span className="flex items-center justify-between gap-3 text-sm font-semibold text-[#1C1B18]">
+                            <span className="flex items-center justify-between gap-3 text-sm font-semibold text-ink">
                                 <span className="flex items-center gap-2">
-                                    <Wrench className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+                                    <Wrench className="w-4 h-4 text-bronze" aria-hidden="true" />
                                     Add assembly
                                 </span>
                                 <span>+ {formatGBP(assemblyPrice)}</span>
@@ -209,14 +209,14 @@ export default function CheckoutForm({
                     type="checkbox"
                     checked={form.agreedTerms}
                     onChange={(e) => setField('agreedTerms', e.target.checked)}
-                    className="mt-1 w-4 h-4 accent-[#1C1B18]"
+                    className="mt-1 w-4 h-4 accent-ink"
                 />
                 <span>
                     I agree to the{' '}
                     <button
                         type="button"
                         onClick={() => onOpenLegal?.('terms')}
-                        className="underline text-[#7D6242] cursor-pointer"
+                        className="underline text-bronze-deep cursor-pointer"
                     >
                         Terms &amp; Conditions
                     </button>{' '}
@@ -224,7 +224,7 @@ export default function CheckoutForm({
                     <button
                         type="button"
                         onClick={() => onOpenLegal?.('returns')}
-                        className="underline text-[#7D6242] cursor-pointer"
+                        className="underline text-bronze-deep cursor-pointer"
                     >
                         delivery &amp; returns policy
                     </button>
@@ -245,7 +245,7 @@ export default function CheckoutForm({
             <button
                 type="submit"
                 disabled={submitting || methods.length === 0}
-                className="w-full py-4 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2"
+                className="press w-full min-h-14 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-base font-semibold shadow-md flex items-center justify-center gap-2"
             >
                 {submitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />

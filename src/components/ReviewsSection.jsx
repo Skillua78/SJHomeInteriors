@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Star, Upload, CheckCircle2, X, ShieldCheck, CornerDownRight, AlertCircle } from 'lucide-react';
 import { sanitizeText, validateSafeImageUrl } from '../utils/security';
 import { compressImageFiles } from '../utils/image';
+import Lightbox from './ui/Lightbox';
 
 export default function ReviewsSection({
     reviews,
@@ -88,7 +89,7 @@ export default function ReviewsSection({
         <section id="reviews" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-t border-stone-200">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
                 <div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
+                    <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                         What our customers say
                     </span>
                     <h2 className="font-serif text-3xl sm:text-4xl font-bold mt-1">
@@ -124,7 +125,7 @@ export default function ReviewsSection({
                         <button
                             type="button"
                             onClick={onOpenAdmin}
-                            className="px-4 py-3 rounded-full bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold transition cursor-pointer"
+                            className="press min-h-11 px-5 rounded-full bg-amber-700 hover:bg-amber-800 text-white text-sm font-semibold"
                         >
                             Moderate Reviews (Admin)
                         </button>
@@ -135,7 +136,7 @@ export default function ReviewsSection({
                             setShowForm(!showForm);
                             setThanks(false);
                         }}
-                        className="px-6 py-3 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold transition cursor-pointer"
+                        className="press min-h-11 px-6 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold"
                     >
                         {showForm ? 'Cancel' : 'Write a review'}
                     </button>
@@ -233,10 +234,10 @@ export default function ReviewsSection({
                                     aria-checked={rating === num}
                                     aria-label={`${num} Star${num > 1 ? 's' : ''}`}
                                     onClick={() => setRating(num)}
-                                    className="p-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9A7B56] rounded"
+                                    className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
                                 >
                                     <Star
-                                        className={`w-6 h-6 ${num <= rating ? 'text-amber-500 fill-current' : 'text-stone-300'
+                                        className={`w-7 h-7 transition-colors ${num <= rating ? 'text-amber-500 fill-current' : 'text-stone-300'
                                             }`}
                                     />
                                 </button>
@@ -265,8 +266,8 @@ export default function ReviewsSection({
                         <span className="block text-xs font-semibold text-stone-700 mb-2">
                             Attach photos (optional, up to 3)
                         </span>
-                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 hover:border-[#9A7B56] bg-[#FAF8F5] text-xs font-medium text-stone-700 cursor-pointer transition">
-                            <Upload className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 hover:border-bronze bg-cream text-xs font-medium text-stone-700 cursor-pointer transition">
+                            <Upload className="w-4 h-4 text-bronze" aria-hidden="true" />
                             Choose Image Files
                             <input
                                 type="file"
@@ -314,7 +315,7 @@ export default function ReviewsSection({
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="px-7 py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold cursor-pointer"
+                        className="px-7 py-3.5 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-sm font-semibold cursor-pointer"
                     >
                         {submitting ? 'Sending…' : 'Submit review'}
                     </button>
@@ -349,7 +350,7 @@ export default function ReviewsSection({
                             </div>
 
                             {rev.productName && (
-                                <span className="inline-block text-[11px] font-semibold text-[#9A7B56] mb-2">
+                                <span className="inline-block text-[11px] font-semibold text-bronze-deep mb-2">
                                     Product: {rev.productName}
                                 </span>
                             )}
@@ -385,9 +386,9 @@ export default function ReviewsSection({
 
                             {/* Official Showroom Admin Response */}
                             {rev.adminResponse && (
-                                <div className="mt-4 p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 text-xs">
-                                    <div className="flex items-center gap-1.5 font-bold text-[#1C1B18] mb-1">
-                                        <CornerDownRight className="w-3.5 h-3.5 text-[#9A7B56]" aria-hidden="true" />
+                                <div className="mt-4 p-3.5 rounded-2xl bg-cream border border-stone-200/90 text-xs">
+                                    <div className="flex items-center gap-1.5 font-bold text-ink mb-1">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-bronze" aria-hidden="true" />
                                         <span>Response from SJ Home Interiors</span>
                                     </div>
                                     <p className="text-stone-600 text-[11px] leading-relaxed">
@@ -399,7 +400,7 @@ export default function ReviewsSection({
 
                         <div className="mt-5 pt-4 border-t border-stone-100 flex items-center justify-between text-xs">
                             <div>
-                                <strong className="text-[#1C1B18] block">{rev.author}</strong>
+                                <strong className="text-ink block">{rev.author}</strong>
                                 {rev.location && (
                                     <span className="text-[11px] text-stone-500">{rev.location}</span>
                                 )}
@@ -418,22 +419,11 @@ export default function ReviewsSection({
                 ))}
             </div>
 
-            {/* Photo Lightbox */}
-            {lightboxImg && (
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Customer review image preview"
-                    onClick={() => setLightboxImg(null)}
-                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-                >
-                    <img
-                        src={lightboxImg}
-                        alt="Enlarged customer review photo"
-                        className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl"
-                    />
-                </div>
-            )}
+            <Lightbox
+                src={lightboxImg}
+                alt="Customer review photo"
+                onClose={() => setLightboxImg(null)}
+            />
         </section>
     );
 }

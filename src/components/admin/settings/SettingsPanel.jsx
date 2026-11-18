@@ -5,7 +5,7 @@ import { compressImageFiles } from '../../../utils/image';
 import { inputClass, labelClass, primaryButtonClass, sectionTitleClass } from '../adminUi';
 import { DEFAULT_HOME_TEXT } from '../../../data/defaultSettings';
 
-const cardClass = 'p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-4';
+const cardClass = 'p-5 rounded-2xl bg-cream border border-stone-200 space-y-4';
 
 function TextField({ id, label, value, onChange, hint, ...rest }) {
     return (
@@ -26,10 +26,10 @@ function Toggle({ label, checked, onChange, hint }) {
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => onChange(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-[#1C1B18]"
+                className="mt-0.5 w-4 h-4 accent-ink"
             />
             <span>
-                <span className="font-semibold text-[#1C1B18]">{label}</span>
+                <span className="font-semibold text-ink">{label}</span>
                 {hint && <span className="block text-xs text-stone-500">{hint}</span>}
             </span>
         </label>
@@ -236,7 +236,7 @@ function HomepageSettings({ form, set }) {
                 <button
                     type="button"
                     onClick={() => set({ ...DEFAULT_HOME_TEXT })}
-                    className="text-xs font-bold text-[#7D6242] hover:underline cursor-pointer"
+                    className="text-xs font-bold text-bronze-deep hover:underline cursor-pointer"
                 >
                     Restore default text
                 </button>
@@ -298,11 +298,11 @@ function HeroSlidesSettings({ form, set, onError }) {
                 <button type="button" onClick={addUrl} className={primaryButtonClass}>
                     Add link
                 </button>
-                <label className="px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer flex items-center gap-1.5">
+                <label className="px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 hover:border-bronze text-xs font-semibold cursor-pointer flex items-center gap-1.5">
                     {busy ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                     ) : (
-                        <Upload className="w-3.5 h-3.5 text-[#9A7B56]" aria-hidden="true" />
+                        <Upload className="w-3.5 h-3.5 text-bronze" aria-hidden="true" />
                     )}
                     Upload
                     <input
@@ -392,7 +392,7 @@ export default function SettingsPanel({ siteSettings, onSave }) {
                 <button
                     type="submit"
                     disabled={saving}
-                    className="px-7 py-3 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold flex items-center gap-2 transition cursor-pointer"
+                    className="px-7 py-3 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-sm font-semibold flex items-center gap-2 transition cursor-pointer"
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Save className="w-4 h-4" aria-hidden="true" />}
                     Save settings

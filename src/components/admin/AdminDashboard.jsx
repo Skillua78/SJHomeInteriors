@@ -111,7 +111,7 @@ export default function AdminDashboard({
             className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
         >
             <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-6xl w-full h-[96dvh] sm:h-[92vh] flex flex-col overflow-hidden shadow-2xl">
-                <header className="shrink-0 px-4 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 bg-[#1C1B18] text-white">
+                <header className="shrink-0 px-4 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 bg-ink text-white">
                     <div className="min-w-0">
                         <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1">
                             <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" /> Admin
@@ -132,14 +132,14 @@ export default function AdminDashboard({
                                         onClick={() => setTab(item.id)}
                                         className={`px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition ${
                                             active
-                                                ? 'bg-[#9A7B56] text-white'
+                                                ? 'bg-bronze-strong text-white'
                                                 : 'bg-white/10 text-stone-200 hover:bg-white/20'
                                         }`}
                                     >
                                         <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                                         {item.label}
                                         {tabCounts[item.id] > 0 && (
-                                            <span className="ml-0.5 px-1.5 rounded-full bg-amber-500 text-[#1C1B18] text-[10px] font-bold">
+                                            <span className="ml-0.5 px-1.5 rounded-full bg-amber-500 text-ink text-[10px] font-bold">
                                                 <span className="sr-only">new: </span>
                                                 {tabCounts[item.id]}
                                             </span>

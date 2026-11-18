@@ -28,8 +28,8 @@ export default function PaymentMethodPicker({ methods, value, onChange, bankInst
                         key={method.id}
                         className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
                             selected
-                                ? 'border-[#1C1B18] bg-[#FAF8F5] ring-1 ring-[#1C1B18]'
-                                : 'border-stone-300 bg-white hover:border-[#9A7B56]'
+                                ? 'border-ink bg-cream ring-1 ring-ink'
+                                : 'border-stone-300 bg-white hover:border-bronze'
                         }`}
                     >
                         <input
@@ -38,11 +38,11 @@ export default function PaymentMethodPicker({ methods, value, onChange, bankInst
                             value={method.id}
                             checked={selected}
                             onChange={() => onChange(method.id)}
-                            className="mt-1 accent-[#1C1B18]"
+                            className="mt-1 accent-ink"
                         />
                         <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-sm text-[#1C1B18] flex items-center gap-2">
-                                <Icon className="w-4 h-4 text-[#9A7B56] shrink-0" aria-hidden="true" />
+                            <span className="font-semibold text-sm text-ink flex items-center gap-2">
+                                <Icon className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
                                 {method.title}
                             </span>
                             <span className="block text-xs text-stone-600 mt-1 leading-relaxed">

@@ -103,7 +103,7 @@ export default function InventoryList({
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-serif text-xl font-bold text-[#1C1B18]">
+                <h3 className="font-serif text-xl font-bold text-ink">
                     Inventory ({items.length} of {total})
                 </h3>
                 {filtered && (
@@ -114,14 +114,14 @@ export default function InventoryList({
                             setCategory('All');
                             setStock('All');
                         }}
-                        className="text-xs font-semibold text-[#7D6242] hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-bronze-deep hover:underline cursor-pointer"
                     >
                         Reset filters
                     </button>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-[#FAF8F5] p-3 rounded-2xl border border-stone-200">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-cream p-3 rounded-2xl border border-stone-200">
                 <div className="sm:col-span-6 relative">
                     <input
                         type="search"
@@ -183,11 +183,11 @@ export default function InventoryList({
                                     className="w-12 h-12 rounded-xl object-cover bg-stone-100 shrink-0"
                                 />
                                 <div className="min-w-0">
-                                    <p className="text-[11px] font-bold uppercase text-[#9A7B56] truncate">
+                                    <p className="text-[11px] font-bold uppercase text-bronze-deep truncate">
                                         {p.category}
                                         {p.subcategory ? ` · ${p.subcategory}` : ''}
                                     </p>
-                                    <p className="text-sm font-bold text-[#1C1B18] truncate">{p.name}</p>
+                                    <p className="text-sm font-bold text-ink truncate">{p.name}</p>
                                     <p className="text-xs text-stone-500">
                                         {formatGBP(p.price)} · assembly {formatGBP(p.assemblyFee)}
                                     </p>
@@ -212,7 +212,7 @@ export default function InventoryList({
                                     type="button"
                                     onClick={() => changeStock(p, Math.max(0, (Number(p.stock) || 0) - 1))}
                                     aria-label={`Decrease stock of ${p.name}`}
-                                    className="w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                    className="w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center hover:border-bronze cursor-pointer"
                                 >
                                     <Minus className="w-3 h-3" />
                                 </button>
@@ -221,7 +221,7 @@ export default function InventoryList({
                                     type="button"
                                     onClick={() => changeStock(p, (Number(p.stock) || 0) + 1)}
                                     aria-label={`Increase stock of ${p.name}`}
-                                    className="w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center hover:border-[#9A7B56] cursor-pointer"
+                                    className="w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center hover:border-bronze cursor-pointer"
                                 >
                                     <Plus className="w-3 h-3" />
                                 </button>
@@ -268,7 +268,7 @@ export default function InventoryList({
                 <button
                     type="button"
                     onClick={() => load(nextOffset)}
-                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-[#9A7B56] text-sm font-semibold text-stone-700 cursor-pointer"
+                    className="w-full py-2.5 rounded-xl border border-stone-300 hover:border-bronze text-sm font-semibold text-stone-700 cursor-pointer"
                 >
                     Load more
                 </button>

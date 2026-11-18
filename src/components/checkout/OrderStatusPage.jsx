@@ -59,7 +59,7 @@ export default function OrderStatusPage({ sessionId, onPaid, onBackToShop, onBac
                 <button
                     type="button"
                     onClick={onBackToShop}
-                    className="px-7 py-3 rounded-full bg-[#1C1B18] text-white text-sm font-semibold cursor-pointer"
+                    className="px-7 py-3 rounded-full bg-ink text-white text-sm font-semibold cursor-pointer"
                 >
                     Back to the shop
                 </button>
@@ -70,7 +70,7 @@ export default function OrderStatusPage({ sessionId, onPaid, onBackToShop, onBac
     if (!order) {
         return (
             <div className="max-w-xl mx-auto px-4 py-24 text-center text-stone-600" role="status">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#9A7B56]" aria-hidden="true" />
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-bronze" aria-hidden="true" />
                 Confirming your payment…
             </div>
         );

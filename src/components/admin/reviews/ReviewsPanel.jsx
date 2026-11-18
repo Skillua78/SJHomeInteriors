@@ -16,7 +16,7 @@ export default function ReviewsPanel({ reviews, onToggleVerify, onRespond, onDel
             </p>
 
             {reviews.length === 0 && (
-                <p className="p-8 text-center text-sm text-stone-500 bg-[#FAF8F5] rounded-2xl border border-dashed border-stone-300">
+                <p className="p-8 text-center text-sm text-stone-500 bg-cream rounded-2xl border border-dashed border-stone-300">
                     No reviews have been submitted yet.
                 </p>
             )}
@@ -24,10 +24,10 @@ export default function ReviewsPanel({ reviews, onToggleVerify, onRespond, onDel
             {reviews.map((rev) => {
                 const draft = drafts[rev.id] ?? rev.adminResponse ?? '';
                 return (
-                    <article key={rev.id} className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 space-y-3">
+                    <article key={rev.id} className="p-4 sm:p-5 rounded-2xl bg-cream border border-stone-200 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="text-sm">
-                                <strong className="text-[#1C1B18]">{rev.author}</strong>
+                                <strong className="text-ink">{rev.author}</strong>
                                 <span className="text-amber-700 font-bold ml-2">★ {rev.rating}/5</span>
                                 <span className="text-stone-500 ml-2 text-xs">{rev.date}</span>
                             </div>

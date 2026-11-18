@@ -48,7 +48,7 @@ export default function PhotosStep({ form, update, onError }) {
     return (
         <div className={panelClass}>
             <div>
-                <h4 className="font-sans text-sm font-bold text-[#1C1B18]">
+                <h4 className="font-sans text-sm font-bold text-ink">
                     Photos ({form.images.length} of {MAX_PHOTOS})
                 </h4>
                 <p className="text-xs text-stone-500 mt-0.5">
@@ -68,11 +68,11 @@ export default function PhotosStep({ form, update, onError }) {
                 <button type="button" onClick={addUrl} className={primaryButtonClass}>
                     Add link
                 </button>
-                <label className="px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-stone-300 hover:border-[#9A7B56] text-xs font-semibold cursor-pointer flex items-center gap-1.5">
+                <label className="px-3.5 py-2.5 rounded-xl bg-cream border border-stone-300 hover:border-bronze text-xs font-semibold cursor-pointer flex items-center gap-1.5">
                     {busy ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                     ) : (
-                        <Upload className="w-3.5 h-3.5 text-[#9A7B56]" aria-hidden="true" />
+                        <Upload className="w-3.5 h-3.5 text-bronze" aria-hidden="true" />
                     )}
                     {busy ? 'Preparing…' : 'Upload photos'}
                     <input
@@ -129,7 +129,7 @@ export default function PhotosStep({ form, update, onError }) {
                     ))}
                 </ul>
             ) : (
-                <p className="p-8 text-center rounded-xl bg-[#FAF8F5] border border-dashed border-stone-300 text-sm text-stone-500">
+                <p className="p-8 text-center rounded-xl bg-cream border border-dashed border-stone-300 text-sm text-stone-500">
                     No photos yet. Upload files or paste an image link above.
                 </p>
             )}

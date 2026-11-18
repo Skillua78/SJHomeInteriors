@@ -147,7 +147,7 @@ export default function VariationsStep({ form, update, library, customColors, ma
                 <button
                     type="button"
                     onClick={() => setShowAll(!showAll)}
-                    className="font-bold text-[#7D6242] hover:underline cursor-pointer"
+                    className="font-bold text-bronze-deep hover:underline cursor-pointer"
                 >
                     {showAll ? 'Hide other option types' : 'Show every option type'}
                 </button>

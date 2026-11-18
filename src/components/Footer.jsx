@@ -1,5 +1,6 @@
 import { MapPin, Phone, Mail, ShieldAlert, MessageCircle, Share2 } from 'lucide-react';
 import Logo from './Logo';
+import PaymentBadges from './ui/PaymentBadges';
 import { validateSafeHttpsUrl } from '../utils/security';
 
 export function formatWhatsAppHref(raw) {
@@ -39,13 +40,13 @@ export default function Footer({
             : ['Sofas', 'Beds', 'Tables', 'Chairs', 'Wardrobes', 'Cabinets'];
 
     return (
-        <footer className="bg-[#1C1B18] text-stone-300 pt-14 pb-10 border-t border-stone-800">
+        <footer className="bg-ink text-stone-300 pt-14 pb-10 border-t border-stone-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-stone-800">
                     {/* Column 1: Brand & Social Links */}
                     <div className="space-y-4">
                         <Logo variant="light" wrap />
-                        <p className="text-xs text-stone-400 leading-relaxed">
+                        <p className="text-sm text-stone-400 leading-relaxed">
                             Curated luxury sofas, ottoman beds, sintered stone dining tables, and timeless home
                             interiors from our High Street, Maltby showroom.
                         </p>
@@ -57,7 +58,7 @@ export default function Footer({
                                         href={facebookUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-3.5 py-2 rounded-full bg-blue-600/20 hover:bg-blue-600 text-blue-200 hover:text-white border border-blue-500/30 text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                                        className="px-3.5 py-2 rounded-full bg-blue-600/20 hover:bg-blue-600 text-blue-200 hover:text-white border border-blue-500/30 text-sm font-semibold inline-flex items-center gap-1.5 min-h-11 transition"
                                     >
                                         <Share2 className="w-3.5 h-3.5" aria-hidden="true" /> Facebook
                                     </a>
@@ -67,7 +68,7 @@ export default function Footer({
                                         href={whatsappHref}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-3.5 py-2 rounded-full bg-emerald-600/20 hover:bg-emerald-600 text-emerald-200 hover:text-white border border-emerald-500/30 text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                                        className="px-3.5 py-2 rounded-full bg-emerald-600/20 hover:bg-emerald-600 text-emerald-200 hover:text-white border border-emerald-500/30 text-sm font-semibold inline-flex items-center gap-1.5 min-h-11 transition"
                                     >
                                         <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" /> WhatsApp
                                     </a>
@@ -78,10 +79,10 @@ export default function Footer({
 
                     {/* Column 2: Active Collections */}
                     <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[#D4B895] mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gold mb-4">
                             Collections
                         </h3>
-                        <ul className="space-y-2.5 text-xs">
+                        <ul className="text-sm">
                             {footerCategories.map((cat) => (
                                 <li key={cat}>
                                     <button
@@ -93,7 +94,7 @@ export default function Footer({
                                                 document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
                                             }, 50);
                                         }}
-                                        className="hover:text-white transition cursor-pointer"
+                                        className="min-h-11 lg:min-h-9 min-w-11 flex items-center text-left hover:text-white transition-colors"
                                     >
                                         {cat}
                                     </button>
@@ -104,15 +105,15 @@ export default function Footer({
 
                     {/* Column 3: Customer & Legal Information */}
                     <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[#D4B895] mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gold mb-4">
                             Customer & Legal Information
                         </h3>
-                        <ul className="space-y-2.5 text-xs">
+                        <ul className="text-sm">
                             <li>
                                 <button
                                     type="button"
                                     onClick={() => onOpenLegal('terms')}
-                                    className="hover:text-white transition cursor-pointer"
+                                    className="min-h-11 lg:min-h-9 min-w-11 flex items-center text-left hover:text-white transition-colors"
                                 >
                                     Terms & Conditions
                                 </button>
@@ -121,7 +122,7 @@ export default function Footer({
                                 <button
                                     type="button"
                                     onClick={() => onOpenLegal('returns')}
-                                    className="hover:text-white transition cursor-pointer"
+                                    className="min-h-11 lg:min-h-9 min-w-11 flex items-center text-left hover:text-white transition-colors"
                                 >
                                     Delivery & 14-Day Returns Policy
                                 </button>
@@ -130,7 +131,7 @@ export default function Footer({
                                 <button
                                     type="button"
                                     onClick={() => onOpenLegal('privacy')}
-                                    className="hover:text-white transition cursor-pointer"
+                                    className="min-h-11 lg:min-h-9 min-w-11 flex items-center text-left hover:text-white transition-colors"
                                 >
                                     Privacy & UK GDPR Notice
                                 </button>
@@ -139,17 +140,17 @@ export default function Footer({
                                 <button
                                     type="button"
                                     onClick={() => onOpenLegal('cookies')}
-                                    className="hover:text-white transition cursor-pointer"
+                                    className="min-h-11 lg:min-h-9 min-w-11 flex items-center text-left hover:text-white transition-colors"
                                 >
                                     Cookie Policy
                                 </button>
                             </li>
                             {isAdmin && (
-                                <li className="pt-2">
+                                <li className="pt-1">
                                     <button
                                         type="button"
                                         onClick={onOpenStockManager}
-                                        className="text-amber-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                                        className="min-h-11 lg:min-h-9 text-amber-400 hover:underline flex items-center gap-1 font-semibold"
                                     >
                                         <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" /> Open Admin Dashboard
                                     </button>
@@ -160,20 +161,20 @@ export default function Footer({
 
                     {/* Column 4: Showroom Contact */}
                     <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[#D4B895] mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gold mb-4">
                             Showroom & Contact
                         </h3>
-                        <ul className="space-y-3 text-xs text-stone-400">
-                            <li className="flex items-start gap-2">
-                                <MapPin className="w-4 h-4 text-[#9A7B56] shrink-0 mt-0.5" aria-hidden="true" />
+                        <ul className="space-y-1 text-sm text-stone-400">
+                            <li className="flex items-start gap-2 py-2">
+                                <MapPin className="w-4 h-4 text-gold shrink-0 mt-0.5" aria-hidden="true" />
                                 <span>{address}</span>
                             </li>
                             {phone && (
                                 <li className="flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-[#9A7B56] shrink-0" aria-hidden="true" />
+                                    <Phone className="w-4 h-4 text-gold shrink-0" aria-hidden="true" />
                                     <a
                                         href={`tel:${phone.replace(/\s+/g, '')}`}
-                                        className="hover:text-white transition"
+                                        className="min-h-11 lg:min-h-9 flex items-center hover:text-white transition-colors"
                                     >
                                         {phone}
                                     </a>
@@ -181,14 +182,14 @@ export default function Footer({
                             )}
                             {email && (
                                 <li className="flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-[#9A7B56] shrink-0" aria-hidden="true" />
-                                    <a href={`mailto:${email}`} className="hover:text-white transition break-all">
+                                    <Mail className="w-4 h-4 text-gold shrink-0" aria-hidden="true" />
+                                    <a href={`mailto:${email}`} className="min-h-11 lg:min-h-9 flex items-center hover:text-white transition-colors break-all">
                                         {email}
                                     </a>
                                 </li>
                             )}
                             {openingHours && (
-                                <li className="text-[11px] text-stone-500 pt-1 leading-relaxed">
+                                <li className="text-xs text-stone-400 pt-2 leading-relaxed">
                                     {openingHours}
                                 </li>
                             )}
@@ -196,7 +197,13 @@ export default function Footer({
                     </div>
                 </div>
 
-                <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-500 gap-2">
+                <PaymentBadges
+                    paymentOptions={siteSettings?.paymentOptions}
+                    tone="dark"
+                    className="pt-6"
+                />
+
+                <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-2">
                     <p>&copy; {new Date().getFullYear()} SJ Home Interiors. All rights reserved.</p>
                     <p>High Street, Maltby • South Yorkshire, UK</p>
                 </div>

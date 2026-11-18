@@ -189,12 +189,12 @@ export default function BasketPage({
             <button
                 type="button"
                 onClick={onBackToShop}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 hover:text-[#9A7B56] mb-5 cursor-pointer"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 hover:text-bronze-deep mb-5 cursor-pointer"
             >
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Continue shopping
             </button>
 
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#1C1B18] mb-6">
+            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-ink mb-6">
                 Basket &amp; checkout
             </h1>
 
@@ -215,7 +215,7 @@ export default function BasketPage({
                     <button
                         type="button"
                         onClick={onBackToShop}
-                        className="px-7 py-3 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-sm font-semibold cursor-pointer transition"
+                        className="px-7 py-3 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold cursor-pointer transition"
                     >
                         Browse furniture
                     </button>
@@ -253,6 +253,7 @@ export default function BasketPage({
                             deliveryInfo={deliveryInfo}
                             assemblyAdded={wantsAssembly}
                             itemCount={itemCount}
+                            paymentOptions={siteSettings?.paymentOptions}
                         />
                     </div>
                 </div>

@@ -47,7 +47,7 @@ export default function FabricSwatchChart({ fabric, chosenColor, onChooseColor, 
                                 >
                                     <span
                                         className={`text-xs font-bold px-2 py-0.5 rounded ${
-                                            sw.textDark ? 'text-[#1C1B18] bg-white/70' : 'text-white bg-black/35'
+                                            sw.textDark ? 'text-ink bg-white/70' : 'text-white bg-black/35'
                                         } ${selected ? 'ring-2 ring-white' : ''}`}
                                     >
                                         {sw.name}
@@ -58,7 +58,7 @@ export default function FabricSwatchChart({ fabric, chosenColor, onChooseColor, 
                         })}
                     </div>
                     <p className="px-3 py-2 text-xs text-stone-600 text-center border-t border-stone-200">
-                        <strong className="text-[#1C1B18]">{chart.title}</strong> · tap a shade to select it
+                        <strong className="text-ink">{chart.title}</strong> · tap a shade to select it
                     </p>
                 </>
             )}

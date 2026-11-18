@@ -1,8 +1,20 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { SHOP_INFO } from '../data/products';
+import { useDialog, useTransitionState } from '../hooks/useDialog';
+
+// Links around the site use these names; they open the matching document.
+const ALIASES = { returns: 'refunds', delivery: 'refunds', cookies: 'privacy' };
 
 export default function LegalModals({ activeDoc, onClose }) {
-    if (!activeDoc) return null;
+    const isOpen = Boolean(activeDoc);
+    const { mounted, state } = useTransitionState(isOpen, 300);
+    const panelRef = useDialog(isOpen, onClose);
+    const [lastDoc, setLastDoc] = useState(activeDoc);
+    if (activeDoc && activeDoc !== lastDoc) setLastDoc(activeDoc);
+
+    if (!mounted) return null;
+    const docKey = ALIASES[activeDoc || lastDoc] || activeDoc || lastDoc;
 
     const content = {
         terms: {
@@ -34,30 +46,40 @@ export default function LegalModals({ activeDoc, onClose }) {
         },
     };
 
-    const doc = content[activeDoc] || content.terms;
+    const doc = content[docKey] || content.terms;
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="legal-modal-title"
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
-        >
-            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200">
-                <div className="flex items-center justify-between pb-4 border-b border-stone-200">
-                    <h3 id="legal-modal-title" className="font-serif text-2xl font-bold">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div
+                data-state={state}
+                onClick={onClose}
+                aria-hidden="true"
+                className="overlay-fade absolute inset-0 bg-ink/60 backdrop-blur-xs"
+            />
+            <div
+                ref={panelRef}
+                data-dialog-panel
+                data-state={state}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="legal-modal-title"
+                tabIndex={-1}
+                className="dialog-pop relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full px-5 sm:px-8 pt-4 sm:pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl border border-stone-200 outline-none"
+            >
+                <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-200">
+                    <h3 id="legal-modal-title" className="font-serif text-2xl font-bold leading-tight pt-2">
                         {doc.title}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Close legal document"
-                        className="p-1.5 rounded-full hover:bg-stone-100 cursor-pointer"
+                        aria-label="Close"
+                        className="w-11 h-11 shrink-0 rounded-full hover:bg-stone-100 flex items-center justify-center transition"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                 </div>
-                <div className="py-5 space-y-3 text-xs text-stone-600 leading-relaxed max-h-[65vh] overflow-y-auto">
+                <div className="py-5 space-y-3 text-sm text-stone-700 leading-relaxed max-h-[60vh] overflow-y-auto overscroll-contain">
                     {doc.body.map((p, i) => (
                         <p key={i}>{p}</p>
                     ))}
@@ -66,7 +88,7 @@ export default function LegalModals({ activeDoc, onClose }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-6 py-2.5 rounded-full bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer"
+                        className="press min-h-11 px-7 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold"
                     >
                         Close
                     </button>

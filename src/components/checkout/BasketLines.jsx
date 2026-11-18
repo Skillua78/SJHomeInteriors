@@ -1,4 +1,5 @@
-import { Trash2, Plus, Minus } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import QtyStepper from '../ui/QtyStepper';
 import { validateSafeImageUrl } from '../../utils/security';
 import { formatGBP } from '../../../shared/pricing.js';
 import { MAX_QTY_PER_LINE } from '../../utils/catalogModel';
@@ -19,43 +20,28 @@ export default function BasketLines({ cart, onUpdateQty, onRemoveItem }) {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="font-serif text-lg font-bold text-[#1C1B18] leading-snug">
+                                <p className="font-serif text-lg font-bold text-ink leading-snug">
                                     {item.name}
                                 </p>
                                 {item.label && item.label !== 'Standard' && (
                                     <p className="text-xs text-stone-500 mt-0.5">{item.label}</p>
                                 )}
                             </div>
-                            <p className="text-sm font-bold text-[#1C1B18] shrink-0">
+                            <p className="text-base font-bold text-ink shrink-0 tabular-nums">
                                 {formatGBP(item.unitPrice * item.qty)}
                             </p>
                         </div>
 
                         <div className="flex items-center justify-between gap-3 mt-3">
-                            <div className="flex items-center border border-stone-300 rounded-full bg-[#FAF8F5]">
-                                <button
-                                    type="button"
-                                    onClick={() => onUpdateQty(item.key, -1)}
-                                    aria-label={`Decrease quantity of ${item.name}`}
-                                    className="w-9 h-9 flex items-center justify-center text-stone-600 hover:text-[#1C1B18] cursor-pointer"
-                                >
-                                    <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="w-7 text-center text-sm font-bold" aria-live="polite">
-                                    {item.qty}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => onUpdateQty(item.key, 1)}
-                                    disabled={item.qty >= MAX_QTY_PER_LINE}
-                                    aria-label={`Increase quantity of ${item.name}`}
-                                    className="w-9 h-9 flex items-center justify-center text-stone-600 hover:text-[#1C1B18] cursor-pointer disabled:opacity-30"
-                                >
-                                    <Plus className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
+                            <QtyStepper
+                                value={item.qty}
+                                max={MAX_QTY_PER_LINE}
+                                itemName={item.name}
+                                onDecrease={() => onUpdateQty(item.key, -1)}
+                                onIncrease={() => onUpdateQty(item.key, 1)}
+                            />
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
                                 {item.qty > 1 && (
                                     <span className="text-xs text-stone-500">
                                         {formatGBP(item.unitPrice)} each
@@ -65,9 +51,9 @@ export default function BasketLines({ cart, onUpdateQty, onRemoveItem }) {
                                     type="button"
                                     onClick={() => onRemoveItem(item.key)}
                                     aria-label={`Remove ${item.name} from basket`}
-                                    className="p-2 text-stone-400 hover:text-red-600 cursor-pointer"
+                                    className="w-11 h-11 rounded-full flex items-center justify-center text-stone-400 hover:text-red-700 hover:bg-stone-100 transition"
                                 >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 </button>
                             </div>
                         </div>

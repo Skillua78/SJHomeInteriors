@@ -11,7 +11,7 @@ export default function Field({ id, label, error, className = '', hint, ...input
                 id={id}
                 aria-invalid={error ? 'true' : undefined}
                 {...inputProps}
-                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-base sm:text-sm text-[#1C1B18] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#9A7B56]/30 focus:border-[#9A7B56] ${
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-base sm:text-sm text-ink placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-bronze/30 focus:border-bronze ${
                     error ? 'border-red-400' : 'border-stone-300'
                 }`}
             />

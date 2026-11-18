@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 const ZOOM_STEPS = [1, 1.75, 2.5];
@@ -25,6 +25,25 @@ export default function ProductGallery({ images, alt, badge }) {
         setIndex((next + images.length) % images.length);
     };
 
+    // Swipe left / right on phones to change photo (ignored while zoomed in).
+    const touchStart = useRef(null);
+    const swiped = useRef(false);
+    const onTouchStart = (e) => {
+        swiped.current = false;
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+    const onTouchEnd = (e) => {
+        const start = touchStart.current;
+        touchStart.current = null;
+        if (!start || zoom > 1 || !many) return;
+        const dx = e.changedTouches[0].clientX - start.x;
+        const dy = e.changedTouches[0].clientY - start.y;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            swiped.current = true;
+            show(index + (dx < 0 ? 1 : -1));
+        }
+    };
+
     const cycleZoom = () => setZoom((z) => ZOOM_STEPS[(ZOOM_STEPS.indexOf(z) + 1) % ZOOM_STEPS.length]);
 
     const handleMove = (e) => {
@@ -37,10 +56,19 @@ export default function ProductGallery({ images, alt, badge }) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#F4F1EA]">
+        <div className="flex flex-col h-full bg-linen">
             <div
                 onMouseMove={handleMove}
-                onClick={cycleZoom}
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEnd}
+                onClick={() => {
+                    // A swipe also fires a click; don't zoom on it.
+                    if (swiped.current) {
+                        swiped.current = false;
+                        return;
+                    }
+                    cycleZoom();
+                }}
                 className={`relative flex-1 min-h-[260px] sm:min-h-[360px] flex items-center justify-center overflow-hidden select-none ${
                     zoom > 1 ? 'cursor-zoom-out' : 'cursor-zoom-in'
                 }`}
@@ -53,7 +81,7 @@ export default function ProductGallery({ images, alt, badge }) {
                 />
 
                 {badge && zoom === 1 && (
-                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold bg-[#1C1B18] text-white">
+                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold bg-ink text-white">
                         {badge}
                     </span>
                 )}
@@ -65,7 +93,7 @@ export default function ProductGallery({ images, alt, badge }) {
                         cycleZoom();
                     }}
                     aria-label={zoom > 1 ? 'Zoom out' : 'Zoom in'}
-                    className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-[#1C1B18]/85 hover:bg-[#1C1B18] text-white flex items-center justify-center shadow-lg cursor-pointer"
+                    className="absolute bottom-3 right-3 w-11 h-11 rounded-full bg-ink/85 hover:bg-ink text-white flex items-center justify-center shadow-lg cursor-pointer"
                 >
                     {zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1] ? (
                         <ZoomOut className="w-4 h-4" />
@@ -83,7 +111,7 @@ export default function ProductGallery({ images, alt, badge }) {
                                 show(index - 1);
                             }}
                             aria-label="Previous photo"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
@@ -94,7 +122,7 @@ export default function ProductGallery({ images, alt, badge }) {
                                 show(index + 1);
                             }}
                             aria-label="Next photo"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
@@ -113,7 +141,7 @@ export default function ProductGallery({ images, alt, badge }) {
                             aria-current={idx === index}
                             className={`w-16 h-14 rounded-xl overflow-hidden border-2 bg-stone-100 shrink-0 transition cursor-pointer ${
                                 idx === index
-                                    ? 'border-[#9A7B56]'
+                                    ? 'border-bronze'
                                     : 'border-transparent opacity-70 hover:opacity-100'
                             }`}
                         >

@@ -30,7 +30,7 @@ export default function MaintenanceNotice({ siteSettings, onNavigate }) {
                 <button
                     type="button"
                     onClick={() => onNavigate?.('contact')}
-                    className="w-full py-3 px-4 rounded-xl bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-sm font-semibold transition cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-bronze-strong text-white text-sm font-semibold transition cursor-pointer"
                 >
                     Contact the showroom
                 </button>
@@ -38,17 +38,17 @@ export default function MaintenanceNotice({ siteSettings, onNavigate }) {
                     {phone && (
                         <a
                             href={`tel:${phone.replace(/\s+/g, '')}`}
-                            className="py-2.5 px-3 rounded-xl bg-white border border-amber-300 text-sm font-semibold text-[#1C1B18] flex items-center justify-center gap-1.5 hover:border-[#9A7B56]"
+                            className="py-2.5 px-3 rounded-xl bg-white border border-amber-300 text-sm font-semibold text-ink flex items-center justify-center gap-1.5 hover:border-bronze"
                         >
-                            <Phone className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" /> {phone}
+                            <Phone className="w-4 h-4 text-bronze" aria-hidden="true" /> {phone}
                         </a>
                     )}
                     {email && (
                         <a
                             href={`mailto:${email}`}
-                            className="py-2.5 px-3 rounded-xl bg-white border border-amber-300 text-sm font-semibold text-[#1C1B18] flex items-center justify-center gap-1.5 hover:border-[#9A7B56]"
+                            className="py-2.5 px-3 rounded-xl bg-white border border-amber-300 text-sm font-semibold text-ink flex items-center justify-center gap-1.5 hover:border-bronze"
                         >
-                            <Mail className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" /> Email us
+                            <Mail className="w-4 h-4 text-bronze" aria-hidden="true" /> Email us
                         </a>
                     )}
                 </div>

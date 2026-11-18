@@ -244,7 +244,7 @@ export default function App() {
         <div className="min-h-screen flex flex-col">
             <a
                 href="#main"
-                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-full focus:bg-white focus:text-[#1C1B18] focus:shadow-lg"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-full focus:bg-white focus:text-ink focus:shadow-lg"
             >
                 Skip to content
             </a>
@@ -284,7 +284,7 @@ export default function App() {
                         >
                             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-stone-200">
                                 <div>
-                                    <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
+                                    <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                                         {siteSettings.catalogSubtitle || 'Showroom & Online Collection'}
                                     </span>
                                     <h2 className="font-serif text-3xl sm:text-4xl font-bold mt-1">
@@ -305,7 +305,7 @@ export default function App() {
                                         id="sort-select"
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-stone-300 text-stone-700 focus:outline-none focus:border-[#9A7B56]"
+                                        className="min-h-11 pl-4 pr-9 rounded-full text-sm font-semibold bg-white border border-stone-300 text-ink hover:border-ink transition focus:border-bronze"
                                     >
                                         <option value="featured">Newest first</option>
                                         <option value="low">Price: low to high</option>
@@ -314,17 +314,17 @@ export default function App() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
+                            <div className="flex items-center gap-2 mt-5 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar pb-2 sm:flex-wrap sm:overflow-visible">
                                 {categoryPills.map((pill) => (
                                     <button
                                         key={pill.id}
                                         type="button"
                                         aria-pressed={activeCategory === pill.id}
                                         onClick={() => handleSelectCategory(pill.id)}
-                                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition cursor-pointer shrink-0 ${
+                                        className={`press min-h-11 px-5 rounded-full text-sm font-semibold shrink-0 ${
                                             activeCategory === pill.id
-                                                ? 'bg-[#1C1B18] text-white'
-                                                : 'bg-white border border-stone-300 text-stone-700 hover:border-[#9A7B56]'
+                                                ? 'bg-ink text-white'
+                                                : 'bg-white border border-stone-300 text-stone-700 hover:border-bronze'
                                         }`}
                                     >
                                         {pill.label}
@@ -333,16 +333,16 @@ export default function App() {
                             </div>
 
                             {subcategories.length > 0 && (
-                                <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1 sm:flex-wrap">
+                                <div className="flex items-center gap-2 mt-2 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar pb-1 sm:flex-wrap">
                                     {[{ name: 'All' }, ...subcategories].map((sub) => (
                                         <button
                                             key={sub.name}
                                             type="button"
                                             aria-pressed={activeSubcategory === sub.name}
                                             onClick={() => setActiveSubcategory(sub.name)}
-                                            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer shrink-0 ${
+                                            className={`press min-h-11 px-4 rounded-full text-sm font-semibold shrink-0 ${
                                                 activeSubcategory === sub.name
-                                                    ? 'bg-[#9A7B56] text-white'
+                                                    ? 'bg-bronze-strong text-white'
                                                     : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                                             }`}
                                         >
@@ -358,7 +358,7 @@ export default function App() {
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="font-semibold text-[#7D6242] underline cursor-pointer"
+                                        className="inline-flex items-center min-h-11 font-semibold text-bronze-deep underline underline-offset-4"
                                     >
                                         clear search
                                     </button>
@@ -374,7 +374,7 @@ export default function App() {
                                     <button
                                         type="button"
                                         onClick={catalog.refresh}
-                                        className="px-4 py-2 rounded-full bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer"
+                                        className="press min-h-11 px-5 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold"
                                     >
                                         Try again
                                     </button>
@@ -415,6 +415,7 @@ export default function App() {
                                                 isAdmin={isAdmin}
                                                 onEditProduct={handleEditProduct}
                                                 customColors={siteSettings.customColors}
+                                                freeDeliveryMiles={siteSettings.freeDeliveryMiles}
                                             />
                                         ))}
                                     </div>
@@ -430,7 +431,7 @@ export default function App() {
                                                     setSearchQuery('');
                                                     handleSelectCategory('All');
                                                 }}
-                                                className="px-6 py-2.5 rounded-full bg-[#1C1B18] text-white text-sm font-semibold cursor-pointer"
+                                                className="press min-h-11 px-6 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold"
                                             >
                                                 Show all furniture
                                             </button>
@@ -443,7 +444,7 @@ export default function App() {
                                                 type="button"
                                                 onClick={catalog.loadMore}
                                                 disabled={catalog.loadingMore}
-                                                className="px-8 py-3.5 rounded-full border border-[#1C1B18] text-[#1C1B18] hover:bg-[#1C1B18] hover:text-white text-sm font-semibold transition cursor-pointer inline-flex items-center gap-2"
+                                                className="px-8 py-3.5 rounded-full border border-ink text-ink hover:bg-ink hover:text-white text-sm font-semibold transition cursor-pointer inline-flex items-center gap-2"
                                             >
                                                 {catalog.loadingMore && (
                                                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -537,6 +538,7 @@ export default function App() {
                 cart={cart}
                 onUpdateQty={updateQty}
                 onRemoveItem={removeItem}
+                siteSettings={siteSettings}
                 onGoToBasketPage={() => {
                     setIsCartOpen(false);
                     navigate('basket');

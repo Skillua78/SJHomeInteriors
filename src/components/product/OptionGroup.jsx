@@ -13,7 +13,7 @@ export default function OptionGroup({ label, options, value, onChange, deltas = 
         <fieldset>
             <div className="flex items-center justify-between gap-3 mb-2">
                 <legend className="text-sm font-semibold text-stone-700">
-                    {label}: <span className="text-[#7D6242]">{value}</span>
+                    {label}: <span className="text-bronze-deep">{value}</span>
                 </legend>
                 {action}
             </div>
@@ -26,10 +26,10 @@ export default function OptionGroup({ label, options, value, onChange, deltas = 
                             type="button"
                             aria-pressed={selected}
                             onClick={() => onChange(name)}
-                            className={`px-3.5 py-2 rounded-xl text-sm border cursor-pointer transition ${
+                            className={`min-h-11 px-4 rounded-xl text-sm border transition ${
                                 selected
-                                    ? 'border-[#1C1B18] bg-[#1C1B18] text-white font-semibold'
-                                    : 'border-stone-300 bg-white text-stone-700 hover:border-[#9A7B56]'
+                                    ? 'border-ink bg-ink text-white font-semibold'
+                                    : 'border-stone-300 bg-white text-stone-700 hover:border-bronze'
                             }`}
                         >
                             {name}

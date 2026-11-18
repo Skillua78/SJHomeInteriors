@@ -87,14 +87,14 @@ export default function ProductEditor({
         <>
             <form
                 onSubmit={handleSubmit}
-                className="bg-[#FAF8F5] p-4 sm:p-5 rounded-3xl border border-stone-200 flex flex-col gap-4"
+                className="bg-cream p-4 sm:p-5 rounded-3xl border border-stone-200 flex flex-col gap-4"
             >
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-stone-200 pb-3">
                     <div className="min-w-0">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#9A7B56]">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-bronze-deep">
                             {editing ? 'Editing' : target?.duplicate ? 'New copy' : 'New product'}
                         </span>
-                        <h3 className="font-serif text-xl font-bold text-[#1C1B18] truncate">
+                        <h3 className="font-serif text-xl font-bold text-ink truncate">
                             {form.name || 'Add a furniture item'}
                         </h3>
                     </div>
@@ -102,7 +102,7 @@ export default function ProductEditor({
                         <button
                             type="button"
                             onClick={() => setShowAiImport(true)}
-                            className="px-3 py-1.5 rounded-full bg-[#9A7B56] hover:bg-[#866947] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
+                            className="px-3 py-1.5 rounded-full bg-bronze-strong hover:bg-bronze-strong text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
                         >
                             <Sparkles className="w-3.5 h-3.5" /> AI / JSON Import
                         </button>
@@ -163,7 +163,7 @@ export default function ProductEditor({
                                 aria-selected={active}
                                 onClick={() => setStep(item.id)}
                                 className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${active
-                                        ? 'bg-[#1C1B18] text-white'
+                                        ? 'bg-ink text-white'
                                         : 'text-stone-600 hover:bg-stone-100'
                                     }`}
                             >
@@ -206,7 +206,7 @@ export default function ProductEditor({
                 <button
                     type="submit"
                     disabled={saving}
-                    className="w-full py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] disabled:bg-stone-400 text-white text-sm font-semibold transition cursor-pointer shadow-md flex items-center justify-center gap-2 mt-auto"
+                    className="w-full py-3.5 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-sm font-semibold transition cursor-pointer shadow-md flex items-center justify-center gap-2 mt-auto"
                 >
                     {saving && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
                     {saving ? 'Saving…' : editing ? 'Save changes' : 'Add product'}

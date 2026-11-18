@@ -55,10 +55,10 @@ export default function ContactPage({ siteSettings }) {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
             <div className="text-center max-w-2xl mx-auto mb-12">
-                <span className="text-xs font-bold uppercase tracking-widest text-[#9A7B56]">
+                <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                     Visit Or Message Us
                 </span>
-                <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1C1B18] mt-1">
+                <h1 className="font-serif text-3xl sm:text-5xl font-bold text-ink mt-1">
                     Maltby Showroom & Customer Care
                 </h1>
                 <p className="text-xs sm:text-sm text-stone-600 mt-3 leading-relaxed">
@@ -71,31 +71,31 @@ export default function ContactPage({ siteSettings }) {
                 {/* Left Column: Direct Contact Channels + Optional Facebook & WhatsApp */}
                 <div className="lg:col-span-5 space-y-4">
                     <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-6">
-                        <h2 className="font-serif text-2xl font-bold text-[#1C1B18]">
+                        <h2 className="font-serif text-2xl font-bold text-ink">
                             Showroom Details
                         </h2>
 
                         <div className="space-y-4 text-xs">
                             <div className="flex items-start gap-3.5">
-                                <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-[#9A7B56]">
+                                <div className="p-3 rounded-2xl bg-cream border border-stone-200 text-bronze-deep">
                                     <MapPin className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-[#1C1B18] text-sm">Showroom Address</h3>
+                                    <h3 className="font-bold text-ink text-sm">Showroom Address</h3>
                                     <p className="text-stone-600 mt-0.5">{address}</p>
                                 </div>
                             </div>
 
                             {phone && (
                                 <div className="flex items-start gap-3.5">
-                                    <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-[#9A7B56]">
+                                    <div className="p-3 rounded-2xl bg-cream border border-stone-200 text-bronze-deep">
                                         <Phone className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-[#1C1B18] text-sm">Telephone</h3>
+                                        <h3 className="font-bold text-ink text-sm">Telephone</h3>
                                         <a
                                             href={`tel:${phone.replace(/\s+/g, '')}`}
-                                            className="text-[#9A7B56] font-semibold hover:underline block mt-0.5 text-sm"
+                                            className="text-bronze-deep font-semibold hover:underline block mt-0.5 text-sm"
                                         >
                                             {phone}
                                         </a>
@@ -105,14 +105,14 @@ export default function ContactPage({ siteSettings }) {
 
                             {email && (
                                 <div className="flex items-start gap-3.5">
-                                    <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-[#9A7B56]">
+                                    <div className="p-3 rounded-2xl bg-cream border border-stone-200 text-bronze-deep">
                                         <Mail className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-[#1C1B18] text-sm">Email Enquiries</h3>
+                                        <h3 className="font-bold text-ink text-sm">Email Enquiries</h3>
                                         <a
                                             href={`mailto:${email}`}
-                                            className="text-[#9A7B56] font-semibold hover:underline block mt-0.5 text-sm break-all"
+                                            className="text-bronze-deep font-semibold hover:underline block mt-0.5 text-sm break-all"
                                         >
                                             {email}
                                         </a>
@@ -121,11 +121,11 @@ export default function ContactPage({ siteSettings }) {
                             )}
 
                             <div className="flex items-start gap-3.5">
-                                <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-[#9A7B56]">
+                                <div className="p-3 rounded-2xl bg-cream border border-stone-200 text-bronze-deep">
                                     <Clock className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-[#1C1B18] text-sm">Opening Hours</h3>
+                                    <h3 className="font-bold text-ink text-sm">Opening Hours</h3>
                                     <p className="text-stone-600 mt-0.5 whitespace-pre-line">{openingHours}</p>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@ export default function ContactPage({ siteSettings }) {
                             <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
-                            <h3 className="font-serif text-2xl font-bold text-[#1C1B18]">
+                            <h3 className="font-serif text-2xl font-bold text-ink">
                                 Thank You for Reaching Out
                             </h3>
                             <p className="text-xs text-stone-600 max-w-md mx-auto">
@@ -189,7 +189,7 @@ export default function ContactPage({ siteSettings }) {
                                     setSubmitted(false);
                                     setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
                                 }}
-                                className="px-6 py-2.5 rounded-full bg-[#1C1B18] text-white text-xs font-semibold cursor-pointer"
+                                className="px-6 py-2.5 rounded-full bg-ink text-white text-xs font-semibold cursor-pointer"
                             >
                                 Send Another Message
                             </button>
@@ -204,7 +204,7 @@ export default function ContactPage({ siteSettings }) {
                                     {sendError}
                                 </p>
                             )}
-                            <h2 className="font-serif text-2xl font-bold text-[#1C1B18] mb-2">
+                            <h2 className="font-serif text-2xl font-bold text-ink mb-2">
                                 Send a Showroom Enquiry
                             </h2>
 
@@ -219,7 +219,7 @@ export default function ContactPage({ siteSettings }) {
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         placeholder="e.g. Sarah Jenkins"
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-bronze"
                                     />
                                 </div>
                                 <div>
@@ -232,7 +232,7 @@ export default function ContactPage({ siteSettings }) {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="you@example.co.uk"
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-bronze"
                                     />
                                 </div>
                             </div>
@@ -247,7 +247,7 @@ export default function ContactPage({ siteSettings }) {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         placeholder="Enter your mobile or landline"
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-bronze"
                                     />
                                 </div>
                                 <div>
@@ -260,7 +260,7 @@ export default function ContactPage({ siteSettings }) {
                                         value={formData.subject}
                                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                         placeholder="e.g. Delivery quote or fabric sample"
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-bronze"
                                     />
                                 </div>
                             </div>
@@ -275,13 +275,13 @@ export default function ContactPage({ siteSettings }) {
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     placeholder="Tell us which sofa, bed, or dining piece you are interested in..."
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#9A7B56]"
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-bronze"
                                 />
                             </div>
 
                             <button
                                 type="submit"
-                                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
+                                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-ink hover:bg-bronze-strong text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
                             >
                                 <Send className="w-3.5 h-3.5" /> Send Message
                             </button>

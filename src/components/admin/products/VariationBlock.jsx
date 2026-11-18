@@ -30,8 +30,8 @@ export default function VariationBlock({
 
     return (
         <div className={panelClass}>
-            <h4 className="font-sans text-sm font-bold text-[#1C1B18]">
-                {title} <span className="text-[#7D6242] font-normal">({selected.length} selected)</span>
+            <h4 className="font-sans text-sm font-bold text-ink">
+                {title} <span className="text-bronze-deep font-normal">({selected.length} selected)</span>
             </h4>
 
             <div className="flex flex-wrap gap-1.5">
@@ -47,11 +47,11 @@ export default function VariationBlock({
                                     manageMode ? 'rounded-l-lg border-r-0' : 'rounded-lg'
                                 } ${
                                     active
-                                        ? 'bg-[#1C1B18] text-white border-[#1C1B18] font-semibold'
-                                        : 'bg-[#FAF8F5] text-stone-700 border-stone-300 hover:border-[#9A7B56]'
+                                        ? 'bg-ink text-white border-ink font-semibold'
+                                        : 'bg-cream text-stone-700 border-stone-300 hover:border-bronze'
                                 }`}
                             >
-                                {active && <Check className="w-3 h-3 text-[#D4B895]" aria-hidden="true" />}
+                                {active && <Check className="w-3 h-3 text-gold" aria-hidden="true" />}
                                 {item}
                             </button>
                             {manageMode && (
@@ -78,7 +78,7 @@ export default function VariationBlock({
                         {selected.map((item) => (
                             <label
                                 key={item}
-                                className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#FAF8F5] border border-stone-200 text-xs"
+                                className="flex items-center justify-between gap-2 p-2 rounded-xl bg-cream border border-stone-200 text-xs"
                             >
                                 <span className="font-semibold text-stone-700 truncate" title={item}>
                                     {item}

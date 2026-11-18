@@ -37,8 +37,8 @@ export default function ColourPicker({ selected, onChange, library, customColors
 
     return (
         <div className={panelClass}>
-            <h4 className="font-sans text-sm font-bold text-[#1C1B18] flex items-center gap-1.5">
-                <Palette className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" />
+            <h4 className="font-sans text-sm font-bold text-ink flex items-center gap-1.5">
+                <Palette className="w-4 h-4 text-bronze" aria-hidden="true" />
                 Colours &amp; finishes ({selected.length} selected)
             </h4>
 
@@ -47,7 +47,7 @@ export default function ColourPicker({ selected, onChange, library, customColors
                     {selected.map((name) => (
                         <span
                             key={name}
-                            className="inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full bg-[#1C1B18] text-white text-xs font-semibold"
+                            className="inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full bg-ink text-white text-xs font-semibold"
                         >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/40" style={swatch(name)} />
                             {name}
@@ -104,8 +104,8 @@ export default function ColourPicker({ selected, onChange, library, customColors
                                     manageMode ? 'rounded-l-full border-r-0' : 'rounded-full'
                                 } ${
                                     active
-                                        ? 'border-[#9A7B56] bg-[#9A7B56]/15 text-[#1C1B18] font-bold'
-                                        : 'border-stone-300 bg-[#FAF8F5] text-stone-700 hover:border-[#9A7B56]'
+                                        ? 'border-bronze bg-bronze/15 text-ink font-bold'
+                                        : 'border-stone-300 bg-cream text-stone-700 hover:border-bronze'
                                 }`}
                             >
                                 <span

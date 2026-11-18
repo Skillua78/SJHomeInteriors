@@ -47,14 +47,14 @@ export default function DimensionsStep({ form, update }) {
 
     const tabClass = (active) =>
         `px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-            active ? 'bg-[#1C1B18] text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            active ? 'bg-ink text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
         }`;
 
     return (
         <div className="space-y-4">
             <div className={panelClass}>
-                <h4 className="font-sans text-sm font-bold text-[#1C1B18] flex items-center gap-1.5">
-                    <Ruler className="w-4 h-4 text-[#9A7B56]" aria-hidden="true" /> Dimensions
+                <h4 className="font-sans text-sm font-bold text-ink flex items-center gap-1.5">
+                    <Ruler className="w-4 h-4 text-bronze" aria-hidden="true" /> Dimensions
                 </h4>
 
                 {form.sizes.length > 0 && (
@@ -86,8 +86,8 @@ export default function DimensionsStep({ form, update }) {
                     </div>
                 )}
 
-                <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#7D6242]">
+                <div className="p-3 rounded-xl bg-cream border border-stone-200 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-bronze-deep">
                         Unit converter - type cm or ft/in, then choose where to put it
                     </p>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -125,7 +125,7 @@ export default function DimensionsStep({ form, update }) {
                                 key={field.key}
                                 type="button"
                                 onClick={() => applyConverted(field.key)}
-                                className="flex-1 py-2 px-2 rounded-lg bg-stone-800 hover:bg-[#9A7B56] text-white text-xs font-semibold cursor-pointer"
+                                className="flex-1 py-2 px-2 rounded-lg bg-stone-800 hover:bg-bronze-strong text-white text-xs font-semibold cursor-pointer"
                             >
                                 Set as {field.label.toLowerCase()}
                             </button>
@@ -169,7 +169,7 @@ export default function DimensionsStep({ form, update }) {
             </div>
 
             <div className={panelClass}>
-                <label htmlFor="pf-features" className="font-sans text-sm font-bold text-[#1C1B18] block">
+                <label htmlFor="pf-features" className="font-sans text-sm font-bold text-ink block">
                     Key features (separate with commas)
                 </label>
                 <textarea

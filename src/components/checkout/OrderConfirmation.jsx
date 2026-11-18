@@ -39,10 +39,10 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                 </div>
 
                 <div>
-                    <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#1C1B18]">{heading}</h1>
+                    <h1 className="font-serif text-3xl sm:text-4xl font-bold text-ink">{heading}</h1>
                     <p className="text-sm text-stone-600 mt-3">
                         Order reference{' '}
-                        <strong className="font-mono text-[#1C1B18] bg-stone-100 px-2 py-1 rounded">
+                        <strong className="font-mono text-ink bg-stone-100 px-2 py-1 rounded">
                             {order.id}
                         </strong>
                     </p>
@@ -65,12 +65,12 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                 </p>
 
                 {order.paymentMethod === 'bacs' && bankInstructions && (
-                    <p className="text-sm text-left text-stone-700 whitespace-pre-line bg-[#FAF8F5] p-4 rounded-2xl border border-stone-200">
+                    <p className="text-sm text-left text-stone-700 whitespace-pre-line bg-cream p-4 rounded-2xl border border-stone-200">
                         {bankInstructions}
                     </p>
                 )}
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-left text-sm space-y-2">
+                <div className="p-4 sm:p-5 rounded-2xl bg-cream border border-stone-200 text-left text-sm space-y-2">
                     {order.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between gap-4">
                             <span className="text-stone-700">
@@ -96,7 +96,7 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                             <span className="font-semibold">{formatGBP(order.assembly)}</span>
                         </div>
                     )}
-                    <div className="flex justify-between font-bold text-[#1C1B18] text-base">
+                    <div className="flex justify-between font-bold text-ink text-base">
                         <span>{failed ? 'Order total' : paidOnline && !pending ? 'Total paid' : 'Total'}</span>
                         <span>{formatGBP(order.total)}</span>
                     </div>
@@ -105,7 +105,7 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                 <button
                     type="button"
                     onClick={onBackToShop}
-                    className="px-8 py-3.5 rounded-full bg-[#1C1B18] hover:bg-[#9A7B56] text-white text-sm font-semibold transition cursor-pointer"
+                    className="px-8 py-3.5 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold transition cursor-pointer"
                 >
                     {failed ? 'Back to basket' : 'Continue shopping'}
                 </button>

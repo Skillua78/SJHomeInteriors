@@ -35,7 +35,7 @@ export default function Navbar({
     const navCategories = ['All', ...availableCategories];
 
     return (
-        <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80">
+        <header className="sticky top-0 z-40 bg-cream/95 backdrop-blur-md border-b border-stone-200/80">
             <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[4.5rem] flex items-center justify-between gap-3 sm:gap-6">
                 <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-none">
                     <button
@@ -43,7 +43,7 @@ export default function Navbar({
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Toggle navigation menu"
                         aria-expanded={mobileMenuOpen}
-                        className="lg:hidden shrink-0 p-2.5 rounded-xl border border-stone-200 bg-white text-stone-700 hover:border-[#9A7B56] cursor-pointer"
+                        className="lg:hidden shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border border-stone-200 bg-white text-ink hover:border-bronze transition"
                     >
                         {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                     </button>
@@ -55,7 +55,7 @@ export default function Navbar({
                             onNavigate('home');
                         }}
                         aria-label="SJ Home Interiors home"
-                        className="cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A7B56] rounded-lg min-w-0"
+                        className="cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bronze rounded-lg min-w-0"
                     >
                         <Logo variant="dark" />
                     </button>
@@ -73,7 +73,7 @@ export default function Navbar({
                             value={searchQuery}
                             onChange={(e) => handleSearch(e.target.value)}
                             placeholder="Search sofas, beds, tables…"
-                            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-300 rounded-full focus:outline-none focus:border-[#9A7B56] focus:ring-2 focus:ring-[#9A7B56]/20 w-48 lg:w-full transition"
+                            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-300 rounded-full focus:outline-none focus:border-bronze focus:ring-2 focus:ring-bronze/20 w-48 lg:w-full transition"
                         />
                         <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" aria-hidden="true" />
                     </div>
@@ -87,12 +87,12 @@ export default function Navbar({
                                     ? `Open admin dashboard, ${notificationCount} new notifications`
                                     : 'Open admin dashboard'
                             }
-                            className="relative h-10 rounded-full bg-amber-700 hover:bg-amber-800 text-white transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
+                            className="press relative h-11 rounded-full bg-amber-700 hover:bg-amber-800 text-white transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
                         >
                             <ShieldAlert className="w-4 h-4" aria-hidden="true" />
                             <span className="hidden sm:inline">Admin</span>
                             {notificationCount > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-[#FAF8F5]">
+                                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-cream">
                                     {notificationCount > 99 ? '99+' : notificationCount}
                                 </span>
                             )}
@@ -106,10 +106,10 @@ export default function Navbar({
                             onNavigate('auth');
                         }}
                         aria-label={currentUser ? 'Your account' : 'Sign in or register'}
-                        className={`h-10 rounded-full border transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap ${
+                        className={`press h-11 min-w-11 justify-center rounded-full border transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap ${
                             currentPage === 'auth'
-                                ? 'bg-[#9A7B56] text-white border-[#9A7B56]'
-                                : 'bg-white border-stone-300 text-stone-700 hover:border-[#9A7B56]'
+                                ? 'bg-bronze-strong text-white border-bronze'
+                                : 'bg-white border-stone-300 text-stone-700 hover:border-bronze'
                         }`}
                     >
                         <User className="w-4 h-4" aria-hidden="true" />
@@ -122,7 +122,7 @@ export default function Navbar({
                         type="button"
                         onClick={onOpenCart}
                         aria-label={`Open basket, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
-                        className="h-10 rounded-full bg-[#1C1B18] text-white hover:bg-[#9A7B56] transition flex items-center gap-2 px-3.5 cursor-pointer whitespace-nowrap"
+                        className="press h-11 min-w-11 justify-center rounded-full bg-ink text-white hover:bg-bronze-strong transition flex items-center gap-2 px-3.5 cursor-pointer whitespace-nowrap"
                     >
                         <ShoppingBag className="w-4 h-4" aria-hidden="true" />
                         <span className="hidden lg:inline text-xs font-semibold">Basket</span>
@@ -144,7 +144,7 @@ export default function Navbar({
                             key={cat}
                             type="button"
                             onClick={() => handleCategoryNav(cat)}
-                            className="cursor-pointer hover:text-[#9A7B56] transition shrink-0"
+                            className="h-11 flex items-center hover:text-bronze-deep transition-colors shrink-0"
                         >
                             {cat === 'All' ? 'All furniture' : cat}
                         </button>
@@ -152,8 +152,8 @@ export default function Navbar({
                     <button
                         type="button"
                         onClick={() => onNavigate('contact')}
-                        className={`cursor-pointer hover:text-[#9A7B56] transition flex items-center gap-1 shrink-0 ml-auto ${
-                            currentPage === 'contact' ? 'text-[#9A7B56]' : ''
+                        className={`h-11 hover:text-bronze-deep transition-colors flex items-center gap-1 shrink-0 ml-auto ${
+                            currentPage === 'contact' ? 'text-bronze-deep' : ''
                         }`}
                     >
                         <MapPin className="w-3.5 h-3.5" aria-hidden="true" /> Visit our showroom
@@ -171,7 +171,7 @@ export default function Navbar({
                             onChange={(e) => handleSearch(e.target.value)}
                             aria-label="Search furniture"
                             placeholder="Search sofas, beds, tables…"
-                            className="w-full pl-10 pr-4 py-3 text-base bg-[#FAF8F5] border border-stone-300 rounded-full focus:outline-none focus:border-[#9A7B56]"
+                            className="w-full pl-10 pr-4 py-3 text-base bg-cream border border-stone-300 rounded-full focus:outline-none focus:border-bronze"
                         />
                         <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-4" aria-hidden="true" />
                     </div>
@@ -180,7 +180,7 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={() => handleCategoryNav('All')}
-                            className="p-3 rounded-xl bg-[#FAF8F5] hover:bg-[#1C1B18] hover:text-white text-left transition cursor-pointer"
+                            className="p-3 rounded-xl bg-cream hover:bg-ink hover:text-white text-left transition cursor-pointer"
                         >
                             All collections
                         </button>
@@ -189,7 +189,7 @@ export default function Navbar({
                                 key={cat}
                                 type="button"
                                 onClick={() => handleCategoryNav(cat)}
-                                className="p-3 rounded-xl bg-[#FAF8F5] hover:bg-[#1C1B18] hover:text-white text-left transition cursor-pointer"
+                                className="p-3 rounded-xl bg-cream hover:bg-ink hover:text-white text-left transition cursor-pointer"
                             >
                                 {cat}
                             </button>
@@ -202,7 +202,7 @@ export default function Navbar({
                             setMobileMenuOpen(false);
                             onNavigate('contact');
                         }}
-                        className="pt-3 border-t border-stone-100 w-full text-left text-sm font-semibold text-[#7D6242] flex items-center gap-1.5 cursor-pointer"
+                        className="pt-3 border-t border-stone-100 w-full text-left text-sm font-semibold text-bronze-deep flex items-center gap-1.5 cursor-pointer"
                     >
                         <MapPin className="w-4 h-4" aria-hidden="true" /> Visit our High Street, Maltby
                         showroom
