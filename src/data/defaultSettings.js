@@ -4,10 +4,10 @@
  */
 export const DEFAULT_HOME_TEXT = {
     announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
-    heroBadge: 'Maltby Showroom • Quality Furniture, Affordable Prices',
-    heroTitle: 'Quality Sofas, Beds & Dining at Prices You’ll Love',
+    heroBadge: 'Maltby Showroom • Direct Factory Prices',
+    heroTitle: 'Hand-Built Sofas, Beds & Dining Sets. Zero High-Street Markups.',
     heroSubtitle:
-        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.',
+        'Skip the inflated retail showroom prices. We supply heavy-duty, British-built sofas, gas-lift beds, and luxury dining furniture straight from our Maltby warehouse. View everything in person or order online today.',
 };
 
 export const DEFAULT_SETTINGS = {

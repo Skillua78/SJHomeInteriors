@@ -134,3 +134,20 @@ describe('customer validation', () => {
         expect(() => validateCustomer({ ...ok, postcode: 'NOPE' }, 'delivery')).toThrow();
     });
 });
+
+describe('product validation: visibility and photo colours', () => {
+    it('reads the hidden flag and keeps photo colours in photo order', () => {
+        const p = validateProduct({
+            name: 'Sofa',
+            price: 10,
+            category: 'Sofas',
+            isHidden: true,
+            colors: ['Grey'],
+            images: ['https://a.example/1.jpg', 'https://a.example/2.jpg'],
+            variations: { photoColors: ['', 'Grey'] },
+        });
+        expect(p.isHidden).toBe(1);
+        expect(p.photoColorsInput).toEqual(['', 'Grey']);
+        expect(validateProduct({ name: 'S', price: 1, category: 'C' }).isHidden).toBe(0);
+    });
+});

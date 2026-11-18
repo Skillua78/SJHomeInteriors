@@ -3,8 +3,11 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 const ZOOM_STEPS = [1, 1.75, 2.5];
 
-/** Photo viewer with click-to-zoom, keyboard-friendly arrows and thumbnails. */
-export default function ProductGallery({ images, alt, badge }) {
+/**
+ * Photo viewer with click-to-zoom, swipe, arrows and thumbnails.
+ * @param jumpTo { index, key } - show photo `index`; change `key` to trigger it again
+ */
+export default function ProductGallery({ images, alt, badge, jumpTo }) {
     const [index, setIndex] = useState(0);
     const [zoom, setZoom] = useState(1);
     const [origin, setOrigin] = useState({ x: 50, y: 50 });
@@ -15,6 +18,14 @@ export default function ProductGallery({ images, alt, badge }) {
         setIndex(0);
         setZoom(1);
     }, [galleryKey]);
+
+    useEffect(() => {
+        if (!jumpTo || jumpTo.index < 0 || jumpTo.index >= images.length) return;
+        setZoom(1);
+        setOrigin({ x: 50, y: 50 });
+        setIndex(jumpTo.index);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [jumpTo?.key]);
 
     const current = images[index % images.length];
     const many = images.length > 1;

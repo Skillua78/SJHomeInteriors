@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flame, Sparkles, Edit3, Images, Truck } from 'lucide-react';
+import { Flame, Sparkles, Edit3, Images } from 'lucide-react';
 import { validateSafeImageUrl } from '../utils/security';
 import { resolveColorHex } from '../utils/colors';
 import { formatGBP } from '../../shared/pricing.js';
@@ -9,10 +9,9 @@ const FALLBACK_IMAGE =
 const MAX_SWATCHES = 5;
 
 /**
- * Catalogue card. Reading order is image -> name -> price -> delivery -> action,
- * with the price block pinned to the bottom so cards in a row line up.
- *
- * @param freeDeliveryMiles radius for free delivery (from site settings), shown as a reassurance
+ * Catalogue card: photo, name, colours, price, action. The price block is pinned to the
+ * bottom so cards in a row line up. Picking a colour swaps the photo when the admin has
+ * tagged a photo with that colour.
  */
 export default function ProductCard({
     product,
@@ -21,12 +20,12 @@ export default function ProductCard({
     isAdmin,
     onEditProduct,
     customColors,
-    freeDeliveryMiles,
 }) {
     const colors = product.colors?.length ? product.colors : [];
     const [selectedColor, setSelectedColor] = useState(colors[0] || '');
 
-    const image = validateSafeImageUrl(product.image) || FALLBACK_IMAGE;
+    const colourPhoto = validateSafeImageUrl(product.colorImages?.[selectedColor] || '');
+    const image = colourPhoto || validateSafeImageUrl(product.image) || FALLBACK_IMAGE;
     const tracked = product.stock !== null && product.stock !== undefined;
     const stock = tracked ? Number(product.stock) : null;
     const available = !tracked || stock > 0;
@@ -57,13 +56,6 @@ export default function ProductCard({
         badges.push({ text: 'Popular', icon: Sparkles, className: 'bg-white/95 text-ink' });
     }
 
-    const deliveryText = [
-        product.delivery ? `Delivery in ${product.delivery}` : 'Home delivery or collection',
-        Number(freeDeliveryMiles) > 0 ? `free within ${freeDeliveryMiles} miles` : '',
-    ]
-        .filter(Boolean)
-        .join(' · ');
-
     const open = () => onOpenModal(product, selectedColor);
 
     return (
@@ -79,8 +71,9 @@ export default function ProductCard({
                     className="block w-full h-full focus-visible:outline-offset-[-4px]"
                 >
                     <img
+                        key={image}
                         src={image}
-                        alt={product.name}
+                        alt={colourPhoto ? `${product.name} in ${selectedColor}` : product.name}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
@@ -208,11 +201,6 @@ export default function ProductCard({
                             </span>
                         )}
                     </div>
-
-                    <p className="text-xs text-stone-600 mt-2 flex items-start gap-1.5">
-                        <Truck className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
-                        <span>{deliveryText}</span>
-                    </p>
 
                     {lowStock && (
                         <p className="text-xs font-semibold text-amber-800 mt-1.5">Only {stock} left in stock</p>

@@ -7,7 +7,7 @@
  * /migrations for anyone who prefers to apply it with wrangler.
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 const TABLES = [
     `CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -123,6 +123,10 @@ const COLUMNS = {
     products: {
         variations_json: "TEXT NOT NULL DEFAULT '{}'",
         delivery_fee_pence: 'INTEGER DEFAULT NULL',
+        // Hidden products stay in the admin but never reach the storefront or checkout.
+        is_hidden: 'INTEGER NOT NULL DEFAULT 0',
+        // { colour: first photo tagged with that colour } so catalogue cards can swap photos.
+        color_images_json: "TEXT NOT NULL DEFAULT '{}'",
         image_count: 'INTEGER NOT NULL DEFAULT 0',
         fabric_count: 'INTEGER NOT NULL DEFAULT 0',
         size_count: 'INTEGER NOT NULL DEFAULT 0',

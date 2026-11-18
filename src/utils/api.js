@@ -104,6 +104,11 @@ export const api = {
     listOrders: (params) => request(`/api/orders${query(params)}`, { fresh: true }),
     updateOrderStatus: (id, status) => request('/api/orders', { method: 'PUT', body: { id, status } }),
     markOrdersSeen: () => request('/api/orders', { method: 'PUT', body: { action: 'mark-seen' } }),
+    getSalesSummary: (days) => request(`/api/orders${query({ summary: 1, days: String(days) })}`, { fresh: true }),
+    deleteOrder: (id, restock) =>
+        request(`/api/orders${query({ id, restock: restock ? 1 : undefined })}`, { method: 'DELETE' }),
+    setProductHidden: (id, hidden) =>
+        request('/api/products', { method: 'PUT', body: { id, hiddenOnly: true, hidden } }),
 
     // Messages & admin notifications
     sendMessage: (message) => request('/api/messages', { method: 'POST', body: message }),

@@ -99,7 +99,7 @@ export async function quoteBasket(env, rawItems, defaultFeePence) {
     const [{ results: products }, optionsByProduct] = await Promise.all([
         env.DB.prepare(
             `SELECT id, name, price, delivery_fee_pence FROM products
-             WHERE deleted_at IS NULL AND id IN (${ids.map(() => '?').join(',')})`
+             WHERE deleted_at IS NULL AND is_hidden = 0 AND id IN (${ids.map(() => '?').join(',')})`
         )
             .bind(...ids)
             .all(),
@@ -249,6 +249,98 @@ export function markOrderUnpaid(env, orderId, outcome) {
     )
         .bind(outcome === 'expired' ? 'expired' : 'failed', new Date().toISOString(), orderId)
         .run();
+}
+
+// Orders that count as sales: placed (pay-later) or paid, and not cancelled.
+const SALE_FILTER = `status NOT IN ('AWAITING_PAYMENT', 'CANCELLED')`;
+const PERIODS = { 7: '-7 days', 30: '-30 days', 90: '-90 days', 365: '-365 days' };
+
+/**
+ * Sales totals and best sellers for the admin Orders tab.
+ * @param days 7 | 30 | 90 | 365, or 0 for all time
+ */
+export async function salesSummary(env, days) {
+    const since = PERIODS[days];
+    const where = since ? `${SALE_FILTER} AND created_at >= datetime('now', ?)` : SALE_FILTER;
+    const binds = since ? [since] : [];
+    const totalPence = `COALESCE(total_pence, CAST(ROUND(total * 100) AS INTEGER))`;
+
+    const [totals, items] = await env.DB.batch([
+        env.DB.prepare(
+            `SELECT COUNT(*) AS orders, COALESCE(SUM(${totalPence}), 0) AS revenue,
+                    COALESCE(SUM(subtotal_pence), 0) AS goods
+             FROM orders WHERE ${where}`
+        ).bind(...binds),
+        // One row per product across every order line (items_json is an array of lines).
+        env.DB.prepare(
+            `SELECT json_extract(line.value, '$.id') AS id,
+                    MAX(json_extract(line.value, '$.name')) AS name,
+                    SUM(json_extract(line.value, '$.qty')) AS qty,
+                    SUM(json_extract(line.value, '$.qty') *
+                        COALESCE(json_extract(line.value, '$.unitPence'),
+                                 ROUND(json_extract(line.value, '$.price') * 100))) AS revenue
+             FROM orders, json_each(orders.items_json) AS line
+             WHERE ${where}
+             GROUP BY json_extract(line.value, '$.id')
+             ORDER BY revenue DESC
+             LIMIT 10`
+        ).bind(...binds),
+    ]);
+
+    const t = totals.results?.[0] || {};
+    const products = (items.results || []).map((r) => ({
+        id: r.id,
+        name: r.name || r.id,
+        qty: Number(r.qty) || 0,
+        revenue: fromPence(r.revenue),
+    }));
+    const orders = Number(t.orders) || 0;
+    return {
+        days: since ? days : 0,
+        orders,
+        revenue: fromPence(t.revenue),
+        itemsSold: products.reduce((sum, p) => sum + p.qty, 0),
+        averageOrder: orders ? fromPence(Math.round(Number(t.revenue) / orders)) : 0,
+        topProducts: products,
+    };
+}
+
+/**
+ * Permanently delete an order. With restock, items are put back into stock
+ * if this order had taken them (and it has not been dispatched or completed).
+ */
+export async function deleteOrder(env, id, { restock = false } = {}) {
+    const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first();
+    if (!order) return { ok: false };
+
+    const statements = [env.DB.prepare('DELETE FROM orders WHERE id = ?').bind(id)];
+    let restocked = 0;
+    const canRestock =
+        restock && order.stock_committed && !['DISPATCHED', 'COMPLETED'].includes(order.status);
+    if (canRestock) {
+        let lines = [];
+        try {
+            lines = JSON.parse(order.items_json);
+        } catch {
+            lines = [];
+        }
+        const qtyById = new Map();
+        for (const line of lines) {
+            const qty = Math.max(0, Math.floor(Number(line.qty) || 0));
+            if (line.id && qty) qtyById.set(line.id, (qtyById.get(line.id) || 0) + qty);
+        }
+        for (const [productId, qty] of qtyById) {
+            statements.push(
+                env.DB.prepare(
+                    `UPDATE products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ? AND stock IS NOT NULL`
+                ).bind(qty, productId)
+            );
+            restocked += qty;
+        }
+    }
+    await env.DB.batch(statements);
+    return { ok: true, restocked };
 }
 
 /** Customer-facing view of an order (confirmation page). */

@@ -6,7 +6,7 @@
  *   DELETE  admin    soft delete ?id=
  */
 import { HttpError, json, readJson, cleanText, intParam } from '../../server/http.js';
-import { requireAdmin } from '../../server/auth.js';
+import { requireAdmin, isAdmin } from '../../server/auth.js';
 import { loadSettings, assemblyFeePence } from '../../server/settings.js';
 import {
     listProducts,
@@ -26,6 +26,8 @@ export async function onRequestGet({ request, env }) {
 
     await migrateLegacyProducts(env);
     const settings = await loadSettings(env);
+    // The admin inventory asks for hidden products too; that answer must never be cached.
+    const admin = q.get('includeHidden') === '1' && (await isAdmin(request, env));
 
     const result = await listProducts(
         env,
@@ -37,10 +39,14 @@ export async function onRequestGet({ request, env }) {
             stock: cleanText(q.get('stock'), 16),
             limit: intParam(q.get('limit'), 24, 1, 60),
             offset: intParam(q.get('offset'), 0, 0, 100000),
+            includeHidden: admin,
+            visibility: cleanText(q.get('visibility'), 10),
         },
         assemblyFeePence(settings)
     );
-    return json(result, 200, { 'Cache-Control': 'public, max-age=20' });
+    return json(result, 200, {
+        'Cache-Control': admin ? 'private, no-store' : 'public, max-age=20',
+    });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -69,6 +75,14 @@ export async function onRequestPut({ request, env }) {
         .bind(id)
         .first();
     if (!exists) throw new HttpError(404, 'Product not found.');
+
+    if (body.hiddenOnly) {
+        const hidden = body.hidden ? 1 : 0;
+        await env.DB.prepare('UPDATE products SET is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .bind(hidden, id)
+            .run();
+        return json({ success: true, id, hidden: Boolean(hidden) });
+    }
 
     if (body.stockOnly) {
         let stock = null;

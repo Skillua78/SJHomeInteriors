@@ -166,3 +166,44 @@ describe('URL safety', () => {
         expect(validateSafeHttpsUrl('https://facebook.com/x')).toBe('https://facebook.com/x');
     });
 });
+
+describe('hidden products and colour photos in the product form', () => {
+    const base = {
+        id: 'sofa-9',
+        name: 'Sofa',
+        price: 500,
+        category: 'Sofas',
+        colors: ['Grey', 'Black'],
+        images: ['https://example.com/grey.jpg', 'https://example.com/black.jpg', 'https://example.com/room.jpg'],
+        isHidden: true,
+        variations: { photoColors: ['Grey', 'Black', ''] },
+    };
+
+    it('round-trips the hidden flag and photo colours', () => {
+        const form = productToForm(base);
+        expect(form.isHidden).toBe(true);
+        expect(form.photoColorMap).toEqual({
+            'https://example.com/grey.jpg': 'Grey',
+            'https://example.com/black.jpg': 'Black',
+        });
+        const { payload } = formToPayload(form, 'sofa-9');
+        expect(payload.isHidden).toBe(true);
+        expect(payload.variations.photoColors).toEqual(['Grey', 'Black', '']);
+    });
+
+    it('keeps colours attached to their photos when photos are reordered', () => {
+        const form = productToForm(base);
+        form.images = [form.images[2], form.images[1], form.images[0]];
+        expect(formToPayload(form, 'sofa-9').payload.variations.photoColors).toEqual(['', 'Black', 'Grey']);
+    });
+
+    it('drops a photo colour once that colour is removed from the product', () => {
+        const form = { ...productToForm(base), selectedColors: ['Grey'] };
+        expect(formToPayload(form, 'sofa-9').payload.variations.photoColors).toEqual(['Grey', '', '']);
+    });
+
+    it('leaves hidden products out of the offline catalogue', () => {
+        const items = localListProducts([{ ...base }, { id: 'x', name: 'Chair', price: 1, category: 'Chairs' }]).items;
+        expect(items.map((p) => p.id)).toEqual(['x']);
+    });
+});

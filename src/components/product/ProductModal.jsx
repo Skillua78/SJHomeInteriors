@@ -43,6 +43,7 @@ export default function ProductModal({
     const [selections, setSelections] = useState({});
     const [expanded, setExpanded] = useState(false);
     const [addError, setAddError] = useState('');
+    const [galleryJump, setGalleryJump] = useState(null);
 
     useEffect(() => {
         if (!summary) return undefined;
@@ -62,6 +63,9 @@ export default function ProductModal({
                 }
                 const v = full.variations || {};
                 setDetail(full);
+                const startColour = data.initialColor || full.colors?.[0] || '';
+                const tagged = (v.photoColors || []).findIndex((c) => c && c === startColour);
+                setGalleryJump(tagged > 0 ? { index: tagged, key: `start-${full.id}-${startColour}` } : null);
                 setSelections({
                     color: data.initialColor || full.colors?.[0] || '',
                     fabric: v.fabrics?.[0] || '',
@@ -118,6 +122,24 @@ export default function ProductModal({
     const setSelection = (key, value) => {
         setSelections((prev) => ({ ...prev, [key]: value }));
         setAddError('');
+    };
+
+    /**
+     * Colour chosen: show the first photo tagged with that colour in the admin. Photos
+     * that were never tagged fall back to matching the colour name in the image link.
+     */
+    const photoColors = variations.photoColors || [];
+    const photoIndexForColour = (colour) => {
+        if (!colour) return -1;
+        const tagged = photoColors.findIndex((c) => c === colour);
+        if (tagged !== -1) return tagged;
+        const needle = colour.toLowerCase().replace(/\s+/g, '-');
+        return gallery.findIndex((url) => decodeURIComponent(url).toLowerCase().replace(/\s+/g, '-').includes(needle));
+    };
+    const chooseColour = (colour) => {
+        setSelection('color', colour);
+        const index = photoIndexForColour(colour);
+        if (index !== -1) setGalleryJump({ index, key: `${colour}-${Date.now()}` });
     };
 
     const handleAdd = () => {
@@ -177,6 +199,7 @@ export default function ProductModal({
                             images={gallery}
                             alt={product.name}
                             badge={available ? product.badge : 'Pre-order'}
+                            jumpTo={galleryJump}
                         />
                     </div>
 
@@ -258,7 +281,7 @@ export default function ProductModal({
                                             key={color}
                                             type="button"
                                             aria-pressed={selections.color === color}
-                                            onClick={() => setSelection('color', color)}
+                                            onClick={() => chooseColour(color)}
                                             className={`min-h-11 pl-2.5 pr-4 rounded-full text-sm border flex items-center gap-2 transition ${
                                                 selections.color === color
                                                     ? 'border-ink bg-ink text-white font-semibold'

@@ -53,6 +53,9 @@ export default function PhotosStep({ form, update, onError }) {
                 </h4>
                 <p className="text-xs text-stone-500 mt-0.5">
                     The first photo is the cover shown in the catalogue. Use the arrows to reorder.
+                    {form.selectedColors.length > 0
+                        ? ' Pick the colour a photo shows so it appears when a customer chooses that colour.'
+                        : ' Add colours in step 3 to link photos to colours.'}
                 </p>
             </div>
 
@@ -89,10 +92,8 @@ export default function PhotosStep({ form, update, onError }) {
             {form.images.length > 0 ? (
                 <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
                     {form.images.map((src, idx) => (
-                        <li
-                            key={`${idx}-${src.slice(-24)}`}
-                            className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-100"
-                        >
+                        <li key={`${idx}-${src.slice(-24)}`} className="space-y-1.5">
+                        <div className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-100">
                             <img src={src} alt="" className="w-full h-full object-cover" />
                             <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/75 text-[10px] text-white font-bold">
                                 {idx === 0 ? 'Cover' : idx + 1}
@@ -125,6 +126,26 @@ export default function PhotosStep({ form, update, onError }) {
                                     <ArrowRight className="w-3 h-3" />
                                 </button>
                             </div>
+                        </div>
+                        {form.selectedColors.length > 0 && (
+                            <select
+                                value={form.photoColorMap?.[src] || ''}
+                                onChange={(e) =>
+                                    update((prev) => ({
+                                        photoColorMap: { ...prev.photoColorMap, [src]: e.target.value },
+                                    }))
+                                }
+                                aria-label={`Colour shown in photo ${idx + 1}`}
+                                className="w-full px-2 py-1.5 rounded-lg bg-white border border-stone-300 text-xs text-ink"
+                            >
+                                <option value="">Any colour</option>
+                                {form.selectedColors.map((colour) => (
+                                    <option key={colour} value={colour}>
+                                        {colour}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         </li>
                     ))}
                 </ul>

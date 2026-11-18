@@ -16,7 +16,11 @@ import { OPTION_GROUPS, toPence, fromPence, resolveAssemblyFeePence } from '../s
 
 const SUMMARY_COLUMNS = `id, name, price, previous_price, substr(description, 1, 240) AS description,
     category, subcategory, badge, stock, is_popular, is_trending, delivery, colors_json,
-    image, image_count, fabric_count, size_count, option_count, dim_summary, delivery_fee_pence`;
+    image, image_count, fabric_count, size_count, option_count, dim_summary, delivery_fee_pence,
+    is_hidden, color_images_json`;
+
+// Customers only ever see products that are live and not hidden.
+const PUBLIC_FILTER = 'deleted_at IS NULL AND is_hidden = 0';
 
 const SORTS = {
     featured: 'created_at DESC, id',
@@ -60,6 +64,8 @@ export function mapSummary(row, defaultFeePence) {
         hasOptions: Number(row.option_count) > 0,
         dimSummary: row.dim_summary || '',
         assemblyFee: fromPence(resolveAssemblyFeePence(row.delivery_fee_pence, defaultFeePence)),
+        colorImages: parseJson(row.color_images_json, {}),
+        isHidden: Boolean(row.is_hidden),
     };
 }
 
@@ -67,10 +73,13 @@ export function mapSummary(row, defaultFeePence) {
 
 /**
  * Paginated, filtered listing.
- * params: { category, subcategory, q, sort, stock, limit, offset }
+ * params: { category, subcategory, q, sort, stock, limit, offset,
+ *           includeHidden (admins only), visibility: 'visible' | 'hidden' (admins only) }
  */
 export async function listProducts(env, params, defaultFeePence) {
-    const where = ['deleted_at IS NULL'];
+    const where = [params.includeHidden ? 'deleted_at IS NULL' : PUBLIC_FILTER];
+    if (params.includeHidden && params.visibility === 'hidden') where.push('is_hidden = 1');
+    if (params.includeHidden && params.visibility === 'visible') where.push('is_hidden = 0');
     const binds = [];
 
     if (params.category === 'Popular') where.push('is_popular = 1');
@@ -135,13 +144,13 @@ export async function loadFacets(env) {
         env.DB.prepare(
             `SELECT category, subcategory, COUNT(*) AS n,
                     SUM(is_popular) AS popular, SUM(is_trending) AS trending
-             FROM products WHERE deleted_at IS NULL
+             FROM products WHERE ${PUBLIC_FILTER}
              GROUP BY category, subcategory`
         ),
         env.DB.prepare(
             `SELECT category, image, MAX(created_at) AS newest
              FROM products
-             WHERE deleted_at IS NULL AND image != '' AND substr(image, 1, 5) != 'data:'
+             WHERE ${PUBLIC_FILTER} AND image != '' AND substr(image, 1, 5) != 'data:'
              GROUP BY category`
         ),
     ]);
@@ -192,9 +201,11 @@ export async function loadOptions(env, productIds) {
 }
 
 /** Full product for the detail modal / admin editor. */
-export async function getProduct(env, id, defaultFeePence) {
+export async function getProduct(env, id, defaultFeePence, { includeHidden = false } = {}) {
     const [productRes, optionRes] = await env.DB.batch([
-        env.DB.prepare('SELECT * FROM products WHERE id = ? AND deleted_at IS NULL').bind(id),
+        env.DB.prepare(
+            `SELECT * FROM products WHERE id = ? AND ${includeHidden ? 'deleted_at IS NULL' : PUBLIC_FILTER}`
+        ).bind(id),
         env.DB.prepare(
             'SELECT grp, name, price_delta_pence FROM product_options WHERE product_id = ? ORDER BY grp, position'
         ).bind(id),
@@ -222,7 +233,17 @@ export async function getProduct(env, id, defaultFeePence) {
         }
     }
 
-    const images = parseJson(row.images_json, []).map(displayImage).filter(Boolean);
+    const rawImages = parseJson(row.images_json, []);
+    const rawColours = Array.isArray(extras.photoColors) ? extras.photoColors : [];
+    const images = [];
+    const photoColors = [];
+    rawImages.forEach((url, i) => {
+        const shown = displayImage(url);
+        if (!shown) return;
+        images.push(shown);
+        photoColors.push(typeof rawColours[i] === 'string' ? rawColours[i] : '');
+    });
+    variations.photoColors = photoColors;
     const summary = mapSummary({ ...row, description: row.description }, defaultFeePence);
 
     return {
@@ -329,6 +350,11 @@ export function validateProduct(body) {
     const extras = { structuredDimensions };
     if (typeof v.assemblyText === 'string') extras.assemblyText = cleanText(v.assemblyText, 120);
 
+    // Which colour each photo shows, in the same order as body.images ('' = not tagged).
+    const photoColorsInput = Array.isArray(v.photoColors)
+        ? v.photoColors.slice(0, 20).map((c) => cleanText(c, 60))
+        : [];
+
     const dimensions = stringArray(body.dimensions, 10, 300);
     const def = structuredDimensions.default;
     const dimSummary =
@@ -355,6 +381,8 @@ export function validateProduct(body) {
         stock: optionalStock(body.stock),
         isPopular: body.isPopular ? 1 : 0,
         isTrending: body.isTrending ? 1 : 0,
+        isHidden: body.isHidden ? 1 : 0,
+        photoColorsInput,
         delivery: cleanText(body.delivery, 60),
         colors: stringArray(body.colors, 60, 60),
         dimensions,
@@ -386,7 +414,18 @@ function optionStatements(env, productId, options) {
 
 /** Insert or fully replace a product (one atomic batch). */
 export async function saveProduct(env, id, p, { create }) {
-    const { urls, statements } = await planImages(env, 'product', id, p.imagesInput, 10);
+    const { urls, statements, sources } = await planImages(env, 'product', id, p.imagesInput, 10);
+
+    // Keep colour tags lined up with the photos that were actually stored.
+    const photoColors = sources.map((inputIndex) => {
+        const colour = (p.photoColorsInput || [])[inputIndex] || '';
+        return p.colors.includes(colour) ? colour : '';
+    });
+    const colorImages = {};
+    photoColors.forEach((colour, i) => {
+        if (colour && !colorImages[colour]) colorImages[colour] = urls[i];
+    });
+    const extras = photoColors.some(Boolean) ? { ...p.extras, photoColors } : p.extras;
 
     const values = [
         p.name,
@@ -406,12 +445,14 @@ export async function saveProduct(env, id, p, { create }) {
         urls.length,
         JSON.stringify(p.dimensions),
         JSON.stringify(p.features),
-        JSON.stringify(p.extras),
+        JSON.stringify(extras),
         p.assemblyFeePence,
         p.options.filter((o) => o.grp === 'fabric').length,
         p.options.filter((o) => o.grp === 'size').length,
         p.options.length,
         p.dimSummary,
+        p.isHidden ? 1 : 0,
+        JSON.stringify(colorImages),
     ];
 
     const upsert = create
@@ -420,7 +461,8 @@ export async function saveProduct(env, id, p, { create }) {
                  name, price, previous_price, description, category, subcategory, badge, stock,
                  is_popular, is_trending, delivery, colors_json, image, images_json, image_count,
                  dimensions_json, features_json, variations_json, delivery_fee_pence,
-                 fabric_count, size_count, option_count, dim_summary, schema_v, id
+                 fabric_count, size_count, option_count, dim_summary, is_hidden, color_images_json,
+                 schema_v, id
                ) VALUES (${values.map(() => '?').join(',')}, 1, ?)`
           ).bind(...values, id)
         : env.DB.prepare(
@@ -430,7 +472,7 @@ export async function saveProduct(env, id, p, { create }) {
                  delivery = ?, colors_json = ?, image = ?, images_json = ?, image_count = ?,
                  dimensions_json = ?, features_json = ?, variations_json = ?, delivery_fee_pence = ?,
                  fabric_count = ?, size_count = ?, option_count = ?, dim_summary = ?,
-                 schema_v = 1, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
+                 is_hidden = ?, color_images_json = ?, schema_v = 1, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
                WHERE id = ?`
           ).bind(...values, id);
 

@@ -286,6 +286,26 @@ export default function EssentialsStep({ form, update, library, manageMode, defa
                     Trending
                 </label>
             </div>
+
+            <label
+                className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${
+                    form.isHidden ? 'border-amber-400 bg-amber-50' : 'border-stone-200 bg-white'
+                }`}
+            >
+                <input
+                    type="checkbox"
+                    checked={Boolean(form.isHidden)}
+                    onChange={(e) => update({ isHidden: e.target.checked })}
+                    className="mt-0.5 w-4 h-4 accent-ink"
+                />
+                <span>
+                    <span className="block text-sm font-semibold text-ink">Hide from the website</span>
+                    <span className="block text-xs text-stone-600 mt-0.5">
+                        Customers cannot see, search for or buy it. It stays here in the admin so you can
+                        edit it and show it again later.
+                    </span>
+                </span>
+            </label>
         </div>
     );
 }

@@ -49,7 +49,18 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
     const keptIds = [];
     const refIds = [];
 
-    const list = (Array.isArray(inputs) ? inputs : []).filter((v) => typeof v === 'string');
+    // Remember each value's position in `inputs` so callers can keep data that runs
+    // alongside the images (e.g. which colour a photo shows) lined up: sources[i] is the
+    // index in `inputs` that urls[i] came from.
+    const list = [];
+    const positions = [];
+    (Array.isArray(inputs) ? inputs : []).forEach((v, i) => {
+        if (typeof v === 'string') {
+            list.push(v);
+            positions.push(i);
+        }
+    });
+    const sources = [];
 
     // Which referenced media already exist, and who owns them?
     for (const value of list) {
@@ -67,7 +78,12 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
         for (const row of results || []) owners.set(row.id, row);
     }
 
-    for (const raw of list) {
+    for (let li = 0; li < list.length; li += 1) {
+        const raw = list[li];
+        const keep = (url) => {
+            urls.push(url);
+            sources.push(positions[li]);
+        };
         if (urls.length >= max) break;
         const value = raw.trim();
 
@@ -77,7 +93,7 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
             if (!owner || keptIds.includes(refId)) continue;
             if (owner.owner_type === ownerType && owner.owner_id === ownerId) {
                 keptIds.push(refId);
-                urls.push(mediaUrl(refId));
+                keep(mediaUrl(refId));
             } else {
                 // e.g. a duplicated product: copy the image so each owner has its own row.
                 const copyId = randomId();
@@ -88,7 +104,7 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
                     ).bind(copyId, ownerType, ownerId, refId)
                 );
                 keptIds.push(copyId);
-                urls.push(mediaUrl(copyId));
+                keep(mediaUrl(copyId));
             }
             continue;
         }
@@ -103,13 +119,13 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
                 ).bind(id, ownerType, ownerId, data[1], data[2])
             );
             keptIds.push(id);
-            urls.push(mediaUrl(id));
+            keep(mediaUrl(id));
             continue;
         }
 
         const https = safeHttpsUrl(value);
-        if (https) urls.push(https);
-        else if (LOCAL_IMAGE.test(value) && !value.includes('..')) urls.push(value);
+        if (https) keep(https);
+        else if (LOCAL_IMAGE.test(value) && !value.includes('..')) keep(value);
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -128,7 +144,7 @@ export async function planImages(env, ownerType, ownerId, inputs, max = 10) {
     }
     statements.push(env.DB.prepare('DELETE FROM media WHERE orphaned_at < ?').bind(now - DAY));
 
-    return { urls, statements };
+    return { urls, statements, sources };
 }
 
 export function orphanOwnerMedia(env, ownerType, ownerId) {

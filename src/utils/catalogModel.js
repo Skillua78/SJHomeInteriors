@@ -169,6 +169,7 @@ function summarise(product, defaultFeePounds) {
 export function localListProducts(products, params = {}, defaultFeePounds = 50) {
     const q = (params.q || '').toLowerCase();
     let list = products.filter((p) => {
+        if (p.isHidden) return false;
         if (params.category === 'Popular' && !p.isPopular) return false;
         if (params.category === 'Trending' && !p.isTrending) return false;
         if (

@@ -50,11 +50,11 @@ export default function Hero({ onNavigate, siteSettings, ready = true }) {
         if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
     };
 
-    const badgeText = siteSettings?.heroBadge || 'Maltby Showroom • Quality Furniture, Affordable Prices';
-    const titleText = siteSettings?.heroTitle || 'Quality Sofas, Beds & Dining at Prices You’ll Love';
+    const badgeText = siteSettings?.heroBadge || 'Maltby Showroom • Direct Factory Prices';
+    const titleText = siteSettings?.heroTitle || 'Hand-Built Sofas, Beds & Dining Sets. Zero High-Street Markups.';
     const subtitleText =
         siteSettings?.heroSubtitle ||
-        'Why pay inflated high-street retail markups? We supply durable, British-built sofas, ottoman beds, and dining sets at honest, affordable showroom prices—complete with fast local delivery.';
+        'Skip the inflated retail showroom prices. We supply heavy-duty, British-built sofas, gas-lift beds, and luxury dining furniture straight from our Maltby warehouse. View everything in person or order online today.';
 
     return (
         <section className="relative overflow-hidden bg-ink text-white">

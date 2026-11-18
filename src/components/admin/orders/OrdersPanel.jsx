@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { api } from '../../../utils/api';
 import { formatGBP } from '../../../../shared/pricing.js';
 import { inputClass, sectionTitleClass } from '../adminUi';
+import SalesSummary from './SalesSummary';
 
 const STATUS_LABELS = {
     AWAITING_PAYMENT: 'Awaiting payment',
@@ -35,6 +36,10 @@ export default function OrdersPanel({ onSeen }) {
     const [nextOffset, setNextOffset] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+    const [confirming, setConfirming] = useState(null); // { id, restock }
+    const [deleting, setDeleting] = useState(false);
+    const [summaryKey, setSummaryKey] = useState(0);
 
     const load = async (offset) => {
         setLoading(true);
@@ -72,8 +77,37 @@ export default function OrdersPanel({ onSeen }) {
         }
     };
 
+    // Items can go back into stock if this order took them and has not left the showroom.
+    const canRestock = (order) => order.stockCommitted && !['DISPATCHED', 'COMPLETED'].includes(order.status);
+
+    const startDelete = (order) => {
+        setNotice('');
+        setConfirming({ id: order.id, restock: canRestock(order) });
+    };
+
+    const confirmDelete = async (order) => {
+        setDeleting(true);
+        setError('');
+        try {
+            const result = await api.deleteOrder(order.id, confirming.restock && canRestock(order));
+            setOrders((prev) => prev.filter((o) => o.id !== order.id));
+            setNotice(
+                `Order ${order.id} deleted${result.restocked ? `; ${result.restocked} item(s) put back into stock` : ''}.`
+            );
+            setConfirming(null);
+            setSummaryKey((k) => k + 1);
+            onSeen?.();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4">
+            <SalesSummary refreshKey={summaryKey} />
+
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className={sectionTitleClass}>Orders</h3>
                 <div className="flex items-center gap-2">
@@ -92,7 +126,10 @@ export default function OrdersPanel({ onSeen }) {
                     </select>
                     <button
                         type="button"
-                        onClick={() => load(0)}
+                        onClick={() => {
+                            load(0);
+                            setSummaryKey((k) => k + 1);
+                        }}
                         aria-label="Refresh orders"
                         className="p-2.5 rounded-xl border border-stone-300 hover:border-bronze cursor-pointer"
                     >
@@ -104,6 +141,12 @@ export default function OrdersPanel({ onSeen }) {
             {error && (
                 <p role="alert" className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-xl p-3">
                     {error}
+                </p>
+            )}
+
+            {notice && (
+                <p role="status" className="text-sm text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                    {notice}
                 </p>
             )}
 
@@ -147,8 +190,64 @@ export default function OrdersPanel({ onSeen }) {
                                     </option>
                                 ))}
                             </select>
+                            <button
+                                type="button"
+                                onClick={() => startDelete(order)}
+                                aria-label={`Delete order ${order.id}`}
+                                title="Delete order"
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-stone-400 hover:text-red-700 hover:bg-red-50 transition"
+                            >
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                            </button>
                         </div>
                     </div>
+
+                    {confirming?.id === order.id && (
+                        <div role="alertdialog" aria-label={`Delete order ${order.id}?`} className="p-3.5 rounded-xl bg-red-50 border border-red-200 space-y-2.5 text-sm">
+                            <p className="font-semibold text-red-900">
+                                Delete order {order.id} permanently? This cannot be undone.
+                            </p>
+                            {order.paymentStatus === 'paid' && ['card', 'klarna'].includes(order.paymentMethod) && (
+                                <p className="text-red-900">
+                                    This order was paid online. Deleting it does not refund the customer —
+                                    issue any refund in your Stripe dashboard first.
+                                </p>
+                            )}
+                            <p className="text-red-900/80 text-xs">
+                                Tip: setting the status to “Cancelled” keeps the record for your accounts
+                                instead of deleting it.
+                            </p>
+                            {canRestock(order) && (
+                                <label className="flex items-center gap-2 text-red-900">
+                                    <input
+                                        type="checkbox"
+                                        checked={confirming.restock}
+                                        onChange={(e) => setConfirming({ ...confirming, restock: e.target.checked })}
+                                        className="w-4 h-4 accent-red-700"
+                                    />
+                                    Put these items back into stock
+                                </label>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => confirmDelete(order)}
+                                    disabled={deleting}
+                                    className="press min-h-10 px-4 rounded-xl bg-red-700 hover:bg-red-800 disabled:bg-stone-400 text-white text-xs font-bold flex items-center gap-1.5"
+                                >
+                                    {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
+                                    Delete order
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirming(null)}
+                                    className="min-h-10 px-4 rounded-xl bg-white border border-stone-300 text-ink text-xs font-semibold"
+                                >
+                                    Keep order
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         <div className="text-stone-700">

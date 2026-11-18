@@ -24,6 +24,8 @@ export function emptyForm() {
         selectedColors: [],
         imageInput: '',
         images: [],
+        // Which colour each photo shows, keyed by the photo's URL (survives reordering).
+        photoColorMap: {},
         fabrics: [],
         sizes: [],
         mattresses: [],
@@ -33,6 +35,7 @@ export function emptyForm() {
         features: '',
         isPopular: false,
         isTrending: false,
+        isHidden: false,
     };
 }
 
@@ -69,6 +72,11 @@ export function productToForm(product, { duplicate = false } = {}) {
         delivery: product.delivery || '',
         selectedColors: [...(product.colors || [])],
         images: [...gallery],
+        photoColorMap: Object.fromEntries(
+            gallery
+                .map((url, i) => [url, (v.photoColors || [])[i] || ''])
+                .filter(([, colour]) => colour)
+        ),
         fabrics: [...(v.fabrics || [])],
         sizes: [...(v.sizes || [])],
         mattresses: [...(v.mattresses || [])],
@@ -81,6 +89,7 @@ export function productToForm(product, { duplicate = false } = {}) {
         features: (product.features || []).join(', '),
         isPopular: Boolean(product.isPopular),
         isTrending: Boolean(product.isTrending),
+        isHidden: Boolean(product.isHidden),
     };
 }
 
@@ -158,6 +167,7 @@ export function formToPayload(form, editingId = null) {
         stock: optionalNumber(form.stock, { integer: true }),
         isPopular: Boolean(form.isPopular),
         isTrending: Boolean(form.isTrending),
+        isHidden: Boolean(form.isHidden),
         delivery: sanitizeText(form.delivery, 60),
         colors: form.selectedColors,
         images,
@@ -173,6 +183,11 @@ export function formToPayload(form, editingId = null) {
             liftOptions: form.liftOptions,
             priceDeltas,
             structuredDimensions: { default: def, bySize },
+            // Only colours the product still offers; '' = photo not tied to a colour.
+            photoColors: images.map((url) => {
+                const colour = form.photoColorMap?.[url] || '';
+                return form.selectedColors.includes(colour) ? colour : '';
+            }),
         },
     };
     if (editingId) payload.id = editingId;

@@ -88,3 +88,17 @@ src/components/
   admin/            dashboard shell + products/, orders/, reviews/, settings/
 tests/              vitest unit tests
 ```
+
+## 7. Hiding products, colour photos and sales history
+
+- **Hide a product** (Products → Edit → Essentials → "Hide from the website", or the
+  "Hide from site" button in the inventory list). Hidden products disappear from the catalogue,
+  search, category counts and checkout, but stay in the admin. Filter the inventory by
+  "Hidden from website" to find them.
+- **Colour photos**: in Products → Edit → Photos, choose the colour each photo shows. On the
+  website, picking that colour on the product card or in the product view switches to its photo.
+- **Sales history**: Orders shows order count, order value, items sold and best sellers for 7 days,
+  30 days, 90 days, 12 months or all time. Orders still waiting for card/Klarna payment and
+  cancelled orders are not counted.
+- **Deleting an order** is permanent and does not refund anything in Stripe. Setting the status to
+  "Cancelled" keeps the record instead (useful for HMRC record keeping).

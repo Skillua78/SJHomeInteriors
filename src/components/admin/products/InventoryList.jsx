@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, Copy, Edit3, Trash2, Plus, Minus, EyeOff, Loader2 } from 'lucide-react';
+import { Search, Copy, Edit3, Trash2, Plus, Minus, EyeOff, Eye, Loader2, Package } from 'lucide-react';
 import { api } from '../../../utils/api';
 import { validateSafeImageUrl } from '../../../utils/security';
 import { formatGBP } from '../../../../shared/pricing.js';
@@ -50,11 +50,13 @@ export default function InventoryList({
     onDuplicate,
     onDelete,
     onSetStock,
+    onSetHidden,
 }) {
     const [search, setSearch] = useState('');
     const [debounced, setDebounced] = useState('');
     const [category, setCategory] = useState('All');
     const [stock, setStock] = useState('All');
+    const [visibility, setVisibility] = useState('All');
     const [items, setItems] = useState([]);
     const [total, setTotal] = useState(0);
     const [nextOffset, setNextOffset] = useState(null);
@@ -73,7 +75,7 @@ export default function InventoryList({
         setError('');
         try {
             const page = await api.listProducts(
-                { q: debounced, category, stock, limit: PAGE_SIZE, offset },
+                { q: debounced, category, stock, visibility, includeHidden: 1, limit: PAGE_SIZE, offset },
                 { fresh: true }
             );
             if (id !== requestId.current) return;
@@ -90,7 +92,7 @@ export default function InventoryList({
     useEffect(() => {
         load(0);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debounced, category, stock, refreshKey]);
+    }, [debounced, category, stock, visibility, refreshKey]);
 
     const changeStock = (product, next) => {
         // Show the new value straight away; the parent saves it and refreshes on failure.
@@ -98,7 +100,13 @@ export default function InventoryList({
         onSetStock(product, next);
     };
 
-    const filtered = search || category !== 'All' || stock !== 'All';
+    const toggleHidden = (product) => {
+        const next = !product.isHidden;
+        setItems((prev) => prev.map((p) => (p.id === product.id ? { ...p, isHidden: next } : p)));
+        onSetHidden(product, next);
+    };
+
+    const filtered = search || category !== 'All' || stock !== 'All' || visibility !== 'All';
 
     return (
         <div className="space-y-3">
@@ -113,6 +121,7 @@ export default function InventoryList({
                             setSearch('');
                             setCategory('All');
                             setStock('All');
+                            setVisibility('All');
                         }}
                         className="text-xs font-semibold text-bronze-deep hover:underline cursor-pointer"
                     >
@@ -122,7 +131,7 @@ export default function InventoryList({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-cream p-3 rounded-2xl border border-stone-200">
-                <div className="sm:col-span-6 relative">
+                <div className="sm:col-span-12 relative">
                     <input
                         type="search"
                         value={search}
@@ -137,7 +146,7 @@ export default function InventoryList({
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     aria-label="Filter by category"
-                    className={`${inputClass} sm:col-span-3`}
+                    className={`${inputClass} sm:col-span-4`}
                 >
                     <option value="All">All categories</option>
                     {categoryNames.map((cat) => (
@@ -150,12 +159,22 @@ export default function InventoryList({
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
                     aria-label="Filter by stock"
-                    className={`${inputClass} sm:col-span-3`}
+                    className={`${inputClass} sm:col-span-4`}
                 >
                     <option value="All">All stock</option>
                     <option value="in_stock">In stock</option>
                     <option value="out_of_stock">Sold out (0)</option>
                     <option value="hidden">Stock not shown</option>
+                </select>
+                <select
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    aria-label="Filter by website visibility"
+                    className={`${inputClass} sm:col-span-4`}
+                >
+                    <option value="All">On site + hidden</option>
+                    <option value="visible">On website</option>
+                    <option value="hidden">Hidden from website</option>
                 </select>
             </div>
 
@@ -167,12 +186,16 @@ export default function InventoryList({
 
             <ul className="space-y-2.5 max-h-[62vh] overflow-y-auto pr-1 custom-scrollbar">
                 {items.map((p) => {
-                    const hidden = p.stock === null || p.stock === undefined;
+                    const stockHidden = p.stock === null || p.stock === undefined;
                     return (
                         <li
                             key={p.id}
                             className={`flex flex-col gap-3 p-3.5 rounded-2xl border transition ${
-                                editingId === p.id ? 'bg-amber-50 border-amber-400' : 'bg-white border-stone-200'
+                                editingId === p.id
+                                    ? 'bg-amber-50 border-amber-400'
+                                    : p.isHidden
+                                        ? 'bg-stone-50 border-dashed border-stone-300'
+                                        : 'bg-white border-stone-200'
                             }`}
                         >
                             <div className="flex items-center gap-3 min-w-0">
@@ -180,14 +203,21 @@ export default function InventoryList({
                                     src={validateSafeImageUrl(p.image) || undefined}
                                     alt=""
                                     loading="lazy"
-                                    className="w-12 h-12 rounded-xl object-cover bg-stone-100 shrink-0"
+                                    className={`w-12 h-12 rounded-xl object-cover bg-stone-100 shrink-0 ${p.isHidden ? 'opacity-50' : ''}`}
                                 />
                                 <div className="min-w-0">
                                     <p className="text-[11px] font-bold uppercase text-bronze-deep truncate">
                                         {p.category}
                                         {p.subcategory ? ` · ${p.subcategory}` : ''}
                                     </p>
-                                    <p className="text-sm font-bold text-ink truncate">{p.name}</p>
+                                    <p className="text-sm font-bold text-ink truncate flex items-center gap-2">
+                                        <span className="truncate">{p.name}</span>
+                                        {p.isHidden && (
+                                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase">
+                                                Hidden
+                                            </span>
+                                        )}
+                                    </p>
                                     <p className="text-xs text-stone-500">
                                         {formatGBP(p.price)} · assembly {formatGBP(p.assemblyFee)}
                                     </p>
@@ -197,16 +227,33 @@ export default function InventoryList({
                             <div className="flex items-center gap-1.5 flex-wrap">
                                 <button
                                     type="button"
-                                    onClick={() => changeStock(p, hidden ? 5 : null)}
-                                    title={hidden ? 'Start showing a stock count' : 'Stop showing stock'}
-                                    className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold border flex items-center gap-1 cursor-pointer ${
-                                        hidden
+                                    onClick={() => toggleHidden(p)}
+                                    title={p.isHidden ? 'Show this product on the website' : 'Hide this product from the website'}
+                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border flex items-center gap-1 ${
+                                        p.isHidden
+                                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                            : 'bg-white text-stone-700 border-stone-300 hover:border-ink'
+                                    }`}
+                                >
+                                    {p.isHidden ? (
+                                        <Eye className="w-3 h-3" aria-hidden="true" />
+                                    ) : (
+                                        <EyeOff className="w-3 h-3" aria-hidden="true" />
+                                    )}
+                                    {p.isHidden ? 'Show on site' : 'Hide from site'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => changeStock(p, stockHidden ? 5 : null)}
+                                    title={stockHidden ? 'Start showing a stock count' : 'Stop showing the stock count'}
+                                    className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold border flex items-center gap-1 ${
+                                        stockHidden
                                             ? 'bg-stone-100 text-stone-600 border-stone-300'
                                             : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                     }`}
                                 >
-                                    <EyeOff className="w-3 h-3" aria-hidden="true" />
-                                    {hidden ? 'Not shown' : 'Shown'}
+                                    <Package className="w-3 h-3" aria-hidden="true" />
+                                    {stockHidden ? 'Stock count off' : 'Stock count on'}
                                 </button>
                                 <button
                                     type="button"

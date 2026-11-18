@@ -222,6 +222,7 @@ export default function AdminDashboard({
                                 onDuplicate={(p) => openInEditor(p, true)}
                                 onDelete={catalog.deleteProduct}
                                 onSetStock={catalog.setStock}
+                                onSetHidden={catalog.setHidden}
                             />
                         </div>
                     )}

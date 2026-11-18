@@ -75,11 +75,31 @@ export function useAdminCatalog(onChanged) {
         [onChanged]
     );
 
+    const setHidden = useCallback(
+        async (product, hidden) => {
+            try {
+                await api.setProductHidden(product.id, hidden);
+                pushUndo({
+                    type: 'hidden',
+                    label: `${hidden ? 'hiding' : 'showing'} ${product.name}`,
+                    id: product.id,
+                    previousHidden: Boolean(product.isHidden),
+                });
+                ok(hidden ? `“${product.name}” is now hidden from the website.` : `“${product.name}” is back on the website.`);
+            } catch (err) {
+                fail(err);
+            }
+            onChanged();
+        },
+        [onChanged]
+    );
+
     const undo = useCallback(async () => {
         const [last, ...rest] = undoStack;
         if (!last) return;
         try {
             if (last.type === 'stock') await api.updateStock(last.id, last.previousStock);
+            if (last.type === 'hidden') await api.setProductHidden(last.id, last.previousHidden);
             if (last.type === 'update') await api.updateProduct(productToPayload(last.previous));
             if (last.type === 'delete') await api.restoreProduct(last.id);
             if (last.type === 'add') await api.deleteProduct(last.id);
@@ -95,6 +115,7 @@ export function useAdminCatalog(onChanged) {
         saveProduct,
         deleteProduct,
         setStock,
+        setHidden,
         undo,
         canUndo: undoStack.length > 0,
         undoLabel: undoStack[0]?.label || '',

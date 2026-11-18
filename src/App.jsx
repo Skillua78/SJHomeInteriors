@@ -415,7 +415,6 @@ export default function App() {
                                                 isAdmin={isAdmin}
                                                 onEditProduct={handleEditProduct}
                                                 customColors={siteSettings.customColors}
-                                                freeDeliveryMiles={siteSettings.freeDeliveryMiles}
                                             />
                                         ))}
                                     </div>
