@@ -17,16 +17,30 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
                 xmlns="http://www.w3.org/2000/svg"
                 className={`shrink-0 ${wrap ? '' : 'w-10 h-10 sm:w-11 sm:h-11'}`}
             >
-                {/* S&J monogram: large S and J with the ampersand overlapping between them */}
-                <rect x="1" y="1" width="46" height="46" rx="9" stroke="#C2683F" strokeWidth="1.5" />
+                {/* House outline behind an S&J monogram; the ampersand cuts a thin gap where it crosses the letters */}
+                <path
+                    d="M3 20.5L24 3.5L45 20.5V44.5H3Z"
+                    stroke="#C2683F"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                />
                 <g fontFamily="'Cormorant Garamond', Georgia, serif" fontWeight="600">
-                    <text x="3.5" y="36" fontSize="38" fill={strokeColor}>
+                    <text x="6" y="38" fontSize="30" fill={strokeColor}>
                         S
                     </text>
-                    <text x="26.5" y="38" fontSize="38" fill={strokeColor}>
+                    <text x="27.5" y="35" fontSize="30" fill={strokeColor}>
                         J
                     </text>
-                    <text x="24.5" y="35" fontSize="22" textAnchor="middle" fill="#C2683F">
+                    <text
+                        x="24.5"
+                        y="37"
+                        fontSize="21"
+                        textAnchor="middle"
+                        fill="#C2683F"
+                        stroke={isLight ? '#1D2A27' : '#F8F6F1'}
+                        strokeWidth="1.6"
+                        paintOrder="stroke"
+                    >
                         &amp;
                     </text>
                 </g>
