@@ -22,7 +22,7 @@
     --color-gold: #d4b895;
 
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-serif: 'Cormorant Garamond', ui-serif, Georgia, serif;
+    --font-serif: 'Fraunces', ui-serif, Georgia, serif;
 
     --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -44,7 +44,10 @@
     h3,
     .font-serif {
         font-family: var(--font-serif);
-        letter-spacing: -0.01em;
+        letter-spacing: -0.015em;
+        /* Size-aware letter shapes, and level numbers so "3+2" sits on the line. */
+        font-optical-sizing: auto;
+        font-variant-numeric: lining-nums;
     }
 
     /* Tailwind v4 resets buttons to the default cursor; everything clickable should say so. */

@@ -108,7 +108,7 @@ export default function ReviewsSection({
             noValidate
         >
             <div className="flex items-start justify-between gap-3">
-                <h3 className="font-serif text-2xl font-bold">Share Your Experience</h3>
+                <h3 className="font-serif text-2xl font-semibold">Share Your Experience</h3>
                 {formOnly && onClose && (
                     <button
                         type="button"
@@ -296,7 +296,7 @@ export default function ReviewsSection({
                     <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                         What our customers say
                     </span>
-                    <h2 className="font-serif text-3xl sm:text-4xl font-bold mt-1">
+                    <h2 className="font-serif text-3xl sm:text-4xl font-semibold mt-1">
                         Customer Reviews
                     </h2>
                     {reviewCount > 0 && average !== null && (

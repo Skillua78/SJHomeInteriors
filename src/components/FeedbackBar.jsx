@@ -89,7 +89,7 @@ export default function FeedbackBar({ renderReviewForm }) {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <h4 className="font-serif text-lg font-bold">Website Feedback</h4>
+                                <h4 className="font-serif text-lg font-semibold">Website Feedback</h4>
                                 <button
                                     type="button"
                                     onClick={() => setIsOpen(false)}

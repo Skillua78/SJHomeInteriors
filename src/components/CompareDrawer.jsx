@@ -158,7 +158,7 @@ export default function CompareDrawer({ items, onRemove, onClear, onView, messag
                         className="dialog-pop relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-6xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl outline-none"
                     >
                         <div className="flex items-center justify-between pl-5 pr-3 py-3 border-b border-stone-200">
-                            <h2 id="compare-title" className="font-serif text-2xl font-bold">
+                            <h2 id="compare-title" className="font-serif text-2xl font-semibold">
                                 Compare {items.length} items
                             </h2>
                             <button
@@ -193,7 +193,7 @@ export default function CompareDrawer({ items, onRemove, onClear, onView, messag
                                                         <X className="w-4 h-4" aria-hidden="true" />
                                                     </button>
                                                 </div>
-                                                <p className="font-serif text-lg font-bold text-ink leading-tight mt-2">{p.name}</p>
+                                                <p className="font-serif text-lg font-semibold text-ink leading-tight mt-2">{p.name}</p>
                                                 <button
                                                     type="button"
                                                     onClick={() => {

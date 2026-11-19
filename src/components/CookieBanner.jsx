@@ -34,7 +34,7 @@ export default function CookieBanner({ onOpenLegal }) {
                     <Cookie className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                    <h2 className="font-serif text-lg font-bold">Cookie preferences</h2>
+                    <h2 className="font-serif text-lg font-semibold">Cookie preferences</h2>
                     <p className="text-sm text-stone-300 mt-1 leading-relaxed">
                         We use cookies to remember your basket and improve your visit.{' '}
                         <button

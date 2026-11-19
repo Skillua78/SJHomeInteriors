@@ -131,7 +131,7 @@ export default function InventoryList({
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-serif text-xl font-bold text-ink">
+                <h3 className="font-serif text-xl font-semibold text-ink">
                     Inventory ({items.length} of {total})
                 </h3>
                 <div className="ml-auto flex flex-wrap justify-end gap-2">

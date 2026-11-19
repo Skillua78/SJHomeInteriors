@@ -76,7 +76,7 @@ export default function Hero({ onNavigate, siteSettings, ready = true }) {
                             <span>{badgeText}</span>
                         </p>
 
-                        <h1 className="font-serif text-[2.5rem] sm:text-5xl lg:text-[4rem] font-bold leading-[1.05] text-white text-balance">
+                        <h1 className="font-serif text-[2.5rem] sm:text-5xl lg:text-[4rem] font-semibold leading-[1.05] text-white text-balance">
                             {titleText}
                         </h1>
 

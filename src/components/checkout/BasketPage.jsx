@@ -194,7 +194,7 @@ export default function BasketPage({
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Continue shopping
             </button>
 
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-ink mb-6">
+            <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink mb-6">
                 Basket &amp; checkout
             </h1>
 

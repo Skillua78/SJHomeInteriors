@@ -45,7 +45,7 @@ export default function OrderSummary({
 
     return (
         <aside className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-5">
-            <h2 className="font-serif text-2xl font-bold text-ink">Order summary</h2>
+            <h2 className="font-serif text-2xl font-semibold text-ink">Order summary</h2>
 
             <dl className="space-y-2.5 text-sm">
                 <div className="flex justify-between">

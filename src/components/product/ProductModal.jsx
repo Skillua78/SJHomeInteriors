@@ -217,7 +217,7 @@ export default function ProductModal({
                             </span>
                             <h2
                                 id="product-modal-title"
-                                className="font-serif text-[1.75rem] sm:text-4xl font-bold text-ink mt-1 pr-12 md:pr-0 leading-[1.1]"
+                                className="font-serif text-[1.75rem] sm:text-4xl font-semibold text-ink mt-1 pr-12 md:pr-0 leading-[1.1]"
                             >
                                 {product.name}
                             </h2>

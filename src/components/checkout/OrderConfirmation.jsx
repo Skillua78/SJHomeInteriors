@@ -39,7 +39,7 @@ export default function OrderConfirmation({ order, onBackToShop, bankInstruction
                 </div>
 
                 <div>
-                    <h1 className="font-serif text-3xl sm:text-4xl font-bold text-ink">{heading}</h1>
+                    <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">{heading}</h1>
                     <p className="text-sm text-stone-600 mt-3">
                         Order reference{' '}
                         <strong className="font-mono text-ink bg-stone-100 px-2 py-1 rounded">

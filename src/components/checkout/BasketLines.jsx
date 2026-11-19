@@ -20,7 +20,7 @@ export default function BasketLines({ cart, onUpdateQty, onRemoveItem }) {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="font-serif text-lg font-bold text-ink leading-snug">
+                                <p className="font-serif text-lg font-semibold text-ink leading-snug">
                                     {item.name}
                                 </p>
                                 {item.label && item.label !== 'Standard' && (

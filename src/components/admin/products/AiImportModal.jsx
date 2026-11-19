@@ -94,7 +94,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                         <span className="text-[11px] font-bold uppercase tracking-widest text-bronze-deep flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> Quick import
                         </span>
-                        <h3 className="font-serif text-2xl font-bold text-ink mt-0.5">
+                        <h3 className="font-serif text-2xl font-semibold text-ink mt-0.5">
                             Import products with AI or a JSON file
                         </h3>
                     </div>

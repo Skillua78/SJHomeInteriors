@@ -123,7 +123,7 @@ export default function ProductCard({
                     {product.subcategory || product.category}
                 </span>
 
-                <h3 className="font-serif text-[1.375rem] font-bold text-ink leading-tight mt-1 line-clamp-2">
+                <h3 className="font-serif text-[1.375rem] font-semibold text-ink leading-tight mt-1 line-clamp-2">
                     <button
                         type="button"
                         onClick={open}

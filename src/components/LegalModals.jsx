@@ -67,7 +67,7 @@ export default function LegalModals({ activeDoc, onClose }) {
                 className="dialog-pop relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full px-5 sm:px-8 pt-4 sm:pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl border border-stone-200 outline-none"
             >
                 <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-200">
-                    <h3 id="legal-modal-title" className="font-serif text-2xl font-bold leading-tight pt-2">
+                    <h3 id="legal-modal-title" className="font-serif text-2xl font-semibold leading-tight pt-2">
                         {doc.title}
                     </h3>
                     <button

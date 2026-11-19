@@ -121,7 +121,7 @@ export default function ProductEditor({
                         <span className="text-[11px] font-bold uppercase tracking-wider text-bronze-deep">
                             {editing ? 'Editing' : target?.duplicate ? 'New copy' : 'New product'}
                         </span>
-                        <h3 className="font-serif text-xl font-bold text-ink truncate">
+                        <h3 className="font-serif text-xl font-semibold text-ink truncate">
                             {form.name || 'Add a furniture item'}
                         </h3>
                     </div>

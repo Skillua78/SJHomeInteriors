@@ -51,7 +51,7 @@ export default function OrderStatusPage({ sessionId, onPaid, onBackToShop, onBac
         return (
             <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-4">
                 <AlertCircle className="w-10 h-10 text-red-600 mx-auto" aria-hidden="true" />
-                <h1 className="font-serif text-3xl font-bold">We could not load your order</h1>
+                <h1 className="font-serif text-3xl font-semibold">We could not load your order</h1>
                 <p className="text-sm text-stone-600">
                     {error} If you completed payment, your order is safe - please contact the showroom
                     and we will confirm it for you.

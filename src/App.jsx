@@ -303,7 +303,7 @@ export default function App() {
                                     <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                                         {siteSettings.catalogSubtitle || 'Showroom & Online Collection'}
                                     </span>
-                                    <h2 className="font-serif text-3xl sm:text-4xl font-bold mt-1">
+                                    <h2 className="font-serif text-3xl sm:text-4xl font-semibold mt-1">
                                         {siteSettings.catalogTitle || 'Explore Our Furniture'}
                                     </h2>
                                 </div>

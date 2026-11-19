@@ -116,7 +116,7 @@ export default function AdminDashboard({
                         <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1">
                             <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" /> Admin
                         </span>
-                        <h2 className="font-serif text-xl font-bold leading-tight">Shop manager</h2>
+                        <h2 className="font-serif text-xl font-semibold leading-tight">Shop manager</h2>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

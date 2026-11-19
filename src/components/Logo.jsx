@@ -15,7 +15,7 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
                 viewBox="0 0 48 48"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
+                className={`shrink-0 ${wrap ? '' : 'w-10 h-10 sm:w-11 sm:h-11'}`}
             >
                 {/* Outer Bronze Frame */}
                 <rect
@@ -36,25 +36,16 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
                 />
                 {/* Intertwined Serif 'S' & 'J' Monogram */}
                 <text
-                    x="13"
+                    x="24"
                     y="33"
-                    fill={strokeColor}
-                    fontFamily="'Cormorant Garamond', Georgia, serif"
-                    fontWeight="700"
-                    fontSize="22"
-                    letterSpacing="-1"
+                    textAnchor="middle"
+                    fontFamily="'Fraunces', Georgia, serif"
+                    fontWeight="600"
+                    fontSize="19"
+                    letterSpacing="1"
                 >
-                    S
-                </text>
-                <text
-                    x="25"
-                    y="33"
-                    fill="#9A7B56"
-                    fontFamily="'Cormorant Garamond', Georgia, serif"
-                    fontWeight="700"
-                    fontSize="22"
-                >
-                    J
+                    <tspan fill={strokeColor}>S</tspan>
+                    <tspan fill="#9A7B56">J</tspan>
                 </text>
                 {/* Minimalist Sofa Base Line */}
                 <path
@@ -68,11 +59,13 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
             {/* Brand Wordmark */}
             <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-[15px] min-[400px]:text-base sm:text-2xl font-bold tracking-tight leading-[1.05] sm:leading-none ${
+                    className={`font-serif text-[13.5px] min-[400px]:text-[15px] sm:text-2xl font-semibold tracking-tight leading-[1.1] sm:leading-none ${
                         wrap ? '' : 'sm:whitespace-nowrap sm:truncate'
                     } ${primaryText}`}
                 >
-                    SJ HOME INTERIORS
+                    {/* Two set lines on phones so the wordmark never runs under the header buttons. */}
+                    <span className={wrap ? '' : 'block sm:inline whitespace-nowrap'}>SJ HOME</span>{' '}
+                    <span className={wrap ? '' : 'block sm:inline whitespace-nowrap'}>INTERIORS</span>
                 </span>
                 <span className="hidden sm:block text-[9px] uppercase tracking-[0.26em] text-bronze-deep font-semibold mt-1 whitespace-nowrap">
                     Maltby Showroom &bull; Est. UK

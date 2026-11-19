@@ -43,7 +43,7 @@ export default function CartDrawer({
                 className="drawer-right absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col outline-none"
             >
                 <div className="flex items-center justify-between pl-5 pr-3 py-3 border-b border-stone-200">
-                    <h2 id="cart-drawer-title" className="font-serif text-2xl font-bold">
+                    <h2 id="cart-drawer-title" className="font-serif text-2xl font-semibold">
                         Your basket
                         {itemCount > 0 && (
                             <span className="ml-2 font-sans text-sm font-semibold text-stone-500">

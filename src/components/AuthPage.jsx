@@ -92,7 +92,7 @@ export default function AuthPage({
                         <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                             {isAdmin ? 'Showroom Administration' : 'SJ Home Interiors Customer'}
                         </span>
-                        <h1 className="font-serif text-3xl font-bold mt-1">
+                        <h1 className="font-serif text-3xl font-semibold mt-1">
                             Welcome, {currentUser.name}
                         </h1>
                         <p className="text-xs text-stone-500 mt-1">{currentUser.email}</p>
@@ -160,7 +160,7 @@ export default function AuthPage({
                     </button>
                 </div>
 
-                <h1 className="font-serif text-3xl font-bold text-center mb-2">
+                <h1 className="font-serif text-3xl font-semibold text-center mb-2">
                     {mode === 'login' ? 'Sign In to Your Account' : 'Create an Account'}
                 </h1>
                 <p className="text-xs text-stone-500 text-center mb-6">

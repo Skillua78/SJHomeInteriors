@@ -58,7 +58,7 @@ export default function ContactPage({ siteSettings }) {
                 <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                     Visit Or Message Us
                 </span>
-                <h1 className="font-serif text-3xl sm:text-5xl font-bold text-ink mt-1">
+                <h1 className="font-serif text-3xl sm:text-5xl font-semibold text-ink mt-1">
                     Maltby Showroom & Customer Care
                 </h1>
                 <p className="text-xs sm:text-sm text-stone-600 mt-3 leading-relaxed">
@@ -71,7 +71,7 @@ export default function ContactPage({ siteSettings }) {
                 {/* Left Column: Direct Contact Channels + Optional Facebook & WhatsApp */}
                 <div className="lg:col-span-5 space-y-4">
                     <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-6">
-                        <h2 className="font-serif text-2xl font-bold text-ink">
+                        <h2 className="font-serif text-2xl font-semibold text-ink">
                             Showroom Details
                         </h2>
 
@@ -176,7 +176,7 @@ export default function ContactPage({ siteSettings }) {
                             <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
-                            <h3 className="font-serif text-2xl font-bold text-ink">
+                            <h3 className="font-serif text-2xl font-semibold text-ink">
                                 Thank You for Reaching Out
                             </h3>
                             <p className="text-xs text-stone-600 max-w-md mx-auto">
@@ -204,7 +204,7 @@ export default function ContactPage({ siteSettings }) {
                                     {sendError}
                                 </p>
                             )}
-                            <h2 className="font-serif text-2xl font-bold text-ink mb-2">
+                            <h2 className="font-serif text-2xl font-semibold text-ink mb-2">
                                 Send a Showroom Enquiry
                             </h2>
 

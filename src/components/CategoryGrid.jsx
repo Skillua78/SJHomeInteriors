@@ -33,7 +33,7 @@ export default function CategoryGrid({ categories = [], onSelectCategory }) {
                 <span className="text-xs font-bold uppercase tracking-widest text-bronze-deep">
                     Browse by department
                 </span>
-                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-ink mt-1">
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-ink mt-1">
                     Shop our collections
                 </h2>
             </div>
@@ -66,7 +66,7 @@ export default function CategoryGrid({ categories = [], onSelectCategory }) {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         <div className="absolute bottom-3.5 left-3.5 right-3.5 flex items-end justify-between text-white">
                             <div>
-                                <span className="block font-serif text-xl font-bold leading-tight">
+                                <span className="block font-serif text-xl font-semibold leading-tight">
                                     {cat.name}
                                 </span>
                                 <span className="text-xs text-stone-200 font-medium">
