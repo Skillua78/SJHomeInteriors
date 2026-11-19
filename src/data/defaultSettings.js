@@ -39,6 +39,10 @@ export const DEFAULT_SETTINGS = {
     assemblyFee: 50,
     customCategories: {},
     customColors: {},
+    promoEnabled: false,
+    promoText: 'Black Friday Showroom Event',
+    promoEndDate: '',
+    promoDiscountPercent: 0,
     paymentEnabled: true,
     paymentOptions: { card: false, klarna: false, cod: true, showroom: true, bacs: false },
 };

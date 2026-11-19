@@ -65,6 +65,7 @@ export default function ReviewsSection({
             location: sanitizeText(location, 60),
             rating: Math.min(5, Math.max(1, Number(rating) || 5)),
             productName: sanitizeText(productName, 120),
+            productId: products.find((p) => p.name === productName)?.id || undefined,
             comment: cleanComment,
             images: uploadedImages,
         });

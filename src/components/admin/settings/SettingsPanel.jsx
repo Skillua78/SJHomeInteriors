@@ -170,29 +170,72 @@ function DeliverySettings({ form, set }) {
                 onChange={(v) => set({ assemblyFee: v })}
                 hint="Assembly is optional: the customer ticks a box at checkout to add it, one charge per order. A product can have its own assembly fee (Essentials step); 0 on a product means it needs no assembly."
             />
+        </section>
+    );
+}
+
+/** ISO date-time -> value for <input type="datetime-local"> in the browser's time zone. */
+function toLocalInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function PromoSettings({ form, set }) {
+    const end = form.promoEndDate ? new Date(form.promoEndDate) : null;
+    const ended = end && !Number.isNaN(end.getTime()) && end.getTime() <= Date.now();
+    return (
+        <section className={cardClass}>
+            <h3 className={sectionTitleClass}>Promotion banner</h3>
             <Toggle
-                label="Show the delivery & assembly tile on the home page"
-                checked={form.showAssemblyHighlight !== false}
-                onChange={(v) => set({ showAssemblyHighlight: v })}
+                label="Show the promotion banner"
+                checked={Boolean(form.promoEnabled)}
+                onChange={(v) => set({ promoEnabled: v })}
+                hint="A strip across the top of the shop with a live countdown. It hides itself when the end date passes."
             />
-            {form.showAssemblyHighlight !== false && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <TextField
-                        id="st-asm-title"
-                        label="Tile title"
-                        maxLength={80}
-                        value={form.assemblyTitle}
-                        onChange={(v) => set({ assemblyTitle: v })}
+            <TextField
+                id="st-promo-text"
+                label="Headline"
+                maxLength={120}
+                value={form.promoText}
+                onChange={(v) => set({ promoText: v })}
+                placeholder="Black Friday Showroom Event"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label htmlFor="st-promo-end" className={labelClass}>
+                        Ends
+                    </label>
+                    <input
+                        id="st-promo-end"
+                        type="datetime-local"
+                        value={toLocalInput(form.promoEndDate)}
+                        onChange={(e) => {
+                            const d = e.target.value ? new Date(e.target.value) : null;
+                            set({ promoEndDate: d && !Number.isNaN(d.getTime()) ? d.toISOString() : '' });
+                        }}
+                        className={inputClass}
                     />
-                    <TextField
-                        id="st-asm-sub"
-                        label="Tile subtitle"
-                        maxLength={80}
-                        value={form.assemblySubtitle}
-                        onChange={(v) => set({ assemblySubtitle: v })}
-                    />
+                    <p className={`text-[11px] mt-1 ${ended ? 'text-red-700 font-semibold' : 'text-stone-500'}`}>
+                        {ended
+                            ? 'This date has passed, so the banner is not showing.'
+                            : 'Use the real end date. Leave empty for no countdown.'}
+                    </p>
                 </div>
-            )}
+                <TextField
+                    id="st-promo-pct"
+                    label="Up to … % off"
+                    type="number"
+                    min="0"
+                    max="90"
+                    step="1"
+                    value={form.promoDiscountPercent ?? 0}
+                    onChange={(v) => set({ promoDiscountPercent: v })}
+                    hint="Shown in the banner only; 0 hides it. Prices change through each product's “Was” price."
+                />
+            </div>
         </section>
     );
 }
@@ -371,6 +414,7 @@ export default function SettingsPanel({ siteSettings, onSave }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <PaymentSettings form={form} set={set} stripeReady={stripeReady} />
                 <div className="space-y-5">
+                    <PromoSettings form={form} set={set} />
                     <DeliverySettings form={form} set={set} />
                     <ContactSettings form={form} set={set} />
                 </div>

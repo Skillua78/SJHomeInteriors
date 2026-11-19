@@ -61,6 +61,11 @@ export const DEFAULT_SITE_SETTINGS = {
     allowShowroomPayment: true,
     allowBankTransfer: false,
     bankTransferInstructions: '',
+    // Promotion banner (e.g. Black Friday). Hidden automatically once promoEndDate has passed.
+    promoEnabled: false,
+    promoText: 'Black Friday Showroom Event',
+    promoEndDate: '',
+    promoDiscountPercent: 0,
 };
 
 const PRESET_KEYS = Object.keys(DEFAULT_SITE_SETTINGS.savedPresets);
@@ -89,6 +94,14 @@ function httpsUrl(value, max = 300) {
     } catch {
         return '';
     }
+}
+
+/** An ISO date-time string, or '' when missing or not a real date. */
+function validDateTime(value) {
+    const raw = cleanText(value, 40);
+    if (!raw) return '';
+    const time = Date.parse(raw);
+    return Number.isFinite(time) ? new Date(time).toISOString() : '';
 }
 
 function bool(value, fallback) {
@@ -231,6 +244,10 @@ export async function sanitizeSettings(env, body) {
         allowShowroomPayment: bool(body.allowShowroomPayment, true),
         allowBankTransfer: bool(body.allowBankTransfer, false),
         bankTransferInstructions: cleanText(body.bankTransferInstructions, 500),
+        promoEnabled: bool(body.promoEnabled, false),
+        promoText: cleanText(body.promoText, 120) || DEFAULT_SITE_SETTINGS.promoText,
+        promoEndDate: validDateTime(body.promoEndDate),
+        promoDiscountPercent: Math.min(90, Math.max(0, Math.round(Number(body.promoDiscountPercent) || 0))),
     };
 
     statements.push(

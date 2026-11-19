@@ -31,6 +31,7 @@ function mapReview(row) {
         rating: row.rating,
         date: row.date,
         productName: row.product_name || '',
+        productId: row.product_id || null,
         comment: row.comment,
         images: parseImages(row.images_json),
         verified: Boolean(row.verified),
@@ -75,15 +76,28 @@ export async function onRequestGet({ request, env }) {
     const url = new URL(request.url);
     const limit = intParam(url.searchParams.get('limit'), admin ? 200 : 30, 1, 200);
     const offset = intParam(url.searchParams.get('offset'), 0, 0, 100000);
-    const filter = admin ? '' : 'WHERE verified = 1';
+    const productId = cleanText(url.searchParams.get('productId'), 100);
+
+    // Public: approved reviews only. ?productId= narrows to one product (used in the product view).
+    const where = [];
+    const binds = [];
+    if (!admin || productId) where.push('verified = 1');
+    if (productId) {
+        where.push('product_id = ?');
+        binds.push(productId);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const statsWhere = productId ? 'WHERE verified = 1 AND product_id = ?' : 'WHERE verified = 1';
 
     const [list, stats] = await env.DB.batch([
         env.DB.prepare(
-            `SELECT id, author, location, rating, date, product_name, comment, images_json,
+            `SELECT id, author, location, rating, date, product_name, product_id, comment, images_json,
                     verified, admin_response
-             FROM reviews ${filter} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-        ).bind(limit, offset),
-        env.DB.prepare('SELECT COUNT(*) AS n, AVG(rating) AS average FROM reviews WHERE verified = 1'),
+             FROM reviews ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+        ).bind(...binds, limit, offset),
+        env.DB.prepare(`SELECT COUNT(*) AS n, AVG(rating) AS average FROM reviews ${statsWhere}`).bind(
+            ...(productId ? [productId] : [])
+        ),
     ]);
 
     const s = stats.results?.[0] || {};
@@ -108,6 +122,21 @@ export async function onRequestPost({ request, env }) {
     }
     if (!(rating >= 1 && rating <= 5)) throw new HttpError(400, 'Please choose a rating from 1 to 5.');
 
+    // A review can be about a specific product; its name is taken from the database, not the browser.
+    let productId = null;
+    let productName = cleanText(body.productName, 120);
+    const wantedId = cleanText(body.productId, 100);
+    if (wantedId) {
+        const product = await env.DB.prepare(
+            'SELECT id, name FROM products WHERE id = ? AND deleted_at IS NULL AND is_hidden = 0'
+        )
+            .bind(wantedId)
+            .first();
+        if (!product) throw new HttpError(400, 'That product could not be found.');
+        productId = product.id;
+        productName = product.name;
+    }
+
     const id = `rev_${randomId(10)}`;
     const { urls, statements } = await planImages(env, 'review', id, body.images, 3);
     const date = new Date().toLocaleDateString('en-GB', {
@@ -118,16 +147,17 @@ export async function onRequestPost({ request, env }) {
 
     statements.push(
         env.DB.prepare(
-            `INSERT INTO reviews (id, author, location, rating, date, product_name, comment,
+            `INSERT INTO reviews (id, author, location, rating, date, product_name, product_id, comment,
                                   images_json, verified, admin_response, schema_v)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, '', 1)`
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '', 1)`
         ).bind(
             id,
             author,
             cleanText(body.location, 60),
             rating,
             date,
-            cleanText(body.productName, 120),
+            productName,
+            productId,
             comment,
             JSON.stringify(urls)
         )

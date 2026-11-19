@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Flame, Sparkles, Edit3, Images } from 'lucide-react';
+import { Flame, Sparkles, Edit3, Images, Scale, Check } from 'lucide-react';
 import { validateSafeImageUrl } from '../utils/security';
 import { resolveColorHex } from '../utils/colors';
 import { formatGBP } from '../../shared/pricing.js';
+import StarRating from './ui/StarRating';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
@@ -20,6 +21,8 @@ export default function ProductCard({
     isAdmin,
     onEditProduct,
     customColors,
+    isCompared = false,
+    onToggleCompare,
 }) {
     const colors = product.colors?.length ? product.colors : [];
     const [selectedColor, setSelectedColor] = useState(colors[0] || '');
@@ -50,9 +53,11 @@ export default function ProductCard({
     const badges = [];
     if (!available) badges.push({ text: 'Pre-order', className: 'bg-ink text-white' });
     else if (product.badge) badges.push({ text: product.badge, className: 'bg-ink text-white' });
-    if (product.isTrending) {
+    if (saving >= 1) badges.push({ text: 'Sale', className: 'bg-red-700 text-white' });
+    // At most two badges on the photo.
+    if (badges.length < 2 && product.isTrending) {
         badges.push({ text: 'Trending', icon: Flame, className: 'bg-white/95 text-ink' });
-    } else if (product.isPopular) {
+    } else if (badges.length < 2 && product.isPopular) {
         badges.push({ text: 'Popular', icon: Sparkles, className: 'bg-white/95 text-ink' });
     }
 
@@ -128,6 +133,10 @@ export default function ProductCard({
                     </button>
                 </h3>
 
+                {product.rating && (
+                    <StarRating value={product.rating.average} count={product.rating.count} className="mt-0.5" />
+                )}
+
                 {product.description && (
                     <p className="text-sm text-stone-600 mt-1.5 line-clamp-2 leading-relaxed">
                         {product.description}
@@ -198,6 +207,7 @@ export default function ProductCard({
                         {saving >= 1 && (
                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-800 border border-red-200">
                                 Save {formatGBP(saving).replace('.00', '')}
+                                {wasPrice ? ` (${Math.round((saving / wasPrice) * 100)}%)` : ''}
                             </span>
                         )}
                     </div>
@@ -234,6 +244,29 @@ export default function ProductCard({
                             </>
                         )}
                     </div>
+
+                    {onToggleCompare && (
+                        <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={isCompared}
+                            onClick={() => onToggleCompare(product)}
+                            className={`mt-2 -mb-1 min-h-11 inline-flex items-center gap-2 text-xs font-semibold transition-colors ${
+                                isCompared ? 'text-ink' : 'text-stone-600 hover:text-ink'
+                            }`}
+                        >
+                            <span
+                                aria-hidden="true"
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                                    isCompared ? 'bg-ink border-ink text-white' : 'border-stone-400 bg-white'
+                                }`}
+                            >
+                                {isCompared && <Check className="w-3.5 h-3.5" />}
+                            </span>
+                            <Scale className="w-3.5 h-3.5" aria-hidden="true" />
+                            {isCompared ? 'Added to compare' : 'Compare'}
+                        </button>
+                    )}
                 </div>
             </div>
         </article>

@@ -18,7 +18,9 @@ const SUMMARY_COLUMNS = `id, name, price, previous_price, substr(description, 1,
     category, subcategory, badge, stock, is_popular, is_trending, delivery, colors_json,
     image, image_count, fabric_count, size_count, option_count, dim_summary, delivery_fee_pence,
     is_hidden, color_images_json,
-    json_extract(variations_json, '$.priceNeedsReview') AS price_needs_review`;
+    json_extract(variations_json, '$.priceNeedsReview') AS price_needs_review,
+    (SELECT AVG(rating) FROM reviews WHERE reviews.product_id = products.id AND reviews.verified = 1) AS rating_avg,
+    (SELECT COUNT(*) FROM reviews WHERE reviews.product_id = products.id AND reviews.verified = 1) AS rating_count`;
 
 // Customers only ever see products that are live and not hidden.
 const PUBLIC_FILTER = 'deleted_at IS NULL AND is_hidden = 0';
@@ -69,6 +71,9 @@ export function mapSummary(row, defaultFeePence) {
         isHidden: Boolean(row.is_hidden),
         // Set when the price was estimated (e.g. by the AI import) and still needs checking.
         priceNeedsReview: Boolean(row.price_needs_review),
+        rating: row.rating_count
+            ? { average: Math.round(Number(row.rating_avg) * 10) / 10, count: Number(row.rating_count) }
+            : null,
     };
 }
 

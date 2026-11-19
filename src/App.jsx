@@ -7,7 +7,11 @@ import { DEFAULT_SETTINGS, readCachedSettings, cacheSettings } from './data/defa
 import AnnouncementBar from './components/AnnouncementBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import ValueBar from './components/ValueBar';
+import TrustBar from './components/TrustBar';
+import PromoBanner from './components/PromoBanner';
+import WhatsAppButton from './components/WhatsAppButton';
+import CompareDrawer from './components/CompareDrawer';
+import { useCompare } from './hooks/useCompare';
 import CategoryGrid from './components/CategoryGrid';
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/product/ProductModal';
@@ -72,6 +76,7 @@ export default function App() {
     });
     const { cart, count: cartCount, addItem, updateQty, removeItem, clear: clearCart, repriceFromQuote } =
         useCart();
+    const compare = useCompare();
 
     const isAdmin = currentUser?.role === 'admin';
 
@@ -249,6 +254,17 @@ export default function App() {
                 Skip to content
             </a>
 
+            {settingsReady && (
+                <PromoBanner
+                    siteSettings={siteSettings}
+                    onShopNow={() => {
+                        navigate('home');
+                        handleSelectCategory('All');
+                        setSortBy('featured');
+                        setTimeout(scrollToCatalog, 50);
+                    }}
+                />
+            )}
             <AnnouncementBar onNavigate={navigate} siteSettings={siteSettings} ready={settingsReady} />
 
             <Navbar
@@ -269,7 +285,7 @@ export default function App() {
                 {currentPage === 'home' && (
                     <>
                         <Hero onNavigate={navigate} siteSettings={siteSettings} ready={settingsReady} />
-                        <ValueBar siteSettings={siteSettings} ready={settingsReady} />
+                        <TrustBar siteSettings={siteSettings} ready={settingsReady} />
                         <CategoryGrid
                             categories={catalog.facets.categories}
                             onSelectCategory={(cat) => {
@@ -415,6 +431,8 @@ export default function App() {
                                                 isAdmin={isAdmin}
                                                 onEditProduct={handleEditProduct}
                                                 customColors={siteSettings.customColors}
+                                                isCompared={compare.has(product.id)}
+                                                onToggleCompare={compare.toggle}
                                             />
                                         ))}
                                     </div>
@@ -529,6 +547,22 @@ export default function App() {
                 isAdmin={isAdmin}
                 onEditProduct={handleEditProduct}
                 siteSettings={siteSettings}
+                onOpenProduct={(product) => setModalData({ product })}
+            />
+
+            <CompareDrawer
+                items={compare.list}
+                onRemove={compare.remove}
+                onClear={compare.clear}
+                onView={(product) => setModalData({ product })}
+                message={compare.message}
+                onDismissMessage={compare.clearMessage}
+            />
+
+            <WhatsAppButton
+                siteSettings={siteSettings}
+                hidden={Boolean(modalData) || isCartOpen || isAdminOpen}
+                raised={compare.list.length > 0}
             />
 
             <CartDrawer

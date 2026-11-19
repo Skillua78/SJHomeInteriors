@@ -7,7 +7,7 @@
  * /migrations for anyone who prefers to apply it with wrangler.
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 const TABLES = [
     `CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -137,6 +137,8 @@ const COLUMNS = {
     },
     reviews: {
         schema_v: 'INTEGER NOT NULL DEFAULT 0',
+        // Which product the review is about (NULL = a general showroom review).
+        product_id: 'TEXT DEFAULT NULL',
     },
     orders: {
         user_id: 'TEXT DEFAULT NULL',
@@ -167,6 +169,7 @@ const INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_media_owner ON media(owner_type, owner_id)`,
     `CREATE INDEX IF NOT EXISTS idx_media_orphaned ON media(orphaned_at) WHERE orphaned_at IS NOT NULL`,
     `CREATE INDEX IF NOT EXISTS idx_reviews_public ON reviews(created_at DESC) WHERE verified = 1`,
+    `CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, created_at DESC) WHERE verified = 1`,
     `CREATE INDEX IF NOT EXISTS idx_reviews_created ON reviews(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_orders_unseen ON orders(admin_seen) WHERE admin_seen = 0`,
@@ -220,6 +223,14 @@ async function upgrade(env) {
     }
 
     await env.DB.batch([...DROP_INDEXES, ...INDEXES].map((sql) => env.DB.prepare(sql)));
+
+    // Older reviews only stored the product's name: link them to the product where the name matches.
+    await env.DB.prepare(
+        `UPDATE reviews SET product_id = (
+           SELECT id FROM products WHERE products.name = reviews.product_name AND deleted_at IS NULL LIMIT 1
+         )
+         WHERE product_id IS NULL AND product_name != ''`
+    ).run();
 
     await env.DB.prepare(
         `INSERT INTO schema_meta (key, value) VALUES ('version', ?)

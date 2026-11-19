@@ -112,3 +112,27 @@ tests/              vitest unit tests
 - **Export**: "Export all (JSON)" in the inventory list downloads every product; "Export JSON" in the
   editor downloads the one you are editing. Edit the file and import it again: products keep their
   `id`, so they are updated rather than duplicated. Remove an `id` to create a new product instead.
+
+## 9. Storefront extras (promotion, reviews, compare, WhatsApp)
+
+- **Promotion banner**: Settings → Promotion banner. Turn it on, write the headline, set the real
+  end date and, if you like, an "Up to … % off" figure. The countdown runs to that date and the
+  banner hides itself when it passes. The percentage is only text in the banner: actual reductions
+  come from each product's "Was" price, which also shows the "Sale" and "Save £X" labels on cards.
+  UK consumer law (CMA guidance) treats fake or resetting countdowns as misleading, so only use
+  dates the offer really ends.
+- **Product reviews**: customers can review a product from its product view (or from the reviews
+  section on the home page). Every review waits in Reviews until you press "Verify & publish";
+  only published reviews count towards the stars on cards. The database change is
+  `migrations/0005_product_reviews.sql`. It is applied automatically on the first request after
+  deploying, or you can run it by hand:
+  `npx wrangler d1 execute <your-database-name> --remote --file=migrations/0005_product_reviews.sql`
+- **Compare**: shoppers tick "Compare" on up to 4 cards and open a side-by-side table. Nothing is
+  stored on the server.
+- **WhatsApp**: the green button opens a chat with the WhatsApp number in Settings (or the shop
+  phone number if that is empty). "Ask about this on WhatsApp" in the product view fills in the
+  product, chosen options and price.
+- **Similar products** in the product view come from the same subcategory, then the same category,
+  and never include hidden products.
+- The home page's delivery & assembly tile has been replaced by the trust bar, so its settings were
+  removed. Its wording now comes from your delivery radius and payment options.

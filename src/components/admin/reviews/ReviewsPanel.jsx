@@ -30,6 +30,11 @@ export default function ReviewsPanel({ reviews, onToggleVerify, onRespond, onDel
                                 <strong className="text-ink">{rev.author}</strong>
                                 <span className="text-amber-700 font-bold ml-2">★ {rev.rating}/5</span>
                                 <span className="text-stone-500 ml-2 text-xs">{rev.date}</span>
+                                {rev.productName && (
+                                    <span className="block text-xs text-bronze-deep font-semibold mt-0.5">
+                                        {rev.productName}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
                                 <button

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Check, Package, Edit3, Loader2, ShieldCheck, RotateCcw, Store } from 'lucide-react';
+import { X, Check, Package, Edit3, Loader2, ShieldCheck, RotateCcw, MessageCircle } from 'lucide-react';
 import { validateSafeImageUrl } from '../../utils/security';
 import { resolveColorHex } from '../../utils/colors';
 import { optionsFromVariations } from '../../utils/catalogModel';
@@ -11,6 +11,11 @@ import FabricSwatchChart from './FabricSwatchChart';
 import DimensionsBox from './DimensionsBox';
 import PaymentBadges from '../ui/PaymentBadges';
 import { useDialog, useTransitionState } from '../../hooks/useDialog';
+import ProductReviews from '../ProductReviews';
+import SimilarProducts from '../SimilarProducts';
+import TrustBar from '../TrustBar';
+import StarRating from '../ui/StarRating';
+import { whatsAppLink, productEnquiryMessage } from '../../utils/storefront';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=85';
@@ -28,6 +33,7 @@ export default function ProductModal({
     isAdmin,
     onEditProduct,
     siteSettings,
+    onOpenProduct,
 }) {
     // Keep showing the last product while the closing animation plays.
     const isOpen = Boolean(modalData?.product);
@@ -215,6 +221,14 @@ export default function ProductModal({
                             >
                                 {product.name}
                             </h2>
+                            {summary?.rating && (
+                                <StarRating
+                                    value={summary.rating.average}
+                                    count={summary.rating.count}
+                                    size="md"
+                                    className="mt-2"
+                                />
+                            )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -373,8 +387,9 @@ export default function ProductModal({
                         )}
 
                         {/* Reassurance before the buy decision */}
-                        <div className="rounded-2xl border border-stone-200 p-4 space-y-3">
-                            <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-stone-700">
+                        <div className="rounded-2xl border border-stone-200 p-4 space-y-4">
+                            <TrustBar siteSettings={siteSettings} variant="compact" />
+                            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-700 pt-3 border-t border-stone-100">
                                 <li className="flex items-center gap-2">
                                     <ShieldCheck className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
                                     Secure checkout
@@ -383,13 +398,33 @@ export default function ProductModal({
                                     <RotateCcw className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
                                     14-day returns online
                                 </li>
-                                <li className="flex items-center gap-2">
-                                    <Store className="w-4 h-4 text-bronze shrink-0" aria-hidden="true" />
-                                    See it in our Maltby showroom
-                                </li>
                             </ul>
                             <PaymentBadges paymentOptions={siteSettings?.paymentOptions} />
+                            <a
+                                href={whatsAppLink(siteSettings, productEnquiryMessage(product, selections, unitPrice))}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="min-h-11 w-full rounded-full border border-[#1F8F4E] text-[#17703D] hover:bg-[#1F8F4E] hover:text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+                                Ask about this on WhatsApp
+                            </a>
                         </div>
+
+                        <ProductReviews product={product} />
+
+                        {onOpenProduct && (
+                            <SimilarProducts
+                                product={product}
+                                onSelect={(next) => {
+                                    // Show the chosen product from the top.
+                                    panelRef.current
+                                        ?.querySelectorAll('[class*="overflow-y-auto"]')
+                                        .forEach((el) => el.scrollTo({ top: 0 }));
+                                    onOpenProduct(next);
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
 

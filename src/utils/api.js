@@ -89,6 +89,7 @@ export const api = {
 
     // Reviews
     getReviews: () => request('/api/reviews', { fresh: true }),
+    getProductReviews: (productId) => request(`/api/reviews${query({ productId, limit: 50 })}`),
     submitReview: (review) => request('/api/reviews', { method: 'POST', body: review }),
     setReviewVerified: (id, verified) =>
         request('/api/reviews', { method: 'PUT', body: { id, action: 'toggle-verify', verified } }),
