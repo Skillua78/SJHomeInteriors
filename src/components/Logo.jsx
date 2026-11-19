@@ -8,7 +8,7 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
 
     return (
         <div className={`inline-flex items-center gap-2.5 sm:gap-3 select-none max-w-full ${className}`}>
-            {/* Architectural Monogram Emblem */}
+            {/* Monogram */}
             <svg
                 width="44"
                 height="44"
@@ -17,54 +17,30 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
                 xmlns="http://www.w3.org/2000/svg"
                 className={`shrink-0 ${wrap ? '' : 'w-10 h-10 sm:w-11 sm:h-11'}`}
             >
-                {/* Outer Bronze Frame */}
-                <rect
-                    x="2"
-                    y="2"
-                    width="44"
-                    height="44"
-                    rx="8"
-                    stroke="#C2683F"
-                    strokeWidth="1.75"
-                />
-                {/* Inner Architectural Arch / Roofline */}
-                <path
-                    d="M8 18L24 7L40 18V39C40 39.5523 39.5523 40 39 40H9C8.44772 40 8 39.5523 8 39V18Z"
-                    stroke="#C2683F"
-                    strokeWidth="1"
-                    strokeOpacity="0.45"
-                />
-                {/* 'S' & 'J' monogram */}
-                <text
-                    x="24"
-                    y="33"
-                    textAnchor="middle"
-                    fontFamily="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif"
-                    fontWeight="800"
-                    fontSize="19"
-                    letterSpacing="0.5"
-                >
-                    <tspan fill={strokeColor}>S</tspan>
-                    <tspan fill="#C2683F">J</tspan>
-                </text>
-                {/* Minimalist Sofa Base Line */}
-                <path
-                    d="M14 36.5H34"
-                    stroke="#C2683F"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                />
+                {/* S&J monogram: large S and J with the ampersand overlapping between them */}
+                <rect x="1" y="1" width="46" height="46" rx="9" stroke="#C2683F" strokeWidth="1.5" />
+                <g fontFamily="'Cormorant Garamond', Georgia, serif" fontWeight="600">
+                    <text x="3.5" y="36" fontSize="38" fill={strokeColor}>
+                        S
+                    </text>
+                    <text x="26.5" y="38" fontSize="38" fill={strokeColor}>
+                        J
+                    </text>
+                    <text x="24.5" y="35" fontSize="22" textAnchor="middle" fill="#C2683F">
+                        &amp;
+                    </text>
+                </g>
             </svg>
 
             {/* Brand Wordmark */}
             <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-[13.5px] min-[400px]:text-[15px] sm:text-[1.35rem] font-extrabold tracking-tight leading-[1.1] sm:leading-none ${
+                    className={`font-logo text-[15px] min-[400px]:text-base sm:text-2xl font-bold tracking-tight leading-[1.1] sm:leading-none ${
                         wrap ? '' : 'sm:whitespace-nowrap sm:truncate'
                     } ${primaryText}`}
                 >
                     {/* Two set lines on phones so the wordmark never runs under the header buttons. */}
-                    <span className={wrap ? '' : 'block sm:inline whitespace-nowrap'}>SJ HOME</span>{' '}
+                    <span className={wrap ? '' : 'block sm:inline whitespace-nowrap'}>S&amp;J HOME</span>{' '}
                     <span className={wrap ? '' : 'block sm:inline whitespace-nowrap'}>INTERIORS</span>
                 </span>
                 <span className="hidden sm:block text-[9px] uppercase tracking-[0.26em] text-bronze-deep font-semibold mt-1 whitespace-nowrap">
