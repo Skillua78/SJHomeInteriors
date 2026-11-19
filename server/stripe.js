@@ -114,7 +114,8 @@ export function createCheckoutSession(env, { order, lines, deliveryPence, assemb
         '/checkout/sessions',
         {
             mode: 'payment',
-            payment_method_types: [method === 'klarna' ? 'klarna' : 'card'],
+            // No payment_method_types: Stripe now offers the methods switched on in the Dashboard
+            // (Settings > Payment methods), e.g. card, Apple/Google Pay and Klarna.
             line_items: lineItems,
             customer_email: order.email,
             client_reference_id: order.id,
@@ -128,7 +129,7 @@ export function createCheckoutSession(env, { order, lines, deliveryPence, assemb
             success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/?checkout=cancelled&order=${encodeURIComponent(order.id)}`,
         },
-        `checkout-${order.id}`
+        `checkout-${order.id}-dpm`
     );
 }
 
