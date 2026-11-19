@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Check, Package, Edit3, Truck, Loader2, ShieldCheck, RotateCcw, Store } from 'lucide-react';
+import { X, Check, Package, Edit3, Loader2, ShieldCheck, RotateCcw, Store } from 'lucide-react';
 import { validateSafeImageUrl } from '../../utils/security';
 import { resolveColorHex } from '../../utils/colors';
 import { optionsFromVariations } from '../../utils/catalogModel';
@@ -242,26 +242,6 @@ export default function ProductModal({
                                     {stock > 0 ? `${stock} in stock` : 'Available to pre-order'}
                                 </span>
                             )}
-                        </div>
-
-                        <div className="px-4 py-3 rounded-xl bg-cream border border-stone-200 text-sm text-stone-700 flex items-start gap-2.5">
-                            <Truck className="w-4 h-4 text-bronze shrink-0 mt-0.5" aria-hidden="true" />
-                            <span>
-                                <strong className="text-ink">
-                                    {product.delivery
-                                        ? `Estimated delivery: ${product.delivery}`
-                                        : 'Home delivery or showroom collection'}
-                                </strong>
-                                <span className="block text-xs text-stone-500 mt-0.5">
-                                    Free delivery within {Number(siteSettings?.freeDeliveryMiles ?? 10)} miles of
-                                    our Maltby showroom
-                                    {Number(siteSettings?.defaultDeliveryFee ?? 50) > 0
-                                        ? `, ${formatGBP(siteSettings?.defaultDeliveryFee ?? 50)} beyond`
-                                        : ''}
-                                    . Assembly can be added at checkout
-                                    {product.assemblyFee > 0 ? ` (${formatGBP(product.assemblyFee)})` : ''}.
-                                </span>
-                            </span>
                         </div>
 
                         {loadError && (

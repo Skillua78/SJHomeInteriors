@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, Copy, Edit3, Trash2, Plus, Minus, EyeOff, Eye, Loader2, Package } from 'lucide-react';
+import { Search, Copy, Edit3, Trash2, Plus, Minus, EyeOff, Eye, Loader2, Package, Download } from 'lucide-react';
+import { buildExportFile, downloadTextFile } from './importModel';
 import { api } from '../../../utils/api';
 import { validateSafeImageUrl } from '../../../utils/security';
 import { formatGBP } from '../../../../shared/pricing.js';
@@ -62,6 +63,21 @@ export default function InventoryList({
     const [nextOffset, setNextOffset] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [exporting, setExporting] = useState(false);
+
+    const exportAll = async () => {
+        setExporting(true);
+        setError('');
+        try {
+            const { products } = await api.exportProducts();
+            const date = new Date().toISOString().slice(0, 10);
+            downloadTextFile(`sj-products-${date}.json`, buildExportFile(products));
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setExporting(false);
+        }
+    };
     const requestId = useRef(0);
 
     useEffect(() => {
@@ -114,6 +130,20 @@ export default function InventoryList({
                 <h3 className="font-serif text-xl font-bold text-ink">
                     Inventory ({items.length} of {total})
                 </h3>
+                <button
+                    type="button"
+                    onClick={exportAll}
+                    disabled={exporting}
+                    title="Download every product as a JSON file you can edit and import again"
+                    className="ml-auto px-3 py-1.5 rounded-full bg-white text-stone-700 border border-stone-300 hover:border-stone-500 text-[11px] font-bold flex items-center gap-1.5 transition disabled:opacity-60"
+                >
+                    {exporting ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                        <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                    )}
+                    Export all (JSON)
+                </button>
                 {filtered && (
                     <button
                         type="button"
@@ -215,6 +245,11 @@ export default function InventoryList({
                                         {p.isHidden && (
                                             <span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase">
                                                 Hidden
+                                            </span>
+                                        )}
+                                        {p.priceNeedsReview && (
+                                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-bold uppercase">
+                                                Price to check
                                             </span>
                                         )}
                                     </p>

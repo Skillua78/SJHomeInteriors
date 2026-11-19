@@ -16,6 +16,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
+    const [hideAll, setHideAll] = useState(false);
 
     const prompt = useMemo(
         () => buildAiPrompt({ categories: Object.keys(library.taxonomy), colours: library.colorNames }),
@@ -24,8 +25,8 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
 
     // Live preview of what the pasted JSON contains.
     const preview = useMemo(
-        () => (jsonText.trim() ? prepareImport(jsonText, library) : null),
-        [jsonText, library]
+        () => (jsonText.trim() ? prepareImport(jsonText, library, { hideAll }) : null),
+        [jsonText, library, hideAll]
     );
 
     if (!isOpen) return null;
@@ -56,7 +57,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
     };
 
     const run = async (action) => {
-        const result = prepareImport(jsonText, library);
+        const result = prepareImport(jsonText, library, { hideAll });
         if (!result.ok) {
             setError(result.error);
             return;
@@ -166,6 +167,27 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                                 {preview.products.length > 4 ? '…' : ''}
                             </p>
                             {additionsText && <p>Will also add to your library — {additionsText}.</p>}
+                            {(() => {
+                                const review = preview.products.filter((p) => p.priceNeedsReview).length;
+                                const withId = preview.products.filter((p) => p.id).length;
+                                const hidden = preview.products.filter((p) => p.isHidden).length;
+                                return (
+                                    <>
+                                        {review > 0 && (
+                                            <p className="text-amber-900">
+                                                {review} with an estimated or missing price will be imported hidden
+                                                and marked “Price to check”.
+                                            </p>
+                                        )}
+                                        {hidden > review && (
+                                            <p>{hidden - review} more will be imported hidden.</p>
+                                        )}
+                                        {withId > 0 && (
+                                            <p>{withId} {withId === 1 ? 'has' : 'have'} an id: existing products with that id are updated rather than duplicated.</p>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                     {preview && !preview.ok && !error && (
@@ -174,9 +196,21 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                         </p>
                     )}
 
+                    <label className="flex items-start gap-2.5 text-sm text-ink">
+                        <input
+                            type="checkbox"
+                            checked={hideAll}
+                            onChange={(e) => setHideAll(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-ink"
+                        />
+                        <span>
+                            Import everything hidden so I can check it before it goes on the website
+                        </span>
+                    </label>
                     <p className="text-xs text-stone-500">
-                        Products without photos show a placeholder picture until you add your own in the
-                        Photos step.
+                        Products without photos show a placeholder picture until you add your own. To edit
+                        products you already have, use <strong>Export JSON</strong> in the inventory list,
+                        change the file, and import it here.
                     </p>
                 </div>
 

@@ -25,34 +25,57 @@ export function buildAiPrompt({ categories = [], colours = [] } = {}) {
     const categoryList = categories.length ? categories.map((c) => `"${c}"`).join(', ') : '"Sofas", "Beds"';
     const colourList = colours.slice(0, 80).join(', ');
 
-    return `Convert the following raw furniture product notes into a valid JSON object (or an array of JSON objects if several products are listed) for SJ Home Interiors.
+    return `You are preparing product listings for SJ Home Interiors, an independent furniture showroom in Maltby, South Yorkshire. Turn the supplier notes below into a JSON object (or an array of objects if several products are listed).
 
-Rules:
-1. Return ONLY raw valid JSON (no markdown backticks, no commentary).
-2. Convert ALL CAPS titles into clean Title Case.
-3. Keep descriptions factual: only state what the notes say about materials, construction and features.
-4. "price" is required and must be the selling price in GBP as a number. If the notes give no price, leave the product out and say so instead of guessing.
-5. Format sizes and dimensions with BOTH cm and ft/in, e.g. "5ft King (150 × 200 cm)" or "215 cm (7ft 1in)".
-6. Category: use one of our existing categories when it fits: ${categoryList}. If none fits, use a short new category name (e.g. "Mirrors", "Rugs") - it will be created automatically. "subcategory" is optional and may also be new.
-7. "colors" lists every colour the product comes in. "finishes" lists non-colour finishes (e.g. "High Gloss", "Matt", "Brushed Oak", "Chrome Legs"). Both may contain new names.${colourList ? `\n   Colours we already use (reuse the exact spelling where one matches): ${colourList}.` : ''}
-8. For every colour or finish that is NOT in the list above, add an entry to "colorHex" with a 6-digit hex code that best represents it, so we can show a swatch.
-9. Only include "mattresses" and "liftOptions" for beds; use empty arrays [] otherwise.
-10. "priceDeltas" holds the price difference in GBP from the base price for an option (0 or omit for no difference, negative for cheaper).
-11. Leave "images" as [] unless the notes include https image links.
-12. Omit "stock", "badge" and "delivery" unless the notes state them.
+Output
+1. Return ONLY valid JSON: no markdown fences, no commentary.
+
+Naming
+2. Write a clean, specific product name in Title Case (e.g. "Bentley Dining Chair – Dark Grey Velvet"), not supplier codes or ALL CAPS.
+
+Description - take the initiative here
+3. Do not copy the supplier text. Rewrite it into a short, appealing description in British English:
+   - 2 or 3 sentences, about 40–70 words, in plain paragraph form (no bullet points, emojis or headings).
+   - Lead with what the piece is and its standout look or feel, then the most useful practical detail (comfort, storage, materials, how it suits a room).
+   - Warm and confident but not over the top: avoid "luxury", "stunning", "perfect", "ultimate" and exclamation marks.
+   - Fix spelling, grammar and repetition in the notes.
+   - Use ONLY facts found in the notes. Never invent materials, dimensions, weights, guarantees, origin (e.g. "British-made") or delivery promises.
+4. Put the practical specifics in "features": 3–6 short phrases (2–6 words each), e.g. "Quilted back with ring knocker", "Black wooden legs". Do not repeat the description word for word.
+
+Price
+5. "price" is the selling price in GBP as a number.
+   - If the notes give a price, use it and set "priceIsEstimate": false.
+   - If the notes give NO price, estimate a realistic UK retail price for an independent furniture shop and set "priceIsEstimate": true. Estimated products are imported hidden from the website until the shop confirms the price.
+   - Only set "previousPrice" if the notes give a real former / RRP price.
+
+Options and sizes
+6. Format sizes and dimensions with BOTH cm and ft/in, e.g. "5ft King (150 × 200 cm)" or "215 cm (7ft 1in)".
+7. Only include "mattresses" and "liftOptions" for beds; use empty arrays [] otherwise.
+8. "priceDeltas" holds the price difference in GBP from the base price for an option (omit for no difference, negative for cheaper).
+
+Categories and colours
+9. Category: use one of our existing categories when it fits: ${categoryList}. If none fits, use a short new category name (e.g. "Mirrors", "Rugs") - it will be created automatically. "subcategory" is optional and may also be new.
+10. "colors" lists every colour the product comes in. "finishes" lists non-colour finishes (e.g. "High Gloss", "Matt", "Brushed Oak", "Chrome Legs"). Both may contain new names.${colourList ? `\n    Colours we already use (reuse the exact spelling where one matches): ${colourList}.` : ''}
+11. For every colour or finish that is NOT in that list, add an entry to "colorHex" with a 6-digit hex code that best represents it, so we can show a swatch.
+
+Other fields
+12. Leave "images" as [] unless the notes include https image links.
+13. Omit "stock", "badge" and "delivery" unless the notes state them.
+14. If an object already has an "id" (from our own export), keep it exactly as it is - that is how we update the existing product instead of creating a copy.
 
 JSON shape:
 {
-  "name": "Kensington Wingback Gas-Lift Ottoman Bed",
+  "name": "Kensington Wingback Ottoman Bed",
   "price": 649.00,
+  "priceIsEstimate": false,
   "previousPrice": 799.00,
-  "description": "Upholstered ottoman bed with a wingback headboard and gas-lift storage...",
+  "description": "A tall wingback headboard and soft plush velvet give this ottoman bed a tailored look. Lift the base on its gas struts to reveal deep storage for bedding and suitcases, keeping the room clear.",
   "category": "Beds",
   "subcategory": "Ottoman Beds",
   "colors": ["Cream", "Grey", "Dusty Rose"],
   "finishes": ["Chrome Feet"],
   "colorHex": { "Dusty Rose": "#C9A0A0", "Chrome Feet": "#B8BCC0" },
-  "features": ["Hydraulic gas-lift storage", "Solid hardwood frame"],
+  "features": ["Gas-lift ottoman storage", "Wingback headboard", "Plush velvet upholstery"],
   "images": [],
   "variations": {
     "fabrics": ["Plush Velvet", "Naples"],
@@ -60,10 +83,8 @@ JSON shape:
     "mattresses": ["No Mattress (Frame Only)", "Orthopaedic"],
     "liftOptions": ["End Lift Ottoman", "Side Lift Ottoman"],
     "priceDeltas": {
-      "fabrics": {},
       "sizes": { "5ft King (150 × 200 cm)": 60 },
-      "mattresses": { "Orthopaedic": 129 },
-      "liftOptions": {}
+      "mattresses": { "Orthopaedic": 129 }
     },
     "structuredDimensions": {
       "default": { "length": "205 cm (6ft 9in)", "width": "148 cm (4ft 10in)", "depth": "137 cm (4ft 6in)", "custom": "" },
@@ -109,19 +130,28 @@ function cleanNames(values, max) {
 
 /**
  * Turn one raw imported object into a product the editor can load.
- * Returns { ok, product, colorHex } or { ok: false, error } - nothing is
- * invented: a product without a name or a real price is rejected, not saved at £0.
+ * Returns { ok, product, colorHex } or { ok: false, error }.
  *
- * @param known { categories: string[], colours: string[] } names already in the shop
+ * Price rules: a confirmed price is used as-is. An estimated price ("priceIsEstimate": true)
+ * or a missing price still imports, but the product is saved HIDDEN and flagged
+ * "price to check", so a guess can never appear on the website.
+ *
+ * @param known   { categories: string[], colours: string[] } names already in the shop
+ * @param options { hideAll } - import everything hidden
  */
-export function normaliseImportedProduct(raw, known = {}) {
+export function normaliseImportedProduct(raw, known = {}, options = {}) {
     const name = sanitizeText(String(raw.name ?? raw.title ?? ''), 120);
     if (!name) return { ok: false, error: 'A product is missing its "name".' };
 
-    const price = Number(raw.price);
-    if (!Number.isFinite(price) || price <= 0) {
-        return { ok: false, error: `"${name}" has no valid "price".` };
-    }
+    const rawPrice = Number(raw.price);
+    const hasPrice = Number.isFinite(rawPrice) && rawPrice > 0;
+    const price = hasPrice ? rawPrice : 0;
+    const estimated =
+        raw.priceIsEstimate === true ||
+        raw.priceConfirmed === false ||
+        raw.priceNeedsReview === true;
+    const priceNeedsReview = !hasPrice || estimated;
+    const isHidden = Boolean(options.hideAll || raw.isHidden || priceNeedsReview);
 
     const rawCategory = sanitizeText(String(raw.category ?? ''), 40);
     if (!rawCategory) return { ok: false, error: `"${name}" has no "category".` };
@@ -144,14 +174,14 @@ export function normaliseImportedProduct(raw, known = {}) {
         }
     }
 
-    const options = {};
+    const opts = {};
     const priceDeltas = {};
     for (const field of OPTION_FIELDS) {
-        options[field] = cleanNames(v[field], 80);
+        opts[field] = cleanNames(v[field], 80);
         priceDeltas[field] = {};
         const deltas = v.priceDeltas?.[field];
         if (deltas && typeof deltas === 'object') {
-            for (const option of options[field]) {
+            for (const option of opts[field]) {
                 const delta = Number(deltas[option]);
                 if (Number.isFinite(delta) && delta !== 0) priceDeltas[field][option] = delta;
             }
@@ -167,7 +197,7 @@ export function normaliseImportedProduct(raw, known = {}) {
     });
     const bySize = {};
     for (const [size, d] of Object.entries(dims?.bySize && typeof dims.bySize === 'object' ? dims.bySize : {})) {
-        if (options.sizes.includes(size)) bySize[size] = dimension(d);
+        if (opts.sizes.includes(size)) bySize[size] = dimension(d);
     }
     const structuredDimensions = {
         default: dims
@@ -181,11 +211,21 @@ export function normaliseImportedProduct(raw, known = {}) {
         bySize,
     };
 
-    const images = unique(
-        [raw.image, ...list(raw.images)]
-            .map((u) => validateSafeImageUrl(u))
-            .filter((u) => u.startsWith('https://'))
-    ).slice(0, 10);
+    // https links and this site's own photo links (from an export). Each photo keeps its colour tag.
+    const rawImages = list(raw.images).length ? list(raw.images) : [raw.image];
+    const rawPhotoColours = list(v.photoColors);
+    const images = [];
+    const photoColors = [];
+    rawImages.forEach((u, i) => {
+        const safe = validateSafeImageUrl(u);
+        if (!safe || safe.startsWith('data:') || images.includes(safe) || images.length >= 10) return;
+        images.push(safe);
+        const colour = canonical(sanitizeText(String(rawPhotoColours[i] ?? ''), 35), known.colours || []);
+        photoColors.push(colours.includes(colour) ? colour : '');
+    });
+
+    const assembly = Number(raw.assemblyFee ?? raw.assemblyFeeOverride);
+    const id = sanitizeText(String(raw.id ?? ''), 100);
 
     const stock = raw.stock === null || raw.stock === undefined || raw.stock === '' ? null : parseInt(raw.stock, 10);
 
@@ -193,9 +233,16 @@ export function normaliseImportedProduct(raw, known = {}) {
         ok: true,
         colorHex,
         product: {
+            ...(id ? { id } : {}),
             name,
             price: Math.round(price * 100) / 100,
-            previousPrice: Number.isFinite(previous) && previous > price ? previous : null,
+            priceNeedsReview,
+            isHidden,
+            assemblyFeeOverride:
+                raw.assemblyFee === null || raw.assemblyFee === undefined || !Number.isFinite(assembly) || assembly < 0
+                    ? null
+                    : assembly,
+            previousPrice: Number.isFinite(previous) && previous > price && hasPrice ? previous : null,
             description: sanitizeText(String(raw.description ?? ''), 4000),
             category,
             subcategory: sanitizeText(String(raw.subcategory ?? ''), 40),
@@ -209,7 +256,7 @@ export function normaliseImportedProduct(raw, known = {}) {
             features: (typeof raw.features === 'string' ? raw.features.split(',') : list(raw.features))
                 .map((f) => sanitizeText(String(f), 160))
                 .filter(Boolean),
-            variations: { ...options, priceDeltas, structuredDimensions },
+            variations: { ...opts, priceDeltas, structuredDimensions, photoColors },
         },
     };
 }
@@ -221,8 +268,9 @@ export function normaliseImportedProduct(raw, known = {}) {
  *   colours:    { "Dusty Rose": "#C9A0A0" | null } new colours & finishes (null = no swatch given)
  *
  * @param library { taxonomy: { category: [subcategories] }, colorNames: string[] }
+ * @param options { hideAll }
  */
-export function prepareImport(text, library = {}) {
+export function prepareImport(text, library = {}, options = {}) {
     const parsed = parseImportJson(text);
     if (!parsed.ok) return parsed;
 
@@ -234,7 +282,7 @@ export function prepareImport(text, library = {}) {
     const colours = {};
 
     for (const raw of parsed.items) {
-        const result = normaliseImportedProduct(raw, known);
+        const result = normaliseImportedProduct(raw, known, options);
         if (!result.ok) return result;
         const { product, colorHex } = result;
         products.push(product);
@@ -265,4 +313,74 @@ export function describeAdditions(additions, taxonomy = {}) {
     if (newSubs.length) parts.push(`new subcategor${newSubs.length === 1 ? 'y' : 'ies'}: ${newSubs.join(', ')}`);
     if (newColours.length) parts.push(`new colours/finishes: ${newColours.join(', ')}`);
     return parts.join(' · ');
+}
+
+/**
+ * A full product (from the API) as an import-ready object. Edit it and import it
+ * again: the "id" makes the import update this product instead of adding a copy.
+ */
+export function productToImportJson(product) {
+    const v = product.variations || {};
+    const pick = (field) => (Array.isArray(v[field]) ? v[field] : []);
+    const deltas = {};
+    for (const field of OPTION_FIELDS) {
+        const d = v.priceDeltas?.[field] || {};
+        if (Object.keys(d).length) deltas[field] = d;
+    }
+    const json = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        priceIsEstimate: Boolean(product.priceNeedsReview),
+        previousPrice: product.previousPrice ?? null,
+        isHidden: Boolean(product.isHidden),
+        category: product.category,
+        subcategory: product.subcategory || '',
+        description: product.description || '',
+        features: product.features || [],
+        colors: product.colors || [],
+        badge: product.badge || '',
+        stock: product.stock ?? null,
+        delivery: product.delivery || '',
+        isPopular: Boolean(product.isPopular),
+        isTrending: Boolean(product.isTrending),
+        assemblyFee: product.assemblyFeeOverride ?? null,
+        images: product.images || [],
+        variations: {
+            fabrics: pick('fabrics'),
+            sizes: pick('sizes'),
+            mattresses: pick('mattresses'),
+            liftOptions: pick('liftOptions'),
+            priceDeltas: deltas,
+            structuredDimensions: v.structuredDimensions || { default: {}, bySize: {} },
+            photoColors: pick('photoColors'),
+        },
+    };
+    return json;
+}
+
+/** The text of an export file for one or many products. */
+export function buildExportFile(products) {
+    return JSON.stringify(
+        {
+            note: 'SJ Home Interiors product export. Edit and import again via Admin > Products > AI / JSON Import. Keep each "id" to update that product; remove it to create a new one.',
+            exportedAt: new Date().toISOString(),
+            products: products.map(productToImportJson),
+        },
+        null,
+        2
+    );
+}
+
+/** Trigger a browser download of a text file. */
+export function downloadTextFile(filename, text) {
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

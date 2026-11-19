@@ -9,6 +9,7 @@ import { HttpError, json, readJson, cleanText, intParam } from '../../server/htt
 import { requireAdmin, isAdmin } from '../../server/auth.js';
 import { loadSettings, assemblyFeePence } from '../../server/settings.js';
 import {
+    exportProducts,
     listProducts,
     migrateLegacyProducts,
     validateProduct,
@@ -23,6 +24,15 @@ const MAX_PRODUCT_BODY = 16 * 1024 * 1024;
 
 export async function onRequestGet({ request, env }) {
     const q = new URL(request.url).searchParams;
+
+    // Admin export: every product in full, ready to edit and import again.
+    if (q.get('export') === '1') {
+        await requireAdmin(request, env);
+        await migrateLegacyProducts(env, 50);
+        const settings = await loadSettings(env);
+        const products = await exportProducts(env, assemblyFeePence(settings));
+        return json({ products }, 200, { 'Cache-Control': 'private, no-store' });
+    }
 
     await migrateLegacyProducts(env);
     const settings = await loadSettings(env);
@@ -78,6 +88,20 @@ export async function onRequestPut({ request, env }) {
 
     if (body.hiddenOnly) {
         const hidden = body.hidden ? 1 : 0;
+        if (!hidden) {
+            const row = await env.DB.prepare(
+                `SELECT price, json_extract(variations_json, '$.priceNeedsReview') AS review
+                 FROM products WHERE id = ?`
+            )
+                .bind(id)
+                .first();
+            if (row?.review || !(Number(row?.price) > 0)) {
+                throw new HttpError(
+                    400,
+                    'Check and confirm this product’s price in the editor before showing it on the website.'
+                );
+            }
+        }
         await env.DB.prepare('UPDATE products SET is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .bind(hidden, id)
             .run();

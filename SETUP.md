@@ -102,3 +102,13 @@ tests/              vitest unit tests
   cancelled orders are not counted.
 - **Deleting an order** is permanent and does not refund anything in Stripe. Setting the status to
   "Cancelled" keeps the record instead (useful for HMRC record keeping).
+
+## 8. Import and export (JSON)
+
+- **AI import**: "Copy AI prompt" asks the AI to rewrite each description (2–3 sentences, facts from
+  your notes only) and to estimate a price when the notes have none (`"priceIsEstimate": true`).
+- **Estimated or missing prices** are imported hidden and marked "Price to check". The product
+  cannot go on the website until you open it, set the real price and press "Price is correct".
+- **Export**: "Export all (JSON)" in the inventory list downloads every product; "Export JSON" in the
+  editor downloads the one you are editing. Edit the file and import it again: products keep their
+  `id`, so they are updated rather than duplicated. Remove an `id` to create a new product instead.

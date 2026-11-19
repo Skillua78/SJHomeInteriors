@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     buildAiPrompt,
+    buildExportFile,
+    productToImportJson,
     parseImportJson,
     prepareImport,
     describeAdditions,
@@ -34,6 +36,8 @@ describe('AI import', () => {
         expect(prompt).toContain('"Sofas", "Beds"');
         expect(prompt).toContain('Cream, Grey');
         expect(prompt).toMatch(/new category name/i);
+        expect(prompt).toMatch(/priceIsEstimate/);
+        expect(prompt).toMatch(/40–70 words/);
         expect(prompt).toContain('"finishes"');
     });
 
@@ -74,11 +78,64 @@ describe('AI import', () => {
         expect(result.additions.colours).toEqual({});
     });
 
-    it('refuses products without a name, price or category instead of inventing them', () => {
+    it('refuses products without a name or category', () => {
         expect(prepareImport('{"price":10,"category":"Sofas"}', library).ok).toBe(false);
-        expect(prepareImport('{"name":"X","category":"Sofas"}', library).error).toMatch(/price/);
-        expect(prepareImport('{"name":"X","price":0,"category":"Sofas"}', library).ok).toBe(false);
         expect(prepareImport('{"name":"X","price":10}', library).error).toMatch(/category/);
+    });
+
+    it('imports estimated or missing prices hidden and flagged, never live', () => {
+        const [missing] = prepareImport('{"name":"X","category":"Sofas"}', library).products;
+        expect(missing).toMatchObject({ price: 0, isHidden: true, priceNeedsReview: true });
+
+        const [guess] = prepareImport('{"name":"Y","price":250,"priceIsEstimate":true,"category":"Sofas"}', library).products;
+        expect(guess).toMatchObject({ price: 250, isHidden: true, priceNeedsReview: true });
+
+        const [real] = prepareImport('{"name":"Z","price":250,"priceIsEstimate":false,"category":"Sofas"}', library).products;
+        expect(real).toMatchObject({ price: 250, isHidden: false, priceNeedsReview: false });
+
+        const [forced] = prepareImport('{"name":"Z","price":250,"category":"Sofas"}', library, { hideAll: true }).products;
+        expect(forced.isHidden).toBe(true);
+    });
+
+    it('will not publish a product whose price still needs checking', () => {
+        const [guess] = prepareImport('{"name":"Y","price":250,"priceIsEstimate":true,"category":"Sofas"}', library).products;
+        const form = productToForm(guess);
+        expect(formToPayload(form).ok).toBe(true); // saved hidden
+        expect(formToPayload({ ...form, isHidden: false }).ok).toBe(false);
+        expect(formToPayload({ ...form, isHidden: false, priceNeedsReview: false }).ok).toBe(true);
+        expect(formToPayload({ ...form, price: '0', isHidden: false, priceNeedsReview: false }).ok).toBe(false);
+    });
+
+    it('exports products in a form that imports back to the same product', () => {
+        const existing = {
+            id: 'bentley-chair-abc',
+            name: 'Bentley Chair',
+            price: 299.99,
+            category: 'Chairs',
+            subcategory: 'Dining Chairs',
+            description: 'Quilted back dining chair.',
+            colors: ['Grey', 'Black'],
+            features: ['Ring knocker'],
+            images: ['/api/img/abcdefghijklmnop1234', 'https://example.com/b.jpg'],
+            isHidden: true,
+            assemblyFeeOverride: 30,
+            variations: { sizes: [], photoColors: ['Grey', 'Black'], priceDeltas: {} },
+        };
+        const file = buildExportFile([existing]);
+        const result = prepareImport(file, library);
+        expect(result.ok).toBe(true);
+        const [back] = result.products;
+        expect(back).toMatchObject({
+            id: 'bentley-chair-abc',
+            name: 'Bentley Chair',
+            price: 299.99,
+            isHidden: true,
+            priceNeedsReview: false,
+            assemblyFeeOverride: 30,
+            images: ['/api/img/abcdefghijklmnop1234', 'https://example.com/b.jpg'],
+        });
+        expect(back.variations.photoColors).toEqual(['Grey', 'Black']);
+        expect(productToImportJson(existing).priceIsEstimate).toBe(false);
     });
 
     it('produces something the product form can save', () => {

@@ -17,7 +17,8 @@ import { OPTION_GROUPS, toPence, fromPence, resolveAssemblyFeePence } from '../s
 const SUMMARY_COLUMNS = `id, name, price, previous_price, substr(description, 1, 240) AS description,
     category, subcategory, badge, stock, is_popular, is_trending, delivery, colors_json,
     image, image_count, fabric_count, size_count, option_count, dim_summary, delivery_fee_pence,
-    is_hidden, color_images_json`;
+    is_hidden, color_images_json,
+    json_extract(variations_json, '$.priceNeedsReview') AS price_needs_review`;
 
 // Customers only ever see products that are live and not hidden.
 const PUBLIC_FILTER = 'deleted_at IS NULL AND is_hidden = 0';
@@ -66,6 +67,8 @@ export function mapSummary(row, defaultFeePence) {
         assemblyFee: fromPence(resolveAssemblyFeePence(row.delivery_fee_pence, defaultFeePence)),
         colorImages: parseJson(row.color_images_json, {}),
         isHidden: Boolean(row.is_hidden),
+        // Set when the price was estimated (e.g. by the AI import) and still needs checking.
+        priceNeedsReview: Boolean(row.price_needs_review),
     };
 }
 
@@ -212,7 +215,33 @@ export async function getProduct(env, id, defaultFeePence, { includeHidden = fal
     ]);
     const row = productRes.results?.[0];
     if (!row) return null;
+    return buildFullProduct(row, optionRes.results || [], defaultFeePence);
+}
 
+/** Every live product (hidden ones included) in full, for the admin JSON export. */
+export async function exportProducts(env, defaultFeePence, { limit = 2000 } = {}) {
+    const [productRes, optionRes] = await env.DB.batch([
+        env.DB.prepare(
+            'SELECT * FROM products WHERE deleted_at IS NULL ORDER BY category, name LIMIT ?'
+        ).bind(limit),
+        env.DB.prepare(
+            `SELECT product_id, grp, name, price_delta_pence FROM product_options
+             WHERE product_id IN (SELECT id FROM products WHERE deleted_at IS NULL)
+             ORDER BY product_id, grp, position`
+        ),
+    ]);
+    const optionsById = new Map();
+    for (const opt of optionRes.results || []) {
+        const rows = optionsById.get(opt.product_id) || [];
+        rows.push(opt);
+        optionsById.set(opt.product_id, rows);
+    }
+    return (productRes.results || []).map((row) =>
+        buildFullProduct(row, optionsById.get(row.id) || [], defaultFeePence)
+    );
+}
+
+function buildFullProduct(row, optionRows, defaultFeePence) {
     const extras = parseJson(row.variations_json, {});
     const variations = {
         fabrics: [],
@@ -224,7 +253,7 @@ export async function getProduct(env, id, defaultFeePence, { includeHidden = fal
     };
     if (extras.assemblyText !== undefined) variations.assemblyText = extras.assemblyText;
 
-    for (const opt of optionRes.results || []) {
+    for (const opt of optionRows) {
         const group = OPTION_GROUPS.find((g) => g.key === opt.grp);
         if (!group) continue;
         variations[group.field].push(opt.name);
@@ -244,7 +273,10 @@ export async function getProduct(env, id, defaultFeePence, { includeHidden = fal
         photoColors.push(typeof rawColours[i] === 'string' ? rawColours[i] : '');
     });
     variations.photoColors = photoColors;
-    const summary = mapSummary({ ...row, description: row.description }, defaultFeePence);
+    const summary = mapSummary(
+        { ...row, description: row.description, price_needs_review: extras.priceNeedsReview },
+        defaultFeePence
+    );
 
     return {
         ...summary,
@@ -349,6 +381,18 @@ export function validateProduct(body) {
 
     const extras = { structuredDimensions };
     if (typeof v.assemblyText === 'string') extras.assemblyText = cleanText(v.assemblyText, 120);
+
+    // A guessed price must be checked before the product can go on the website.
+    const priceNeedsReview = Boolean(body.priceNeedsReview);
+    if (priceNeedsReview) extras.priceNeedsReview = true;
+    if (!body.isHidden && (priceNeedsReview || price <= 0)) {
+        throw new HttpError(
+            400,
+            price <= 0
+                ? 'Set a price before showing this product on the website (or keep it hidden).'
+                : 'This price was estimated. Confirm it before showing the product on the website (or keep it hidden).'
+        );
+    }
 
     // Which colour each photo shows, in the same order as body.images ('' = not tagged).
     const photoColorsInput = Array.isArray(v.photoColors)
@@ -543,6 +587,8 @@ export async function migrateLegacyProducts(env, maxProducts = 6) {
             name: 'x',
             price: 0,
             category: 'x',
+            // Only the options/dimensions are wanted here; skip the publish checks.
+            isHidden: true,
             variations: legacy,
             dimensions: parseJson(row.dimensions_json, []),
         });

@@ -36,6 +36,7 @@ export function emptyForm() {
         isPopular: false,
         isTrending: false,
         isHidden: false,
+        priceNeedsReview: false,
     };
 }
 
@@ -90,6 +91,7 @@ export function productToForm(product, { duplicate = false } = {}) {
         isPopular: Boolean(product.isPopular),
         isTrending: Boolean(product.isTrending),
         isHidden: Boolean(product.isHidden),
+        priceNeedsReview: Boolean(product.priceNeedsReview),
     };
 }
 
@@ -108,6 +110,16 @@ export function formToPayload(form, editingId = null) {
     const name = sanitizeText(form.name, 120);
     const price = parseFloat(form.price);
 
+    if (!form.isHidden && form.priceNeedsReview) {
+        return {
+            ok: false,
+            section: 'basics',
+            error: 'This price was estimated. Check it and press “Price is correct”, or keep the product hidden.',
+        };
+    }
+    if (!form.isHidden && !(parseFloat(form.price) > 0)) {
+        return { ok: false, section: 'basics', error: 'Set a price before showing this product on the website.' };
+    }
     if (!name || Number.isNaN(price) || price < 0) {
         return { ok: false, section: 'basics', error: 'Please enter a product title and a valid base price.' };
     }
@@ -168,6 +180,7 @@ export function formToPayload(form, editingId = null) {
         isPopular: Boolean(form.isPopular),
         isTrending: Boolean(form.isTrending),
         isHidden: Boolean(form.isHidden),
+        priceNeedsReview: Boolean(form.priceNeedsReview),
         delivery: sanitizeText(form.delivery, 60),
         colors: form.selectedColors,
         images,

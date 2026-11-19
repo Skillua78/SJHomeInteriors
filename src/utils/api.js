@@ -107,6 +107,7 @@ export const api = {
     getSalesSummary: (days) => request(`/api/orders${query({ summary: 1, days: String(days) })}`, { fresh: true }),
     deleteOrder: (id, restock) =>
         request(`/api/orders${query({ id, restock: restock ? 1 : undefined })}`, { method: 'DELETE' }),
+    exportProducts: () => request('/api/products?export=1', { fresh: true }),
     setProductHidden: (id, hidden) =>
         request('/api/products', { method: 'PUT', body: { id, hiddenOnly: true, hidden } }),
 
