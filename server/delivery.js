@@ -1,12 +1,13 @@
 /**
  * Delivery charging by distance.
  *
- * Delivery is free within a set radius of the showroom and a flat charge
- * beyond it. Distance is the straight-line distance between the showroom's
+ * Delivery is free within a set radius of the showroom, then a standard charge plus
+ * any distance-band extra (see shared/delivery.js). Distance is the straight-line distance between the showroom's
  * postcode and the customer's, using coordinates from postcodes.io (a free,
  * open UK postcode service; only the postcode itself is sent).
  */
 import { HttpError } from './http.js';
+import { chargesForDelivery, deliveryPenceForMiles } from '../shared/delivery.js';
 
 const LOOKUP = 'https://api.postcodes.io/postcodes/';
 const EARTH_RADIUS_MILES = 3958.8;
@@ -64,11 +65,8 @@ async function locate(postcode) {
  *           charged for delivery and is flagged so the shop can confirm by phone
  */
 export async function deliveryCharge(settings, postcode) {
-    const chargePence = Math.round((Number(settings.defaultDeliveryFee) || 0) * 100);
-    const freeMiles = Number(settings.freeDeliveryMiles);
-
-    // No charge configured, or no radius configured (everything is "local").
-    if (chargePence <= 0) return { pence: 0, miles: null, checked: true };
+    // Nothing is ever charged, so there is no need to measure the distance.
+    if (!chargesForDelivery(settings)) return { pence: 0, miles: null, checked: true };
 
     const [store, customer] = await Promise.all([
         locate(settings.storePostcode || 'S66 8JE'),
@@ -81,6 +79,5 @@ export async function deliveryCharge(settings, postcode) {
     if (!store || !customer) return { pence: 0, miles: null, checked: false };
 
     const miles = Math.round(milesBetween(store, customer) * 10) / 10;
-    const free = Number.isFinite(freeMiles) && miles <= freeMiles;
-    return { pence: free ? 0 : chargePence, miles, checked: true };
+    return { pence: deliveryPenceForMiles(settings, miles), miles, checked: true };
 }

@@ -5,14 +5,10 @@ import PaymentBadges from '../ui/PaymentBadges';
 /** What the delivery line should say, given what we know about the address so far. */
 export function deliveryLine(deliveryMethod, info) {
     if (deliveryMethod !== 'delivery') return { label: 'Showroom collection', value: 'Free' };
-    const { quote, postcodeReady, freeMiles, charge } = info;
+    const { quote, postcodeReady, rule } = info;
 
     if (!postcodeReady) {
-        return {
-            label: 'Home delivery',
-            value: 'Enter postcode',
-            note: `Free within ${freeMiles} miles of our Maltby showroom, ${formatGBP(charge)} beyond.`,
-        };
+        return { label: 'Home delivery', value: 'Enter postcode', note: rule };
     }
     if (quote.status === 'loading') return { label: 'Home delivery', value: 'Checking…' };
     if (quote.status === 'error') {
@@ -61,6 +57,26 @@ export default function OrderSummary({
                         <p className={`text-xs mt-0.5 ${delivery.problem ? 'text-red-700' : 'text-stone-500'}`}>
                             {delivery.note}
                         </p>
+                    )}
+                    {deliveryMethod === 'delivery' && deliveryInfo.priceList?.length > 2 && (
+                        <details className="mt-1.5 text-xs">
+                            <summary className="inline-flex min-h-8 items-center font-semibold text-bronze-deep hover:underline">
+                                See delivery prices
+                            </summary>
+                            <table className="mt-1 w-full max-w-xs">
+                                <caption className="sr-only">Delivery prices by distance from our Maltby showroom</caption>
+                                <tbody>
+                                    {deliveryInfo.priceList.map((row) => (
+                                        <tr key={row.label}>
+                                            <td className="py-0.5 text-stone-600">{row.label}</td>
+                                            <td className="py-0.5 text-right font-semibold tabular-nums text-ink">
+                                                {row.pence > 0 ? formatGBP(row.pence / 100) : 'Free'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </details>
                     )}
                 </div>
                 {assemblyAdded && (

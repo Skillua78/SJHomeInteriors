@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Save, CheckCircle2, Upload, X, Loader2 } from 'lucide-react';
+import { Save, CheckCircle2, Upload, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import { validateSafeImageUrl } from '../../../utils/security';
 import { compressImageFiles } from '../../../utils/image';
 import { inputClass, labelClass, primaryButtonClass, sectionTitleClass } from '../adminUi';
 import { DEFAULT_HOME_TEXT } from '../../../data/defaultSettings';
+import { deliveryPriceList, MAX_DELIVERY_BANDS } from '../../../../shared/delivery.js';
+import { formatGBP } from '../../../../shared/pricing.js';
 
 const cardClass = 'p-5 rounded-2xl bg-cream border border-stone-200 space-y-4';
 
@@ -124,6 +126,106 @@ function PaymentSettings({ form, set, stripeReady }) {
     );
 }
 
+/** Extra charges for longer distances, plus the price list customers will see. */
+function DeliveryBands({ form, set }) {
+    const bands = Array.isArray(form.deliveryBands) ? form.deliveryBands : [];
+    const update = (index, patch) =>
+        set({ deliveryBands: bands.map((band, i) => (i === index ? { ...band, ...patch } : band)) });
+    const remove = (index) => set({ deliveryBands: bands.filter((_, i) => i !== index) });
+    const add = () => {
+        const last = bands[bands.length - 1];
+        const lastMiles = Number(last?.overMiles) || Number(form.freeDeliveryMiles) || 20;
+        const lastExtra = Number(last?.extra) || 0;
+        set({ deliveryBands: [...bands, { overMiles: lastMiles + 20, extra: lastExtra + 15 }] });
+    };
+    const priceList = deliveryPriceList(form);
+
+    return (
+        <div className="space-y-3 pt-1">
+            <div>
+                <p className="text-sm font-semibold text-ink">Longer distances</p>
+                <p className="text-[11px] text-stone-500">
+                    Add an extra charge for deliveries further away. The furthest band a customer reaches
+                    applies, on top of the standard charge (bands do not add together).
+                </p>
+            </div>
+
+            {bands.length > 0 && (
+                <ul className="space-y-2">
+                    {bands.map((band, index) => (
+                        <li key={index} className="flex flex-wrap items-end gap-2">
+                            <div className="w-28">
+                                <label htmlFor={`st-band-miles-${index}`} className={labelClass}>
+                                    Over (miles)
+                                </label>
+                                <input
+                                    id={`st-band-miles-${index}`}
+                                    type="number"
+                                    min="0.5"
+                                    step="0.5"
+                                    value={band.overMiles ?? ''}
+                                    onChange={(e) => update(index, { overMiles: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div className="w-28">
+                                <label htmlFor={`st-band-extra-${index}`} className={labelClass}>
+                                    Add (£)
+                                </label>
+                                <input
+                                    id={`st-band-extra-${index}`}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={band.extra ?? ''}
+                                    onChange={(e) => update(index, { extra: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => remove(index)}
+                                aria-label={`Remove the band over ${band.overMiles || '?'} miles`}
+                                className="w-11 h-11 rounded-xl border border-stone-300 bg-white text-stone-500 hover:text-red-700 hover:border-red-300 flex items-center justify-center"
+                            >
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            {bands.length < MAX_DELIVERY_BANDS && (
+                <button
+                    type="button"
+                    onClick={add}
+                    className="min-h-11 px-4 rounded-xl border border-dashed border-stone-400 text-sm font-semibold text-ink hover:border-ink hover:bg-white flex items-center gap-2"
+                >
+                    <Plus className="w-4 h-4" aria-hidden="true" /> Add a distance band
+                </button>
+            )}
+
+            <div className="rounded-xl bg-white border border-stone-200 p-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">
+                    What customers pay for delivery
+                </p>
+                <table className="w-full text-sm">
+                    <tbody>
+                        {priceList.map((row) => (
+                            <tr key={row.label} className="border-t border-stone-100 first:border-t-0">
+                                <td className="py-1.5 text-stone-700">{row.label}</td>
+                                <td className="py-1.5 text-right font-semibold tabular-nums text-ink">
+                                    {row.pence > 0 ? formatGBP(row.pence / 100) : 'Free'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 function DeliverySettings({ form, set }) {
     return (
         <section className={cardClass}>
@@ -140,7 +242,7 @@ function DeliverySettings({ form, set }) {
                 />
                 <TextField
                     id="st-fee"
-                    label="Delivery charge beyond that (£)"
+                    label="Standard charge beyond that (£)"
                     type="number"
                     min="0"
                     step="0.01"
@@ -158,8 +260,9 @@ function DeliverySettings({ form, set }) {
             <p className="text-[11px] text-stone-500 -mt-2">
                 Distance is measured in a straight line from this postcode to the customer's postcode at
                 checkout. Orders inside the radius, and showroom collections, are never charged for
-                delivery. Set the charge to 0 to make all delivery free.
+                delivery. Set the charge to 0 and remove the distance bands to make all delivery free.
             </p>
+            <DeliveryBands form={form} set={set} />
             <TextField
                 id="st-assembly-fee"
                 label="Standard assembly fee (£)"

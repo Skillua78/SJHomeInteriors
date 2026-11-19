@@ -43,9 +43,7 @@ export default function CheckoutForm({
             icon: Truck,
             title: 'Home delivery',
             detail:
-                homeDelivery.value === 'Enter postcode'
-                    ? `Free within ${deliveryInfo.freeMiles} miles, ${formatGBP(deliveryInfo.charge)} beyond`
-                    : homeDelivery.value,
+                homeDelivery.value === 'Enter postcode' ? deliveryInfo.shortRule : homeDelivery.value,
         },
         { id: 'collection', icon: Store, title: 'Collect from Maltby showroom', detail: 'Free' },
     ];

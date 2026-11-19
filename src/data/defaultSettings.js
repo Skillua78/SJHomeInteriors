@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS = {
     assemblySubtitle: 'Free local delivery · assembly available',
     defaultDeliveryFee: 50,
     freeDeliveryMiles: 10,
+    deliveryBands: [],
     storePostcode: 'S66 8JE',
     assemblyFee: 50,
     customCategories: {},

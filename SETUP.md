@@ -48,8 +48,13 @@ Take a backup first: `npx wrangler d1 export <database-name> --remote --output=b
 
 All set in Admin → Settings → Delivery & assembly.
 
-- **Delivery** is free within a radius of the showroom (default 10 miles) and a flat charge beyond
-  it (default £50). Showroom collection is always free.
+- **Delivery** is free within a radius of the showroom (default 10 miles) and a standard charge
+  beyond it (default £50). Showroom collection is always free.
+- **Longer distances**: "Add a distance band" adds an extra charge over a distance, e.g. over 40
+  miles add £15, over 100 miles add £30. The furthest band reached applies on top of the standard
+  charge (they do not add together), so with free within 20 miles and £50 standard: 30 miles = £50,
+  60 miles = £65, 120 miles = £80. The table under the bands shows exactly what customers will pay,
+  and customers see the same list under "See delivery prices" at checkout.
 - Distance is the straight-line distance from the showroom postcode to the customer's postcode,
   looked up with postcodes.io (a free UK postcode service; only the postcode is sent). If that
   service is unreachable the order is not charged for delivery and shows "distance not checked"

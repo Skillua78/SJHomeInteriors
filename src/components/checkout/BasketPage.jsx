@@ -13,6 +13,7 @@ import {
     isUkPostcode,
     validateCheckoutForm,
 } from './checkoutModel';
+import { deliveryRuleText, deliveryShortText, deliveryPriceList } from '../../../shared/delivery.js';
 
 const NO_QUOTE = { status: 'idle', postcode: '', delivery: 0, miles: null, checked: true };
 
@@ -179,7 +180,9 @@ export default function BasketPage({
 
     const deliveryInfo = {
         freeMiles: Number(siteSettings?.freeDeliveryMiles ?? 10),
-        charge: Number(siteSettings?.defaultDeliveryFee ?? 50),
+        rule: deliveryRuleText(siteSettings),
+        shortRule: deliveryShortText(siteSettings),
+        priceList: deliveryPriceList(siteSettings),
         quote,
         postcodeReady,
     };

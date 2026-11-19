@@ -3,6 +3,7 @@
  */
 import { cleanText } from './http.js';
 import { planImages } from './media.js';
+import { normaliseBands } from '../shared/delivery.js';
 
 export const DEFAULT_SITE_SETTINGS = {
     phone: '07830 141250',
@@ -32,9 +33,11 @@ export const DEFAULT_SITE_SETTINGS = {
     showHomeReviews: true,
     assemblyTitle: 'Two-Person Delivery & Assembly',
     assemblySubtitle: 'Free local delivery · assembly available',
-    // Delivery: free within freeDeliveryMiles of storePostcode, otherwise defaultDeliveryFee.
+    // Delivery: free within freeDeliveryMiles of storePostcode, otherwise defaultDeliveryFee
+    // plus the extra of the furthest deliveryBands entry reached (shared/delivery.js).
     defaultDeliveryFee: 50,
     freeDeliveryMiles: 10,
+    deliveryBands: [],
     storePostcode: 'S66 8JE',
     // Assembly: optional extra the customer can add at checkout (per order).
     assemblyFee: 50,
@@ -227,6 +230,7 @@ export async function sanitizeSettings(env, body) {
         assemblySubtitle: text(body, 'assemblySubtitle', 80),
         defaultDeliveryFee: money(fee, DEFAULT_SITE_SETTINGS.defaultDeliveryFee),
         freeDeliveryMiles: money(body.freeDeliveryMiles, DEFAULT_SITE_SETTINGS.freeDeliveryMiles, 1000),
+        deliveryBands: normaliseBands(body.deliveryBands),
         storePostcode:
             cleanText(body.storePostcode, 10).toUpperCase() || DEFAULT_SITE_SETTINGS.storePostcode,
         assemblyFee: money(body.assemblyFee, DEFAULT_SITE_SETTINGS.assemblyFee),
