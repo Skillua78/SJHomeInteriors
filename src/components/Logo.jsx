@@ -4,7 +4,7 @@
 export default function Logo({ variant = 'dark', className = '', wrap = false }) {
     const isLight = variant === 'light';
     const primaryText = isLight ? 'text-white' : 'text-ink';
-    const strokeColor = isLight ? '#FAF8F5' : '#1C1B18';
+    const strokeColor = isLight ? '#F8F6F1' : '#1D2A27';
 
     return (
         <div className={`inline-flex items-center gap-2.5 sm:gap-3 select-none max-w-full ${className}`}>
@@ -24,33 +24,33 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
                     width="44"
                     height="44"
                     rx="8"
-                    stroke="#9A7B56"
+                    stroke="#C2683F"
                     strokeWidth="1.75"
                 />
                 {/* Inner Architectural Arch / Roofline */}
                 <path
                     d="M8 18L24 7L40 18V39C40 39.5523 39.5523 40 39 40H9C8.44772 40 8 39.5523 8 39V18Z"
-                    stroke="#9A7B56"
+                    stroke="#C2683F"
                     strokeWidth="1"
                     strokeOpacity="0.45"
                 />
-                {/* Intertwined Serif 'S' & 'J' Monogram */}
+                {/* 'S' & 'J' monogram */}
                 <text
                     x="24"
                     y="33"
                     textAnchor="middle"
-                    fontFamily="'Fraunces', Georgia, serif"
-                    fontWeight="600"
+                    fontFamily="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif"
+                    fontWeight="800"
                     fontSize="19"
-                    letterSpacing="1"
+                    letterSpacing="0.5"
                 >
                     <tspan fill={strokeColor}>S</tspan>
-                    <tspan fill="#9A7B56">J</tspan>
+                    <tspan fill="#C2683F">J</tspan>
                 </text>
                 {/* Minimalist Sofa Base Line */}
                 <path
                     d="M14 36.5H34"
-                    stroke="#9A7B56"
+                    stroke="#C2683F"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                 />
@@ -59,7 +59,7 @@ export default function Logo({ variant = 'dark', className = '', wrap = false })
             {/* Brand Wordmark */}
             <div className="flex flex-col text-left min-w-0">
                 <span
-                    className={`font-serif text-[13.5px] min-[400px]:text-[15px] sm:text-2xl font-semibold tracking-tight leading-[1.1] sm:leading-none ${
+                    className={`font-serif text-[13.5px] min-[400px]:text-[15px] sm:text-[1.35rem] font-extrabold tracking-tight leading-[1.1] sm:leading-none ${
                         wrap ? '' : 'sm:whitespace-nowrap sm:truncate'
                     } ${primaryText}`}
                 >

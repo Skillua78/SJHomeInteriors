@@ -4,25 +4,30 @@
  * Design tokens. Use these names in class lists (bg-ink, text-bronze-deep, ring-bronze...)
  * rather than raw hex values, so the palette can be tuned in one place.
  *
+ * Palette: deep green-charcoal ("ink") with a warm clay accent. The accent tokens keep
+ * their original names (bronze / gold) so class lists across the site did not change.
+ *
  * Contrast notes (WCAG AA needs 4.5:1 for small text):
- *   bronze       #9A7B56  accents, icons, borders, large headings  (3.7:1 on cream - not for small text)
- *   bronze-deep  #7D6242  small bronze text on light backgrounds   (5.3:1 on cream)
- *   bronze-strong#866947  filled buttons with white text           (5.1:1 with white)
- *   gold         #D4B895  accents on charcoal backgrounds           (9.6:1 on ink)
+ *   ink          #1D2A27  text and dark surfaces                   (13.8:1 on cream)
+ *   bronze       #C2683F  clay accents, icons, borders             (3.6:1 on cream - not for small text)
+ *   bronze-deep  #9A4A26  small accent text on light backgrounds   (5.8:1 on cream)
+ *   bronze-strong#A3502B  filled buttons with white text           (5.6:1 with white)
+ *   gold         #F0C48E  warm accent on dark backgrounds          (9.2:1 on ink)
  */
 @theme {
-    --color-ink: #1c1b18;
-    --color-ink-soft: #3a3732;
-    --color-cream: #faf8f5;
-    --color-linen: #f4f1ea;
-    --color-sand: #f0ece1;
-    --color-bronze: #9a7b56;
-    --color-bronze-deep: #7d6242;
-    --color-bronze-strong: #866947;
-    --color-gold: #d4b895;
+    --color-ink: #1d2a27;
+    --color-ink-soft: #33433f;
+    --color-cream: #f8f6f1;
+    --color-linen: #f2efe8;
+    --color-sand: #ece6da;
+    --color-bronze: #c2683f;
+    --color-bronze-deep: #9a4a26;
+    --color-bronze-strong: #a3502b;
+    --color-gold: #f0c48e;
 
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-serif: 'Fraunces', ui-serif, Georgia, serif;
+    /* One simple typeface everywhere. "font-serif" is kept as the heading class name. */
+    --font-serif: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
     --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -44,9 +49,7 @@
     h3,
     .font-serif {
         font-family: var(--font-serif);
-        letter-spacing: -0.015em;
-        /* Size-aware letter shapes, and level numbers so "3+2" sits on the line. */
-        font-optical-sizing: auto;
+        letter-spacing: -0.02em;
         font-variant-numeric: lining-nums;
     }
 

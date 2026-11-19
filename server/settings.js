@@ -11,11 +11,11 @@ export const DEFAULT_SITE_SETTINGS = {
     openingHours: 'Mon–Sat: 10:00 AM – 5:00 PM | Sun: 11:00 AM – 4:00 PM',
     facebookUrl: '',
     whatsappNumber: '',
-    announcementText: 'Unbeatable Showroom Value • High-Quality Furniture at Affordable Direct Prices',
-    heroBadge: 'Maltby Showroom • Direct Factory Prices',
-    heroTitle: 'Hand-Built Sofas, Beds & Dining Sets. Zero High-Street Markups.',
+    announcementText: 'Sofas, beds, dining and more · Visit our Maltby showroom 7 days a week',
+    heroBadge: 'Furniture showroom in Maltby · Open 7 days',
+    heroTitle: 'Great furniture for every room, at prices that make sense',
     heroSubtitle:
-        'Skip the inflated retail showroom prices. We supply heavy-duty, British-built sofas, gas-lift beds, and luxury dining furniture straight from our Maltby warehouse. View everything in person or order online today.',
+        'Sofas, beds, mattresses, dining sets and wardrobes, all under one roof. We choose pieces that are well made and comfortable to live with, and keep the prices fair. Pop in and try them, or order online for local delivery.',
     heroImages: [
         '/showroom/20261114_145410.jpg',
         '/showroom/20261114_164355.jpg',

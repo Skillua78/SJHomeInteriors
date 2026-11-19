@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowRight, MapPin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowRight, MapPin, ChevronLeft, ChevronRight, Sofa, Store, BadgeCheck } from 'lucide-react';
 import { validateSafeImageUrl } from '../utils/security';
+import { DEFAULT_HOME_TEXT } from '../data/defaultSettings';
 
 const FALLBACK_SLIDE =
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=85';
 const SLIDE_MS = 5500;
 
+const HIGHLIGHTS = [
+    { icon: Sofa, text: 'Sofas, beds, dining & more' },
+    { icon: BadgeCheck, text: 'Quality you can see and feel' },
+    { icon: Store, text: 'Try before you buy in Maltby' },
+];
+
+/**
+ * Full-width showroom slideshow with the headline over it. Each photo fades in and
+ * slowly pans (animate-pan-left / animate-pan-right in index.css).
+ */
 export default function Hero({ onNavigate, siteSettings, ready = true }) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [paused, setPaused] = useState(false);
@@ -50,144 +61,135 @@ export default function Hero({ onNavigate, siteSettings, ready = true }) {
         if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
     };
 
-    const badgeText = siteSettings?.heroBadge || 'Maltby Showroom • Direct Factory Prices';
-    const titleText = siteSettings?.heroTitle || 'Hand-Built Sofas, Beds & Dining Sets. Zero High-Street Markups.';
-    const subtitleText =
-        siteSettings?.heroSubtitle ||
-        'Skip the inflated retail showroom prices. We supply heavy-duty, British-built sofas, gas-lift beds, and luxury dining furniture straight from our Maltby warehouse. View everything in person or order online today.';
+    const badgeText = siteSettings?.heroBadge || DEFAULT_HOME_TEXT.heroBadge;
+    const titleText = siteSettings?.heroTitle || DEFAULT_HOME_TEXT.heroTitle;
+    const subtitleText = siteSettings?.heroSubtitle || DEFAULT_HOME_TEXT.heroSubtitle;
 
     return (
-        <section className="relative overflow-hidden bg-ink text-white">
-            {/* Soft warm glow behind the headline */}
-            <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -top-40 -left-40 w-[36rem] h-[36rem] rounded-full bg-bronze/20 blur-3xl"
-            />
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 lg:py-20">
+        <section
+            className="relative isolate overflow-hidden bg-ink text-white flex flex-col sm:flex-row sm:min-h-[580px] lg:min-h-[640px]"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+        >
+            {/* Slideshow: a photo above the text on phones, behind the text on larger screens */}
+            <div className="relative h-56 min-[400px]:h-64 min-[480px]:h-80 -mb-px sm:mb-0 sm:absolute sm:inset-0 sm:h-auto -z-10 select-none overflow-hidden" aria-roledescription="carousel" aria-label="Showroom photos">
+                {slides.map((imgUrl, idx) => {
+                    const isActive = idx === active;
+                    const panClass = idx % 2 === 0 ? 'animate-pan-right' : 'animate-pan-left';
+                    if (!loaded.has(idx)) return null;
+                    return (
+                        <img
+                            key={imgUrl + idx}
+                            src={imgUrl}
+                            alt={isActive ? `SJ Home Interiors showroom, photo ${idx + 1} of ${count}` : ''}
+                            aria-hidden={!isActive}
+                            decoding="async"
+                            fetchPriority={idx === 0 ? 'high' : 'low'}
+                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                                isActive ? `opacity-100 ${panClass}` : 'opacity-0'
+                            }`}
+                        />
+                    );
+                })}
+                {/* Phones: a soft fade into the text below. Tablets: dark from the bottom. Desktop: dark from the left. */}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/0 to-ink/0 sm:via-ink/80 sm:to-ink/5 lg:bg-gradient-to-r lg:from-ink/95 lg:via-ink/65 lg:to-ink/0" />
+            </div>
+
+            <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 pb-10 sm:pt-40 lg:py-24 flex items-end lg:items-center">
                 <div
                     aria-busy={!ready}
-                    className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center transition-opacity duration-300 ${
+                    className={`max-w-xl space-y-4 sm:space-y-6 transition-opacity duration-300 ${
                         ready ? 'opacity-100' : 'opacity-0'
                     }`}
                 >
-                    <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-left">
-                        <p className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-semibold tracking-wide">
-                            <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                            <span>{badgeText}</span>
-                        </p>
+                    <p className="inline-flex items-center gap-2 text-gold text-xs sm:text-sm font-semibold tracking-wide">
+                        <span className="w-6 h-px bg-gold" aria-hidden="true" />
+                        {badgeText}
+                    </p>
 
-                        <h1 className="font-serif text-[2.5rem] sm:text-5xl lg:text-[4rem] font-semibold leading-[1.05] text-white text-balance">
-                            {titleText}
-                        </h1>
+                    <h1 className="font-serif text-[2rem] sm:text-5xl lg:text-[3.5rem] font-extrabold leading-[1.05] tracking-tight text-white text-balance">
+                        {titleText}
+                    </h1>
 
-                        <p className="text-base sm:text-lg text-stone-300 leading-relaxed max-w-xl">
-                            {subtitleText}
-                        </p>
+                    <p className="text-[15px] sm:text-lg text-white/85 leading-relaxed">{subtitleText}</p>
 
-                        <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap gap-3 pt-1">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-                                }
-                                className="press group/cta min-h-14 px-8 rounded-full bg-gold hover:bg-white text-ink text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-black/30"
-                            >
-                                Explore collection
-                                <ArrowRight
-                                    className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5"
-                                    aria-hidden="true"
-                                />
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => onNavigate('contact')}
-                                className="press min-h-14 px-7 rounded-full bg-white/5 hover:bg-white/15 border border-white/25 text-white text-sm font-semibold uppercase tracking-wider flex items-center justify-center gap-2"
-                            >
-                                <MapPin className="w-4 h-4 text-gold" aria-hidden="true" /> Visit showroom
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-6">
-                        <div
-                            className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 aspect-[4/3] sm:aspect-[16/11] bg-ink-soft select-none"
-                            onMouseEnter={() => setPaused(true)}
-                            onMouseLeave={() => setPaused(false)}
-                            onTouchStart={onTouchStart}
-                            onTouchEnd={onTouchEnd}
-                            aria-roledescription="carousel"
-                            aria-label="Showroom photos"
+                    <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap gap-3 pt-1">
+                        <button
+                            type="button"
+                            onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="press group/cta min-h-14 px-8 rounded-xl bg-gold hover:bg-white text-ink text-base font-bold flex items-center justify-center gap-2 shadow-lg shadow-black/25"
                         >
-                            {slides.map((imgUrl, idx) => {
-                                const isActive = idx === active;
-                                const panClass = idx % 2 === 0 ? 'animate-pan-right' : 'animate-pan-left';
-                                if (!loaded.has(idx)) return null;
-                                return (
-                                    <img
-                                        key={imgUrl + idx}
-                                        src={imgUrl}
-                                        alt={isActive ? `SJ Home Interiors showroom, photo ${idx + 1} of ${count}` : ''}
-                                        aria-hidden={!isActive}
-                                        decoding="async"
-                                        fetchPriority={idx === 0 ? 'high' : 'low'}
-                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                                            isActive ? `opacity-100 z-10 ${panClass}` : 'opacity-0 z-0'
-                                        }`}
-                                    />
-                                );
-                            })}
-
-                            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
-
-                            {count > 1 && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => go(-1)}
-                                        aria-label="Previous photo"
-                                        className="press absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 backdrop-blur-sm text-white flex items-center justify-center z-20"
-                                    >
-                                        <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => go(1)}
-                                        aria-label="Next photo"
-                                        className="press absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 backdrop-blur-sm text-white flex items-center justify-center z-20"
-                                    >
-                                        <ChevronRight className="w-5 h-5" aria-hidden="true" />
-                                    </button>
-
-                                    {/* Phones: a simple counter. Larger screens: clickable dots. */}
-                                    <span className="sm:hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-black/55 text-xs font-semibold tabular-nums">
-                                        {active + 1} / {count}
-                                    </span>
-                                    <div className="hidden sm:flex absolute bottom-2 left-1/2 -translate-x-1/2 items-center z-20 px-1 rounded-full bg-black/40 backdrop-blur-xs">
-                                        {slides.map((_, idx) => (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => setCurrentSlide(idx)}
-                                                aria-label={`Show photo ${idx + 1}`}
-                                                aria-current={idx === active}
-                                                className="h-9 w-7 flex items-center justify-center"
-                                            >
-                                                <span
-                                                    aria-hidden="true"
-                                                    className={`h-2 rounded-full transition-all duration-300 ${
-                                                        idx === active ? 'w-5 bg-gold' : 'w-2 bg-white/55'
-                                                    }`}
-                                                />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                            Shop the range
+                            <ArrowRight
+                                className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5"
+                                aria-hidden="true"
+                            />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onNavigate('contact')}
+                            className="press min-h-14 px-7 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white text-base font-semibold flex items-center justify-center gap-2"
+                        >
+                            <MapPin className="w-4 h-4 text-gold" aria-hidden="true" /> Visit the showroom
+                        </button>
                     </div>
+
+                    <ul className="hidden sm:flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-white/85">
+                        {HIGHLIGHTS.map(({ icon: Icon, text }) => (
+                            <li key={text} className="flex items-center gap-2">
+                                <Icon className="w-4 h-4 text-gold shrink-0" aria-hidden="true" />
+                                {text}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
+
+            {count > 1 && (
+                <div className="absolute z-10 top-4 right-4 sm:top-auto sm:right-auto sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => go(-1)}
+                        aria-label="Previous photo"
+                        className="press w-11 h-11 rounded-full bg-black/35 hover:bg-black/60 backdrop-blur-sm text-white flex items-center justify-center"
+                    >
+                        <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                    {/* Phones: a counter. Larger screens: a dot for each photo. */}
+                    <span className="sm:hidden px-2.5 py-1 rounded-full bg-black/45 text-xs font-semibold tabular-nums">
+                        {active + 1} / {count}
+                    </span>
+                    <div className="hidden sm:flex items-center px-1 rounded-full bg-black/35 backdrop-blur-sm">
+                        {slides.map((_, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setCurrentSlide(idx)}
+                                aria-label={`Show photo ${idx + 1}`}
+                                aria-current={idx === active}
+                                className="h-11 w-6 flex items-center justify-center"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                                        idx === active ? 'w-5 bg-gold' : 'w-1.5 bg-white/60'
+                                    }`}
+                                />
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => go(1)}
+                        aria-label="Next photo"
+                        className="press w-11 h-11 rounded-full bg-black/35 hover:bg-black/60 backdrop-blur-sm text-white flex items-center justify-center"
+                    >
+                        <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                </div>
+            )}
         </section>
     );
 }

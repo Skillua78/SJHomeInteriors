@@ -24,7 +24,7 @@ export function trustItems(siteSettings) {
             sub: miles > 0 ? `Free within ${miles} miles of Maltby` : 'Delivered by our own team',
         },
         { icon: CreditCard, title: 'Flexible ways to pay', sub: paymentSummary(siteSettings?.paymentOptions) },
-        { icon: PoundSterling, title: 'Direct-to-customer prices', sub: 'No high-street markups' },
+        { icon: PoundSterling, title: 'Prices that make sense', sub: 'Quality pieces at affordable prices' },
     ];
 }
 
