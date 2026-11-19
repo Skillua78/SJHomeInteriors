@@ -306,6 +306,9 @@ export default function ProductEditor({
                         // eslint-disable-next-line no-await-in-loop
                         const existing = await findExisting(product.id);
                         const converted = formToPayload(productToForm(product), existing ? product.id : null);
+                        // New products keep the file's id (when free), so importing the same file
+                        // again after a failure updates them instead of adding duplicates.
+                        if (converted.ok && !existing && product.id) converted.payload.id = product.id;
                         const done = created + updated;
                         if (!converted.ok) {
                             throw new Error(
@@ -317,7 +320,11 @@ export default function ProductEditor({
                             await onSave(converted.payload, existing);
                         } catch (err) {
                             throw new Error(
-                                `Imported ${done} of ${products.length}. Stopped at “${product.name}”: ${err.message}`
+                                `Imported ${done} of ${products.length}. Stopped at “${product.name}”: ${err.message}${
+                                    products.some((p) => p.id)
+                                        ? ' Fix the problem and import the same file again: products already added will be updated, not duplicated.'
+                                        : ''
+                                }`
                             );
                         }
                         if (existing) updated += 1;

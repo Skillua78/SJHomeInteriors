@@ -59,6 +59,22 @@ export async function onRequestGet({ request, env }) {
     });
 }
 
+const IMPORT_ID = /^[a-z0-9][a-z0-9-]{2,99}$/;
+
+/**
+ * A new product keeps the id from an import file when it is a plain slug that has never
+ * been used (deleted products included), so running the same import again updates the
+ * products it already added instead of creating copies. Otherwise a fresh id is made.
+ */
+async function newProductId(env, requested, name) {
+    const wanted = typeof requested === 'string' ? requested.trim().toLowerCase() : '';
+    if (IMPORT_ID.test(wanted)) {
+        const taken = await env.DB.prepare('SELECT 1 FROM products WHERE id = ?').bind(wanted).first();
+        if (!taken) return wanted;
+    }
+    return slugId(name);
+}
+
 export async function onRequestPost({ request, env }) {
     await requireAdmin(request, env);
     const url = new URL(request.url);
@@ -69,8 +85,9 @@ export async function onRequestPost({ request, env }) {
         return json({ success: true, id });
     }
 
-    const product = validateProduct(await readJson(request, MAX_PRODUCT_BODY));
-    const id = slugId(product.name);
+    const body = await readJson(request, MAX_PRODUCT_BODY);
+    const product = validateProduct(body);
+    const id = await newProductId(env, body.id, product.name);
     await saveProduct(env, id, product, { create: true });
     return json({ success: true, id }, 201);
 }

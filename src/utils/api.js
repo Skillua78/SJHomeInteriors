@@ -15,6 +15,32 @@ export class ApiError extends Error {
     }
 }
 
+const CLOUDFLARE_ERRORS = {
+    1015: 'too many requests in a short time (Cloudflare rate limit)',
+    1020: 'a Cloudflare firewall rule blocked the request',
+    1101: 'the server code crashed while handling it',
+    1102: 'the server ran out of processing time (Cloudflare plan limit)',
+};
+
+/**
+ * Plain-English reason for an error page from Cloudflare instead of a JSON answer,
+ * e.g. "error code: 1102" or an HTML "Error 1020 ... Access denied" page.
+ */
+export function describeNonJsonError(status, text = '') {
+    const code = Number((/error(?:\s+code)?[:\s]+(1\d{3})\b/i.exec(text) || [])[1]) || null;
+    let reason = code && CLOUDFLARE_ERRORS[code];
+    if (!reason) {
+        if (status === 413) reason = 'the request was too large';
+        else if (status === 403 || status === 429 || /cf-challenge|challenge-platform|Just a moment/i.test(text))
+            reason = 'Cloudflare security blocked or challenged the request';
+        else if (status === 401) reason = 'you are not signed in';
+        else if (status >= 500) reason = 'Cloudflare could not get an answer from the shop server';
+        else reason = 'the server sent back an unexpected page';
+    }
+    const ref = code ? `HTTP ${status}, Cloudflare error ${code}` : `HTTP ${status}`;
+    return `The server did not answer properly: ${reason} (${ref}).`;
+}
+
 /** True when the API itself is unreachable (e.g. `vite dev` without Functions). */
 export function isApiUnavailable(err) {
     return err instanceof ApiError && err.status === 0;
@@ -37,7 +63,10 @@ async function request(path, { method = 'GET', body, fresh = false } = {}) {
     const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
     if (!isJson) {
         // A static host answers /api/* with the SPA shell; treat that as "no API".
-        throw new ApiError('The shop API is not available.', res.ok ? 0 : res.status);
+        if (res.ok) throw new ApiError('The shop API is not available.', 0);
+        // Otherwise Cloudflare answered with its own error page before our code could reply.
+        const text = await res.text().catch(() => '');
+        throw new ApiError(describeNonJsonError(res.status, text), res.status, { cloudflare: true });
     }
 
     const data = await res.json().catch(() => ({}));

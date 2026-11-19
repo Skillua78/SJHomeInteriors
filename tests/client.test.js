@@ -207,3 +207,18 @@ describe('hidden products and colour photos in the product form', () => {
         expect(items.map((p) => p.id)).toEqual(['x']);
     });
 });
+
+describe('Cloudflare error pages', () => {
+    it('turns an error page into a plain reason with its code', async () => {
+        const { describeNonJsonError } = await import('../src/utils/api.js');
+        expect(describeNonJsonError(503, 'error code: 1102')).toBe(
+            'The server did not answer properly: the server ran out of processing time (Cloudflare plan limit) (HTTP 503, Cloudflare error 1102).'
+        );
+        expect(describeNonJsonError(403, '<title>Attention Required!</title> Error 1020 Access denied')).toMatch(
+            /firewall rule blocked the request \(HTTP 403, Cloudflare error 1020\)/
+        );
+        expect(describeNonJsonError(403, '<html>Just a moment...</html>')).toMatch(/security blocked or challenged/);
+        expect(describeNonJsonError(413, '')).toMatch(/too large \(HTTP 413\)/);
+        expect(describeNonJsonError(502, '<html>Bad gateway</html>')).toMatch(/could not get an answer from the shop server \(HTTP 502\)/);
+    });
+});
