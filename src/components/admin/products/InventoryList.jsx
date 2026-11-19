@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, Copy, Edit3, Trash2, Plus, Minus, EyeOff, Eye, Loader2, Package, Download } from 'lucide-react';
-import { buildExportFile, downloadTextFile } from './importModel';
+import { buildExportFile, buildInventoryCsv, downloadTextFile } from './importModel';
 import { api } from '../../../utils/api';
 import { validateSafeImageUrl } from '../../../utils/security';
 import { formatGBP } from '../../../../shared/pricing.js';
@@ -65,13 +65,17 @@ export default function InventoryList({
     const [error, setError] = useState('');
     const [exporting, setExporting] = useState(false);
 
-    const exportAll = async () => {
-        setExporting(true);
+    const exportAll = async (format = 'json') => {
+        setExporting(format);
         setError('');
         try {
             const { products } = await api.exportProducts();
             const date = new Date().toISOString().slice(0, 10);
-            downloadTextFile(`sj-products-${date}.json`, buildExportFile(products));
+            if (format === 'csv') {
+                downloadTextFile(`sj-inventory-${date}.csv`, buildInventoryCsv(products), 'text/csv;charset=utf-8');
+            } else {
+                downloadTextFile(`sj-products-${date}.json`, buildExportFile(products));
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -130,20 +134,36 @@ export default function InventoryList({
                 <h3 className="font-serif text-xl font-bold text-ink">
                     Inventory ({items.length} of {total})
                 </h3>
-                <button
-                    type="button"
-                    onClick={exportAll}
-                    disabled={exporting}
-                    title="Download every product as a JSON file you can edit and import again"
-                    className="ml-auto px-3 py-1.5 rounded-full bg-white text-stone-700 border border-stone-300 hover:border-stone-500 text-[11px] font-bold flex items-center gap-1.5 transition disabled:opacity-60"
-                >
-                    {exporting ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                        <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                    )}
-                    Export all (JSON)
-                </button>
+                <div className="ml-auto flex flex-wrap justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={() => exportAll('csv')}
+                        disabled={Boolean(exporting)}
+                        title="Download the whole inventory, hidden products included, as a spreadsheet"
+                        className="px-3 py-1.5 rounded-full bg-white text-stone-700 border border-stone-300 hover:border-stone-500 text-[11px] font-bold flex items-center gap-1.5 transition disabled:opacity-60"
+                    >
+                        {exporting === 'csv' ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                        ) : (
+                            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                        Export spreadsheet (CSV)
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => exportAll('json')}
+                        disabled={Boolean(exporting)}
+                        title="Download every product as a JSON file you can edit and import again"
+                        className="px-3 py-1.5 rounded-full bg-white text-stone-700 border border-stone-300 hover:border-stone-500 text-[11px] font-bold flex items-center gap-1.5 transition disabled:opacity-60"
+                    >
+                        {exporting === 'json' ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                        ) : (
+                            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                        Export all (JSON)
+                    </button>
+                </div>
                 {filtered && (
                     <button
                         type="button"

@@ -284,6 +284,12 @@ function HomepageSettings({ form, set }) {
                     Restore default text
                 </button>
             </div>
+            <Toggle
+                label="Show customer reviews on the home page"
+                checked={form.showHomeReviews !== false}
+                onChange={(v) => set({ showHomeReviews: v })}
+                hint="When off, customers can still write a review from any product, or with the “Write a review” button at the bottom of the page. New reviews still wait for you in Reviews."
+            />
             <TextField id="st-ann" label="Announcement bar" maxLength={200} value={form.announcementText} onChange={(v) => set({ announcementText: v })} />
             <TextField id="st-badge" label="Hero badge" maxLength={80} value={form.heroBadge} onChange={(v) => set({ heroBadge: v })} />
             <TextField id="st-title" label="Hero headline" maxLength={140} value={form.heroTitle} onChange={(v) => set({ heroTitle: v })} />

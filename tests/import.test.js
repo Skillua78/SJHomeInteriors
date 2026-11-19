@@ -190,3 +190,36 @@ describe('delivery by distance', () => {
         });
     });
 });
+
+describe('inventory spreadsheet export', () => {
+    it('writes one row per product, flags hidden items and blocks spreadsheet formulas', async () => {
+        const { buildInventoryCsv } = await import('../src/components/admin/products/importModel.js');
+        const csv = buildInventoryCsv([
+            {
+                id: 'venice',
+                name: 'Venice "Grand" Sofa',
+                category: 'Sofas',
+                subcategory: 'Corner',
+                price: 899,
+                previousPrice: 999,
+                stock: 3,
+                isHidden: false,
+                colors: ['Grey', 'Navy'],
+                variations: { fabrics: ['Plush'], sizes: ['3 Seater'], structuredDimensions: { default: { length: '220cm' } } },
+                assemblyFee: 50,
+                images: ['a', 'b'],
+                description: 'Soft, deep seats',
+            },
+            { id: 'bad', name: '=HYPERLINK("http://x")', category: 'Beds', price: 10, isHidden: true, priceNeedsReview: true },
+        ]);
+        expect(csv.charCodeAt(0)).toBe(0xfeff);
+        const lines = csv.slice(1).trim().split('\r\n');
+        expect(lines).toHaveLength(3);
+        expect(lines[0]).toMatch(/^ID,Name,Category/);
+        expect(lines[1]).toBe(
+            'venice,"Venice ""Grand"" Sofa",Sofas,Corner,899.00,999.00,3,Yes,,"Grey, Navy",Plush,3 Seater,,50.00,2,L 220cm,,"Soft, deep seats"'
+        );
+        expect(lines[2]).toContain(`"'=HYPERLINK(""http://x"")"`);
+        expect(lines[2]).toContain('Not tracked,Hidden,Yes');
+    });
+});

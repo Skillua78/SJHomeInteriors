@@ -372,9 +372,76 @@ export function buildExportFile(products) {
     );
 }
 
+/**
+ * One spreadsheet cell. Quotes when needed, and stops a cell that starts with = + - @
+ * from being run as a formula when the file is opened in Excel (CSV injection).
+ */
+function csvCell(value) {
+    let text = value === null || value === undefined ? '' : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+const BOM = String.fromCharCode(0xfeff);
+
+const money = (n) => (Number.isFinite(Number(n)) && n !== null && n !== '' ? Number(n).toFixed(2) : '');
+
+/** The whole inventory as a CSV spreadsheet (opens in Excel, Numbers or Google Sheets). */
+export function buildInventoryCsv(products) {
+    const header = [
+        'ID',
+        'Name',
+        'Category',
+        'Subcategory',
+        'Price (GBP)',
+        'Was price (GBP)',
+        'Stock',
+        'On website',
+        'Price to check',
+        'Colours',
+        'Fabrics',
+        'Sizes',
+        'Mattresses',
+        'Assembly fee (GBP)',
+        'Photos',
+        'Dimensions',
+        'Features',
+        'Description',
+    ];
+    const rows = products.map((p) => {
+        const v = p.variations || {};
+        const d = v.structuredDimensions?.default || {};
+        const dims = [d.length && `L ${d.length}`, d.width && `W ${d.width}`, d.depth && `D/H ${d.depth}`, d.custom]
+            .filter(Boolean)
+            .join(' · ') || (p.dimensions || []).join(' · ');
+        return [
+            p.id,
+            p.name,
+            p.category,
+            p.subcategory,
+            money(p.price),
+            p.previousPrice > p.price ? money(p.previousPrice) : '',
+            p.stock === null || p.stock === undefined ? 'Not tracked' : p.stock,
+            p.isHidden ? 'Hidden' : 'Yes',
+            p.priceNeedsReview ? 'Yes' : '',
+            (p.colors || []).join(', '),
+            (v.fabrics || []).join(', '),
+            (v.sizes || []).join(', '),
+            (v.mattresses || []).join(', '),
+            money(p.assemblyFee),
+            (p.images || []).length || p.imageCount || 0,
+            dims,
+            (p.features || []).join('; '),
+            p.description,
+        ];
+    });
+    // The BOM makes Excel read the file as UTF-8 (accents, "·").
+    return BOM + [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
 /** Trigger a browser download of a text file. */
-export function downloadTextFile(filename, text) {
-    const blob = new Blob([text], { type: 'application/json' });
+export function downloadTextFile(filename, text, type = 'application/json') {
+    const blob = new Blob([text], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

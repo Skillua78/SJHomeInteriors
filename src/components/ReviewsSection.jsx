@@ -11,8 +11,12 @@ export default function ReviewsSection({
     products = [],
     currentUser,
     onOpenAdmin,
+    variant = 'full',
+    onClose,
 }) {
-    const [showForm, setShowForm] = useState(false);
+    // "form": just the review form, used below the footer when the reviews list is switched off.
+    const formOnly = variant === 'form';
+    const [showForm, setShowForm] = useState(formOnly);
     const [lightboxImg, setLightboxImg] = useState(null);
     const [author, setAuthor] = useState('');
     const [location, setLocation] = useState(''); // Default empty (no auto-filled Rotherham)
@@ -86,6 +90,205 @@ export default function ReviewsSection({
         setThanks(true);
     };
 
+    const thanksNote = thanks && (
+        <div
+            role="status"
+            className="mb-8 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-900 flex items-center gap-2"
+        >
+            <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+            Thank you! Your review has been sent to our team and will appear once it has been
+            checked.
+        </div>
+    );
+
+    const reviewForm = () => (
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-lg mb-10 space-y-5"
+            noValidate
+        >
+            <div className="flex items-start justify-between gap-3">
+                <h3 className="font-serif text-2xl font-bold">Share Your Experience</h3>
+                {formOnly && onClose && (
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close review form"
+                        className="-mr-2 -mt-2 w-11 h-11 rounded-full text-stone-500 hover:text-ink hover:bg-stone-100 flex items-center justify-center"
+                    >
+                        <X className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                )}
+            </div>
+
+            {errorMsg && (
+                <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label htmlFor="rev-author" className="block text-xs font-semibold text-stone-700 mb-1">
+                        Display Name *
+                    </label>
+                    <input
+                        id="rev-author"
+                        required
+                        maxLength={60}
+                        type="text"
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        placeholder="e.g. Emma W."
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="rev-location" className="block text-xs font-semibold text-stone-700 mb-1">
+                        Town / City (Optional)
+                    </label>
+                    <input
+                        id="rev-location"
+                        maxLength={60}
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Enter your town or city"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="rev-product" className="block text-xs font-semibold text-stone-700 mb-1">
+                        Product Purchased (Optional)
+                    </label>
+                    <select
+                        id="rev-product"
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm bg-white"
+                    >
+                        <option value="">Select a product (Optional)</option>
+                        {products.map((p) => (
+                            <option key={p.id} value={p.name}>
+                                {p.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Star Selector */}
+            <div>
+                <span className="block text-xs font-semibold text-stone-700 mb-1.5">
+                    Star Rating *
+                </span>
+                <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Star rating">
+                    {[1, 2, 3, 4, 5].map((num) => (
+                        <button
+                            key={num}
+                            type="button"
+                            role="radio"
+                            aria-checked={rating === num}
+                            aria-label={`${num} Star${num > 1 ? 's' : ''}`}
+                            onClick={() => setRating(num)}
+                            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
+                        >
+                            <Star
+                                className={`w-7 h-7 transition-colors ${num <= rating ? 'text-amber-500 fill-current' : 'text-stone-300'
+                                    }`}
+                            />
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <label htmlFor="rev-comment" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Your Review *
+                </label>
+                <textarea
+                    id="rev-comment"
+                    required
+                    maxLength={1000}
+                    rows={3}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Tell others about the quality, comfort, or showroom experience..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
+                />
+            </div>
+
+            {/* Image Attachment Upload */}
+            <div>
+                <span className="block text-xs font-semibold text-stone-700 mb-2">
+                    Attach photos (optional, up to 3)
+                </span>
+                <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 hover:border-bronze bg-cream text-xs font-medium text-stone-700 cursor-pointer transition">
+                    <Upload className="w-4 h-4 text-bronze" aria-hidden="true" />
+                    Choose Image Files
+                    <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                    />
+                </label>
+
+                {uploadedImages.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-3">
+                        {uploadedImages.map((src, i) => (
+                            <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-stone-200">
+                                <img src={src} alt={`Upload preview ${i + 1}`} className="w-full h-full object-cover" />
+                                <button
+                                    type="button"
+                                    aria-label="Remove uploaded image"
+                                    onClick={() =>
+                                        setUploadedImages((prev) => prev.filter((_, idx) => idx !== i))
+                                    }
+                                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 cursor-pointer"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* UK GDPR Explicit Publication Consent */}
+            <label className="flex items-start gap-2.5 text-xs text-stone-600 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={gdprConsent}
+                    onChange={(e) => setGdprConsent(e.target.checked)}
+                    className="mt-0.5"
+                />
+                <span>
+                    I consent to SJ Home Interiors displaying my submitted name, town, review text, and uploaded photos publicly on this website in accordance with the Privacy Policy. *
+                </span>
+            </label>
+
+            <button
+                type="submit"
+                disabled={submitting}
+                className="px-7 py-3.5 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-sm font-semibold cursor-pointer"
+            >
+                {submitting ? 'Sending…' : 'Submit review'}
+            </button>
+        </form>
+    );
+
+    if (formOnly) {
+        return (
+            <div className="max-w-3xl mx-auto mt-5 text-left">
+                {thanksNote}
+                {showForm && reviewForm()}
+            </div>
+        );
+    }
+
     return (
         <section id="reviews" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-t border-stone-200">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
@@ -144,184 +347,10 @@ export default function ReviewsSection({
                 </div>
             </div>
 
-            {thanks && (
-                <div
-                    role="status"
-                    className="mb-8 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-900 flex items-center gap-2"
-                >
-                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-                    Thank you! Your review has been sent to our team and will appear once it has been
-                    checked.
-                </div>
-            )}
+            {thanksNote}
 
             {/* Add Review Form */}
-            {showForm && (
-                <form
-                    onSubmit={handleSubmit}
-                    className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-lg mb-10 space-y-5"
-                    noValidate
-                >
-                    <h3 className="font-serif text-2xl font-bold">Share Your Experience</h3>
-
-                    {errorMsg && (
-                        <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 shrink-0" />
-                            <span>{errorMsg}</span>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label htmlFor="rev-author" className="block text-xs font-semibold text-stone-700 mb-1">
-                                Display Name *
-                            </label>
-                            <input
-                                id="rev-author"
-                                required
-                                maxLength={60}
-                                type="text"
-                                value={author}
-                                onChange={(e) => setAuthor(e.target.value)}
-                                placeholder="e.g. Emma W."
-                                className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="rev-location" className="block text-xs font-semibold text-stone-700 mb-1">
-                                Town / City (Optional)
-                            </label>
-                            <input
-                                id="rev-location"
-                                maxLength={60}
-                                type="text"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                placeholder="Enter your town or city"
-                                className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="rev-product" className="block text-xs font-semibold text-stone-700 mb-1">
-                                Product Purchased (Optional)
-                            </label>
-                            <select
-                                id="rev-product"
-                                value={productName}
-                                onChange={(e) => setProductName(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm bg-white"
-                            >
-                                <option value="">Select a product (Optional)</option>
-                                {products.map((p) => (
-                                    <option key={p.id} value={p.name}>
-                                        {p.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Star Selector */}
-                    <div>
-                        <span className="block text-xs font-semibold text-stone-700 mb-1.5">
-                            Star Rating *
-                        </span>
-                        <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Star rating">
-                            {[1, 2, 3, 4, 5].map((num) => (
-                                <button
-                                    key={num}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={rating === num}
-                                    aria-label={`${num} Star${num > 1 ? 's' : ''}`}
-                                    onClick={() => setRating(num)}
-                                    className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
-                                >
-                                    <Star
-                                        className={`w-7 h-7 transition-colors ${num <= rating ? 'text-amber-500 fill-current' : 'text-stone-300'
-                                            }`}
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="rev-comment" className="block text-xs font-semibold text-stone-700 mb-1">
-                            Your Review *
-                        </label>
-                        <textarea
-                            id="rev-comment"
-                            required
-                            maxLength={1000}
-                            rows={3}
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder="Tell others about the quality, comfort, or showroom experience..."
-                            className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-base sm:text-sm"
-                        />
-                    </div>
-
-                    {/* Image Attachment Upload */}
-                    <div>
-                        <span className="block text-xs font-semibold text-stone-700 mb-2">
-                            Attach photos (optional, up to 3)
-                        </span>
-                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 hover:border-bronze bg-cream text-xs font-medium text-stone-700 cursor-pointer transition">
-                            <Upload className="w-4 h-4 text-bronze" aria-hidden="true" />
-                            Choose Image Files
-                            <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                multiple
-                                onChange={handleImageUpload}
-                                className="hidden"
-                            />
-                        </label>
-
-                        {uploadedImages.length > 0 && (
-                            <div className="flex flex-wrap gap-3 mt-3">
-                                {uploadedImages.map((src, i) => (
-                                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-stone-200">
-                                        <img src={src} alt={`Upload preview ${i + 1}`} className="w-full h-full object-cover" />
-                                        <button
-                                            type="button"
-                                            aria-label="Remove uploaded image"
-                                            onClick={() =>
-                                                setUploadedImages((prev) => prev.filter((_, idx) => idx !== i))
-                                            }
-                                            className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 cursor-pointer"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* UK GDPR Explicit Publication Consent */}
-                    <label className="flex items-start gap-2.5 text-xs text-stone-600 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={gdprConsent}
-                            onChange={(e) => setGdprConsent(e.target.checked)}
-                            className="mt-0.5"
-                        />
-                        <span>
-                            I consent to SJ Home Interiors displaying my submitted name, town, review text, and uploaded photos publicly on this website in accordance with the Privacy Policy. *
-                        </span>
-                    </label>
-
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-7 py-3.5 rounded-full bg-ink hover:bg-bronze-strong disabled:bg-stone-400 text-white text-sm font-semibold cursor-pointer"
-                    >
-                        {submitting ? 'Sending…' : 'Submit review'}
-                    </button>
-                </form>
-            )}
+            {showForm && reviewForm()}
 
             {visibleReviews.length === 0 && !showForm && (
                 <p className="text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl p-6 max-w-xl">

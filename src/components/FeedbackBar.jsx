@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { MessageSquare, CheckCircle2, X } from 'lucide-react';
+import { MessageSquare, CheckCircle2, X, Star } from 'lucide-react';
 import { api } from '../utils/api';
 
-export default function FeedbackBar() {
+/**
+ * Strip at the very bottom of the page: website feedback, plus "Write a review" when
+ * the home page reviews list is switched off (renderReviewForm is then passed in).
+ */
+export default function FeedbackBar({ renderReviewForm }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [reviewOpen, setReviewOpen] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [feedbackText, setFeedbackText] = useState('');
     const [experienceRating, setExperienceRating] = useState('Great');
@@ -33,7 +38,7 @@ export default function FeedbackBar() {
     };
 
     return (
-        <div className="bg-sand border-t border-stone-300/80 py-6 px-4 mt-16">
+        <div className="bg-sand border-t border-stone-300/80 py-6 px-4">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-full bg-white text-bronze-deep shadow-2xs">
@@ -44,13 +49,36 @@ export default function FeedbackBar() {
                     </p>
                 </div>
 
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="press min-h-11 px-6 rounded-full bg-white hover:bg-ink hover:text-white text-ink border border-stone-300 text-sm font-semibold shadow-2xs"
-                >
-                    Leave feedback
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    {renderReviewForm && (
+                        <button
+                            type="button"
+                            aria-expanded={reviewOpen}
+                            onClick={() => {
+                                setReviewOpen(!reviewOpen);
+                                setIsOpen(false);
+                            }}
+                            className="press min-h-11 px-6 rounded-full bg-ink hover:bg-bronze-strong text-white text-sm font-semibold shadow-2xs flex items-center gap-2"
+                        >
+                            <Star className="w-4 h-4" aria-hidden="true" />
+                            Write a review
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => {
+                            setIsOpen(!isOpen);
+                            setReviewOpen(false);
+                        }}
+                        className="press min-h-11 px-6 rounded-full bg-white hover:bg-ink hover:text-white text-ink border border-stone-300 text-sm font-semibold shadow-2xs"
+                    >
+                        Leave feedback
+                    </button>
+                </div>
             </div>
+
+            {renderReviewForm && reviewOpen && renderReviewForm(() => setReviewOpen(false))}
 
             {isOpen && (
                 <div className="max-w-xl mx-auto mt-5 bg-white p-6 rounded-2xl border border-stone-200 shadow-lg">

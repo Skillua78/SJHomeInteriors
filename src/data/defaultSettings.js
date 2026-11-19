@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS = {
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
     showAssemblyHighlight: true,
+    showHomeReviews: true,
     assemblyTitle: 'Two-Person Delivery & Assembly',
     assemblySubtitle: 'Free local delivery · assembly available',
     defaultDeliveryFee: 50,

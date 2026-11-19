@@ -474,14 +474,16 @@ export default function App() {
                             )}
                         </section>
 
-                        <ReviewsSection
-                            reviews={reviews}
-                            stats={reviewStats}
-                            onAddReview={handleAddReview}
-                            products={catalog.items}
-                            currentUser={currentUser}
-                            onOpenAdmin={openAdmin}
-                        />
+                        {siteSettings.showHomeReviews !== false && (
+                            <ReviewsSection
+                                reviews={reviews}
+                                stats={reviewStats}
+                                onAddReview={handleAddReview}
+                                products={catalog.items}
+                                currentUser={currentUser}
+                                onOpenAdmin={openAdmin}
+                            />
+                        )}
                     </>
                 )}
 
@@ -528,8 +530,6 @@ export default function App() {
                 )}
             </main>
 
-            <FeedbackBar />
-
             <Footer
                 onSelectCategory={handleSelectCategory}
                 onNavigate={navigate}
@@ -538,6 +538,23 @@ export default function App() {
                 currentUser={currentUser}
                 siteSettings={siteSettings}
                 availableCategories={categoryNames}
+            />
+
+            <FeedbackBar
+                renderReviewForm={
+                    siteSettings.showHomeReviews === false
+                        ? (close) => (
+                              <ReviewsSection
+                                  variant="form"
+                                  onClose={close}
+                                  reviews={[]}
+                                  onAddReview={handleAddReview}
+                                  products={catalog.items}
+                                  currentUser={currentUser}
+                              />
+                          )
+                        : undefined
+                }
             />
 
             <ProductModal

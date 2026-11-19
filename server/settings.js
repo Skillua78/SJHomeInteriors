@@ -29,6 +29,7 @@ export const DEFAULT_SITE_SETTINGS = {
     catalogSubtitle: 'Showroom & Online Collection',
     catalogTitle: 'Explore Our Furniture',
     showAssemblyHighlight: true,
+    showHomeReviews: true,
     assemblyTitle: 'Two-Person Delivery & Assembly',
     assemblySubtitle: 'Free local delivery · assembly available',
     // Delivery: free within freeDeliveryMiles of storePostcode, otherwise defaultDeliveryFee.
@@ -221,6 +222,7 @@ export async function sanitizeSettings(env, body) {
         catalogSubtitle: text(body, 'catalogSubtitle', 80),
         catalogTitle: text(body, 'catalogTitle', 100),
         showAssemblyHighlight: bool(body.showAssemblyHighlight, true),
+        showHomeReviews: bool(body.showHomeReviews, true),
         assemblyTitle: text(body, 'assemblyTitle', 80),
         assemblySubtitle: text(body, 'assemblySubtitle', 80),
         defaultDeliveryFee: money(fee, DEFAULT_SITE_SETTINGS.defaultDeliveryFee),
