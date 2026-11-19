@@ -9,6 +9,7 @@ import PhotosStep from './PhotosStep';
 import VariationsStep from './VariationsStep';
 import DimensionsStep from './DimensionsStep';
 import AiImportModal from './AiImportModal';
+import { runBulkImport } from './bulkImport';
 
 const STEPS = [
     { id: 'basics', label: 'Essentials', icon: FileText },
@@ -22,11 +23,13 @@ const STEPS = [
  * component and all conversion to the API shape lives in productFormModel.
  *
  * @param target  { product, duplicate } to load into the form, or null for a blank form
- * @param onSave  async (payload, originalProduct|null) => void  (throws on failure)
+ * @param onSave  async (payload, originalProduct|null, { quiet }) => void  (throws on failure)
+ * @param onImported called once after a bulk import so the lists refresh
  */
 export default function ProductEditor({
     target,
     onSave,
+    onImported,
     onDone,
     siteSettings,
     saveSettings,
@@ -296,41 +299,35 @@ export default function ProductEditor({
                             : `Loaded “${product.name}”. Check each step, add photos, then press Add product.`
                     );
                 }}
-                onSaveAll={async (products, additions) => {
+                onSaveAll={async (products, additions, onProgress) => {
                     await library.registerImported(additions);
                     setError('');
-                    let created = 0;
-                    let updated = 0;
-                    let hidden = 0;
-                    for (const product of products) {
-                        // eslint-disable-next-line no-await-in-loop
-                        const existing = await findExisting(product.id);
-                        const converted = formToPayload(productToForm(product), existing ? product.id : null);
-                        // New products keep the file's id (when free), so importing the same file
-                        // again after a failure updates them instead of adding duplicates.
-                        if (converted.ok && !existing && product.id) converted.payload.id = product.id;
-                        const done = created + updated;
-                        if (!converted.ok) {
-                            throw new Error(
-                                `Imported ${done} of ${products.length}. Stopped at “${product.name}”: ${converted.error}`
-                            );
-                        }
+                    // One request tells us which products already exist, instead of one per product.
+                    let existingById = new Map();
+                    if (products.some((p) => p.id)) {
+                        onProgress?.('Checking which products are already in the shop…');
                         try {
-                            // eslint-disable-next-line no-await-in-loop
-                            await onSave(converted.payload, existing);
-                        } catch (err) {
-                            throw new Error(
-                                `Imported ${done} of ${products.length}. Stopped at “${product.name}”: ${err.message}${
-                                    products.some((p) => p.id)
-                                        ? ' Fix the problem and import the same file again: products already added will be updated, not duplicated.'
-                                        : ''
-                                }`
-                            );
+                            const { products: current } = await api.exportProducts();
+                            existingById = new Map(current.map((p) => [p.id, p]));
+                        } catch {
+                            // Could not list them: check each product on its own instead (slower).
+                            existingById = null;
                         }
-                        if (existing) updated += 1;
-                        else created += 1;
-                        if (converted.payload.isHidden) hidden += 1;
                     }
+                    let result;
+                    try {
+                        result = await runBulkImport({
+                            products,
+                            existingById,
+                            save: (payload, existing) => onSave(payload, existing, { quiet: true }),
+                            findExisting,
+                            onProgress,
+                        });
+                    } finally {
+                        // Refresh the lists once, whether the import finished or stopped part way.
+                        onImported?.();
+                    }
+                    const { created, updated, hidden } = result;
                     const parts = [];
                     if (created) parts.push(`added ${created}`);
                     if (updated) parts.push(`updated ${updated}`);

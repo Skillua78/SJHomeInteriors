@@ -31,7 +31,8 @@ export function describeNonJsonError(status, text = '') {
     let reason = code && CLOUDFLARE_ERRORS[code];
     if (!reason) {
         if (status === 413) reason = 'the request was too large';
-        else if (status === 403 || status === 429 || /cf-challenge|challenge-platform|Just a moment/i.test(text))
+        else if (status === 429) reason = CLOUDFLARE_ERRORS[1015];
+        else if (status === 403 || /cf-challenge|challenge-platform|Just a moment/i.test(text))
             reason = 'Cloudflare security blocked or challenged the request';
         else if (status === 401) reason = 'you are not signed in';
         else if (status >= 500) reason = 'Cloudflare could not get an answer from the shop server';
@@ -39,6 +40,16 @@ export function describeNonJsonError(status, text = '') {
     }
     const ref = code ? `HTTP ${status}, Cloudflare error ${code}` : `HTTP ${status}`;
     return `The server did not answer properly: ${reason} (${ref}).`;
+}
+
+/** Seconds from a Retry-After header (number or HTTP date), or null. */
+function retryAfterSeconds(res) {
+    const raw = res.headers.get('Retry-After');
+    if (!raw) return null;
+    const seconds = Number(raw);
+    if (Number.isFinite(seconds)) return Math.max(0, seconds);
+    const at = Date.parse(raw);
+    return Number.isFinite(at) ? Math.max(0, Math.round((at - Date.now()) / 1000)) : null;
 }
 
 /** True when the API itself is unreachable (e.g. `vite dev` without Functions). */
@@ -66,12 +77,18 @@ async function request(path, { method = 'GET', body, fresh = false } = {}) {
         if (res.ok) throw new ApiError('The shop API is not available.', 0);
         // Otherwise Cloudflare answered with its own error page before our code could reply.
         const text = await res.text().catch(() => '');
-        throw new ApiError(describeNonJsonError(res.status, text), res.status, { cloudflare: true });
+        throw new ApiError(describeNonJsonError(res.status, text), res.status, {
+            cloudflare: true,
+            retryAfter: retryAfterSeconds(res),
+        });
     }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new ApiError(data.error || 'Something went wrong. Please try again.', res.status, data);
+        throw new ApiError(data.error || 'Something went wrong. Please try again.', res.status, {
+            ...data,
+            retryAfter: retryAfterSeconds(res),
+        });
     }
     return data;
 }

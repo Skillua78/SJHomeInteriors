@@ -28,17 +28,18 @@ export function useAdminCatalog(onChanged) {
 
     /** Create or update. Throws so the editor can show the error next to the form. */
     const saveProduct = useCallback(
-        async (payload, original) => {
+        /** @param quiet bulk import: skip the per-product message and list refresh (call refresh() once after). */
+        async (payload, original, { quiet = false } = {}) => {
             if (original) {
                 await api.updateProduct(payload);
                 pushUndo({ type: 'update', label: `edit of ${original.name}`, previous: original });
-                ok(`Saved “${payload.name}”.`);
+                if (!quiet) ok(`Saved “${payload.name}”.`);
             } else {
                 const { id } = await api.addProduct(payload);
                 pushUndo({ type: 'add', label: `adding ${payload.name}`, id });
-                ok(`Added “${payload.name}” to the catalogue.`);
+                if (!quiet) ok(`Added “${payload.name}” to the catalogue.`);
             }
-            onChanged();
+            if (!quiet) onChanged();
         },
         [onChanged]
     );
@@ -113,6 +114,7 @@ export function useAdminCatalog(onChanged) {
 
     return {
         saveProduct,
+        refresh: onChanged,
         deleteProduct,
         setStock,
         setHidden,

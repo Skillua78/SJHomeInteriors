@@ -16,6 +16,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
+    const [progress, setProgress] = useState('');
     const [hideAll, setHideAll] = useState(false);
 
     const prompt = useMemo(
@@ -64,14 +65,16 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
         }
         setBusy(true);
         setError('');
+        setProgress('');
         try {
-            await action(result);
+            await action(result, setProgress);
             setJsonText('');
             onClose();
         } catch (err) {
             setError(err.message || 'The import could not be completed.');
         } finally {
             setBusy(false);
+            setProgress('');
         }
     };
 
@@ -220,6 +223,16 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                     </div>
                 )}
 
+                {busy && progress && (
+                    <p
+                        role="status"
+                        className="p-3 rounded-xl bg-cream border border-stone-200 text-sm text-stone-700 flex items-center gap-2"
+                    >
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0 text-bronze" aria-hidden="true" />
+                        {progress} Keep this window open until it finishes.
+                    </p>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
                     <button
                         type="button"
@@ -232,7 +245,7 @@ export default function AiImportModal({ isOpen, onClose, library, onLoadIntoEdit
                     </button>
                     <button
                         type="button"
-                        onClick={() => run((r) => onSaveAll(r.products, r.additions))}
+                        onClick={() => run((r, report) => onSaveAll(r.products, r.additions, report))}
                         disabled={busy || !preview?.ok}
                         className="py-3 px-4 rounded-2xl bg-ink hover:bg-bronze-strong text-white text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-md disabled:bg-stone-400 disabled:cursor-not-allowed"
                     >

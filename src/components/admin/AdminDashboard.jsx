@@ -209,6 +209,7 @@ export default function AdminDashboard({
                             <ProductEditor
                                 target={target}
                                 onSave={catalog.saveProduct}
+                                onImported={catalog.refresh}
                                 onDone={() => setTarget(null)}
                                 siteSettings={siteSettings}
                                 saveSettings={onSaveSiteSettings}
